@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, AreaChart, Area, Cell
-} from 'recharts';
+// Removendo imports de gráficos que não serão mais usados para limpar o código
 import { 
   LayoutDashboard, Wallet, Handshake, Car, Gavel, Upload, FileText, TrendingUp, TrendingDown, 
   Calendar, Menu, HardDrive, Loader2, ShieldAlert, Building2, Target, Table, Clock, Info, 
-  Cloud, CloudLightning, CheckCircle2
+  Cloud, CloudLightning, CheckCircle2, X
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -13,7 +11,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInAnonymously } from "firebase/auth";
 
-const SYSTEM_VERSION = "v4.0 - Visual Garantido (CSS Puro)";
+const SYSTEM_VERSION = "v4.4 - Visual Limpo (Sem Gráfico)";
 
 // --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
@@ -26,21 +24,96 @@ const firebaseConfig = {
   measurementId: "G-TRF59EY4H9"
 };
 
+// --- HOOK PARA DETECTAR MOBILE ---
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  return isMobile;
+};
+
 // --- ESTILOS GLOBAIS E UTILITÁRIOS ---
-const styles = {
-  container: { fontFamily: 'system-ui, -apple-system, sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh', display: 'flex', color: '#1e293b' },
-  sidebar: { width: '280px', backgroundColor: '#004990', color: 'white', display: 'flex', flexDirection: 'column', position: 'fixed', height: '100%', zIndex: 10, boxShadow: '4px 0 24px rgba(0,0,0,0.1)', transition: 'all 0.3s ease' },
-  sidebarCollapsed: { width: '80px' },
-  main: { flex: 1, marginLeft: '280px', transition: 'margin-left 0.3s ease', display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' },
-  mainCollapsed: { marginLeft: '80px' },
-  header: { padding: '24px 32px', backgroundColor: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 20 },
-  content: { padding: '32px', overflowY: 'auto', flex: 1 },
-  card: { backgroundColor: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', border: '1px solid #f1f5f9' },
-  heroCard: { borderRadius: '16px', padding: '32px', color: 'white', position: 'relative', overflow: 'hidden', textAlign: 'center', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' },
-  grid3: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '32px' },
+const getStyles = (isMobile, sidebarOpen) => ({
+  container: { 
+    fontFamily: 'system-ui, -apple-system, sans-serif', 
+    backgroundColor: '#f8fafc', 
+    minHeight: '100vh', 
+    display: 'flex', 
+    color: '#1e293b',
+    overflowX: 'hidden' 
+  },
+  sidebar: { 
+    width: isMobile ? '280px' : (sidebarOpen ? '280px' : '80px'),
+    backgroundColor: '#004990', 
+    color: 'white', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    position: 'fixed', 
+    height: '100%', 
+    zIndex: 50, 
+    boxShadow: '4px 0 24px rgba(0,0,0,0.1)', 
+    transition: 'transform 0.3s ease, width 0.3s ease',
+    transform: isMobile ? (sidebarOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none',
+  },
+  overlay: {
+    display: isMobile && sidebarOpen ? 'block' : 'none',
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 40
+  },
+  main: { 
+    flex: 1, 
+    marginLeft: isMobile ? '0' : (sidebarOpen ? '280px' : '80px'), 
+    transition: 'margin-left 0.3s ease', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    minHeight: '100vh',
+    width: '100%'
+  },
+  header: { 
+    padding: isMobile ? '16px' : '24px 32px', 
+    backgroundColor: 'white', 
+    borderBottom: '1px solid #e2e8f0', 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    position: 'sticky', 
+    top: 0, 
+    zIndex: 30 
+  },
+  content: { 
+    padding: isMobile ? '16px' : '32px', 
+    overflowY: 'auto', 
+    flex: 1 
+  },
+  card: { 
+    backgroundColor: 'white', 
+    borderRadius: '16px', 
+    padding: isMobile ? '20px' : '24px', 
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', 
+    border: '1px solid #f1f5f9' 
+  },
+  grid3: { 
+    display: 'grid', 
+    gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', 
+    gap: '24px', 
+    marginBottom: '32px' 
+  },
+  heroCard: { 
+    borderRadius: '16px', 
+    padding: isMobile ? '24px' : '32px', 
+    color: 'white', 
+    position: 'relative', 
+    overflow: 'hidden', 
+    textAlign: 'center', 
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+    marginBottom: '32px'
+  },
   flexCenter: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
   flexBetween: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-};
+});
 
 // --- CORES ---
 const COLORS = {
@@ -146,25 +219,25 @@ const calculateComparatives = (productName, data, dates) => {
 
 // --- COMPONENTES VISUAIS ---
 
-const HeroCard = ({ value, title, subtext, type, theme }) => (
-    <div style={{ ...styles.heroCard, background: `linear-gradient(135deg, ${theme.main} 0%, ${theme.main}DD 100%)`, marginBottom: '32px' }}>
+const HeroCard = ({ value, title, subtext, type, theme, isMobile }) => (
+    <div style={{ ...getStyles(isMobile).heroCard, background: `linear-gradient(135deg, ${theme.main} 0%, ${theme.main}DD 100%)` }}>
         <div style={{ position: 'absolute', top: '-40px', right: '-40px', opacity: 0.1, transform: 'rotate(15deg)' }}><theme.icon size={200} /></div>
         <div style={{ position: 'relative', zIndex: 10 }}>
-            <p style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '8px', color: '#e0f2fe' }}>{title}</p>
-            <h2 style={{ fontSize: '48px', fontWeight: 'bold', margin: '0 0 16px 0' }}>{type === 'currency' ? formatCurrency(value) : formatNumber(value)}</h2>
-            {subtext && <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(255,255,255,0.2)', padding: '6px 16px', borderRadius: '999px', fontSize: '14px' }}><Calendar size={14} />{subtext}</div>}
+            <p style={{ fontSize: isMobile ? '12px' : '14px', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '8px', color: '#e0f2fe' }}>{title}</p>
+            <h2 style={{ fontSize: isMobile ? '36px' : '48px', fontWeight: 'bold', margin: '0 0 16px 0' }}>{type === 'currency' ? formatCurrency(value) : formatNumber(value)}</h2>
+            {subtext && <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(255,255,255,0.2)', padding: '6px 16px', borderRadius: '999px', fontSize: isMobile ? '12px' : '14px' }}><Calendar size={14} />{subtext}</div>}
         </div>
     </div>
 );
 
-const ComparisonCard = ({ title, comparisonValue, currentValue, type, theme, daysWorked }) => {
+const ComparisonCard = ({ title, comparisonValue, currentValue, type, theme, daysWorked, isMobile }) => {
     const isPositive = currentValue >= comparisonValue;
     const diff = comparisonValue > 0 ? ((currentValue - comparisonValue) / comparisonValue) * 100 : 0;
     return (
-        <div style={{ ...styles.card, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div style={{ ...getStyles(isMobile).card, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', backgroundColor: theme.main }}></div>
             <div>
-                <div style={styles.flexBetween}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <p style={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>{title}</p>
                     <div title={`Comparativo Mesmo Período: Dados referentes ao Dia Útil ${daysWorked} de cada mês.`} style={{ cursor: 'help' }}><Info size={16} color="#60a5fa" /></div>
                 </div>
@@ -179,49 +252,18 @@ const ComparisonCard = ({ title, comparisonValue, currentValue, type, theme, day
     );
 };
 
-const ChartSection = ({ productName, data, dates, type }) => {
+const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, isMobile }) => {
     const productData = data.products[productName] || [];
-    const chartData = dates.map(date => {
-        const items = productData.filter(d => d.data === date);
-        let entry = { name: formatMonth(date), total: items.reduce((acc, curr) => acc + curr.valor, 0) };
-        items.forEach(item => entry[item.faixa] = item.valor);
-        return entry;
-    });
-
-    return (
-        <div style={{ ...styles.card, height: '450px', marginTop: '32px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1e293b', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}><BarChart size={20} color="#94a3b8"/> Evolução por Faixa de Atraso</h3>
-            <ResponsiveContainer width="100%" height="90%">
-                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => type === 'currency' ? `${val/1000}k` : formatNumber(val)} tick={{fill: '#64748b', fontSize: 12}} />
-                    <RechartsTooltip formatter={(val) => type === 'currency' ? formatCurrency(val) : formatNumber(val)} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} cursor={{fill: '#f8fafc'}} />
-                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }}/>
-                    <Bar dataKey="ENTRANTES" stackId="a" fill={COLORS.faixas['ENTRANTES']} name="Entrantes" radius={[0,0,0,0]} />
-                    <Bar dataKey="ATÉ 90 DIAS" stackId="a" fill={COLORS.faixas['ATÉ 90 DIAS']} name="Até 90 Dias" />
-                    <Bar dataKey="91 A 180 DIAS" stackId="a" fill={COLORS.faixas['91 A 180 DIAS']} name="91-180 Dias" />
-                    <Bar dataKey="OVER 180 DIAS" stackId="a" fill={COLORS.faixas['OVER 180 DIAS']} name="Over 180" />
-                    <Bar dataKey="PREJUÍZO" stackId="a" fill={COLORS.faixas['PREJUÍZO']} name="Prejuízo" radius={[4,4,0,0]} />
-                </BarChart>
-            </ResponsiveContainer>
-        </div>
-    );
-};
-
-const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme }) => {
-    const productData = data.products[productName] || [];
+    const formatter = type === 'currency' ? formatCurrency : formatNumber;
     const tableData = dates.map(date => {
         const items = productData.filter(d => d.data === date);
         return { date: formatMonth(date), total: items.reduce((acc, curr) => acc + curr.valor, 0), rawDate: date };
     }).reverse();
 
     return (
-        <div style={{ ...styles.card, padding: 0, marginTop: '32px', overflow: 'hidden' }}>
+        <div style={{ ...getStyles(isMobile).card, padding: 0, marginTop: '32px', overflow: 'hidden' }}>
             <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Table size={16} color={theme.main}/> Visão Analítica - Evolução Dia Útil {daysWorked}
-                </h3>
+                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}><Table size={16} style={{ color: theme.main }}/> Visão Analítica - Evolução Dia Útil {daysWorked}</h3>
             </div>
             <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
@@ -234,12 +276,8 @@ const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme }) 
                     <tbody>
                         {tableData.map((row, index) => (
                             <tr key={row.rawDate} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: index === 0 ? '#eff6ff' : 'white' }}>
-                                <td style={{ padding: '16px', fontWeight: '500', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    {row.date} {index === 0 && <span style={{ backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '10px', padding: '2px 8px', borderRadius: '999px', fontWeight: 'bold' }}>ATUAL</span>}
-                                </td>
-                                <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: index === 0 ? theme.main : '#334155' }}>
-                                    {type === 'currency' ? formatCurrency(row.total) : formatNumber(row.total)}
-                                </td>
+                                <td style={{ padding: '16px', fontWeight: '500', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>{row.date} {index === 0 && <span style={{ backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '10px', padding: '2px 8px', borderRadius: '999px', fontWeight: 'bold' }}>ATUAL</span>}</td>
+                                <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: index === 0 ? theme.main : '#334155' }}>{type === 'currency' ? formatCurrency(row.total) : formatNumber(row.total)}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -249,29 +287,31 @@ const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme }) 
     );
 };
 
-const ProductExecutiveView = ({ productName, data, dates, daysWorked, totalDays, theme }) => {
+const ProductExecutiveView = ({ productName, data, dates, daysWorked, totalDays, theme, isMobile }) => {
     const metricType = productName !== 'CONTENÇÃO' ? 'currency' : 'number';
     const comps = calculateComparatives(productName, data, dates);
+    const styles = getStyles(isMobile);
 
     return (
         <div style={{ maxWidth: '1024px', margin: '0 auto', animation: 'fadeIn 0.5s ease-in' }}>
-            <HeroCard title={`Realizado Mês Atual (Dia Útil ${daysWorked})`} value={comps.current} subtext={`Ref: ${formatMonth(comps.dates.current)}`} type={metricType} theme={theme} />
+            <HeroCard title={`Realizado Mês Atual (Dia Útil ${daysWorked})`} value={comps.current} subtext={`Ref: ${formatMonth(comps.dates.current)}`} type={metricType} theme={theme} isMobile={isMobile} />
             <div style={styles.grid3}>
-                <ComparisonCard title="vs Mês Anterior" comparisonValue={comps.prev} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} />
-                <ComparisonCard title="vs Média 3 Meses" comparisonValue={comps.avg3} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} />
-                <ComparisonCard title="vs Média 6 Meses" comparisonValue={comps.avg6} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} />
+                <ComparisonCard title="vs Mês Anterior" comparisonValue={comps.prev} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
+                <ComparisonCard title="vs Média 3 Meses" comparisonValue={comps.avg3} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
+                <ComparisonCard title="vs Média 6 Meses" comparisonValue={comps.avg6} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
             </div>
-            <ChartSection productName={productName} data={data} dates={dates} type={metricType} />
-            <AnalyticalTable productName={productName} data={data} dates={dates} daysWorked={daysWorked} type={metricType} theme={theme} />
+            {/* GRÁFICO REMOVIDO DAQUI */}
+            <AnalyticalTable productName={productName} data={data} dates={dates} daysWorked={daysWorked} type={metricType} theme={theme} isMobile={isMobile} />
         </div>
     );
 };
 
-const FileUploader = ({ onDataSaved }) => {
+const FileUploader = ({ onDataSaved, isMobile }) => {
     const [status, setStatus] = useState('idle');
     const fileRef = useRef(null);
     const auth = getAuth();
     const db = getFirestore();
+    const styles = getStyles(isMobile);
 
     const handleProcess = async (file) => {
         setStatus('processing');
@@ -287,27 +327,16 @@ const FileUploader = ({ onDataSaved }) => {
                 setTimeout(() => setStatus('idle'), 3000);
             };
             reader.readAsText(file, 'UTF-8');
-        } catch (e) {
-            console.error(e);
-            setStatus('idle');
-            alert('Erro ao processar');
-        }
+        } catch (e) { console.error(e); setStatus('idle'); alert('Erro ao processar'); }
     };
 
     return (
         <div style={{ ...styles.card, textAlign: 'center', maxWidth: '600px', margin: '40px auto' }}>
-            <div style={{ width: '80px', height: '80px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto' }}>
-                <CloudLightning size={40} color="#004990" />
-            </div>
+            <div style={{ width: '80px', height: '80px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto' }}><CloudLightning size={40} color="#004990" /></div>
             <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>Central Cloud</h2>
             <p style={{ color: '#64748b', marginBottom: '32px' }}>Sincronize o CSV para a diretoria.</p>
             <input type="file" ref={fileRef} onChange={(e) => handleProcess(e.target.files[0])} accept=".csv,.txt" style={{ display: 'none' }} />
-            <div 
-                onClick={() => fileRef.current.click()} 
-                style={{ border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '40px', cursor: 'pointer', backgroundColor: '#f8fafc', transition: 'all 0.2s ease' }}
-                onMouseOver={(e) => { e.currentTarget.style.borderColor = '#004990'; e.currentTarget.style.backgroundColor = '#eff6ff'; }}
-                onMouseOut={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.backgroundColor = '#f8fafc'; }}
-            >
+            <div onClick={() => fileRef.current.click()} style={{ border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '40px', cursor: 'pointer', backgroundColor: '#f8fafc', transition: 'all 0.2s ease' }}>
                 <HardDrive size={48} color="#94a3b8" style={{ margin: '0 auto 16px auto', display: 'block' }} />
                 <span style={{ fontWeight: 'bold', color: '#475569' }}>Clique para Carregar CSV</span>
             </div>
@@ -322,9 +351,12 @@ const App = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isMobile = useIsMobile();
+  const styles = getStyles(isMobile, sidebarOpen);
   const currentTheme = COLORS.themes[activeTab] || COLORS.themes['CASH'];
 
   useEffect(() => {
+    if (isMobile) setSidebarOpen(false); // Fecha sidebar ao carregar no mobile
     const init = async () => {
         try {
             const app = initializeApp(firebaseConfig);
@@ -338,7 +370,7 @@ const App = () => {
         } catch (e) { console.error(e); setData(parseCustomCSV(INITIAL_CSV_DATA)); setLoading(false); }
     };
     init();
-  }, []);
+  }, [isMobile]);
 
   const menu = [
     { id: 'CASH', label: 'Cash (Recuperação)', icon: Wallet },
@@ -354,13 +386,17 @@ const App = () => {
 
   return (
     <div style={styles.container}>
-      <aside style={{ ...styles.sidebar, ...(sidebarOpen ? {} : styles.sidebarCollapsed) }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center' }}>
+      {/* Overlay para Mobile */}
+      <div style={styles.overlay} onClick={() => setSidebarOpen(false)} />
+
+      <aside style={styles.sidebar}>
+        <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', position: 'relative' }}>
             {sidebarOpen ? <div style={styles.flexCenter}><div style={{ width: '40px', height: '40px', backgroundColor: 'white', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#004990', marginRight: '12px' }}><Building2 size={24} /></div><div><span style={{ fontWeight: 'bold', fontSize: '18px', display: 'block' }}>OCL</span><span style={{ fontSize: '10px', color: '#93c5fd', textTransform: 'uppercase' }}>Advogados</span></div></div> : <Building2 size={24} />}
+            {isMobile && sidebarOpen && <button onClick={() => setSidebarOpen(false)} style={{ position: 'absolute', right: '10px', top: '10px', background: 'none', border: 'none', color: 'white' }}><X size={24} /></button>}
         </div>
         <nav style={{ flex: 1, padding: '16px', overflowY: 'auto' }}>
             {menu.map((item) => (
-                <button key={item.id} onClick={() => setActiveTab(item.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '14px 16px', borderRadius: '12px', border: 'none', background: activeTab === item.id ? 'white' : 'transparent', color: activeTab === item.id ? '#004990' : '#bfdbfe', cursor: 'pointer', marginBottom: '8px', transition: 'all 0.2s', marginTop: item.spacing ? '24px' : '0' }}>
+                <button key={item.id} onClick={() => { setActiveTab(item.id); if(isMobile) setSidebarOpen(false); }} style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '14px 16px', borderRadius: '12px', border: 'none', background: activeTab === item.id ? 'white' : 'transparent', color: activeTab === item.id ? '#004990' : '#bfdbfe', cursor: 'pointer', marginBottom: '8px', transition: 'all 0.2s', marginTop: item.spacing ? '24px' : '0' }}>
                     <item.icon size={20} style={{ minWidth: '20px' }} />
                     {sidebarOpen && <span style={{ marginLeft: '12px', fontWeight: '500' }}>{item.label}</span>}
                 </button>
@@ -369,21 +405,17 @@ const App = () => {
         <div style={{ padding: '16px', textAlign: 'center', fontSize: '10px', color: 'rgba(255,255,255,0.4)', borderTop: '1px solid rgba(255,255,255,0.1)' }}>{sidebarOpen && <p>{SYSTEM_VERSION}</p>}</div>
       </aside>
 
-      <main style={{ ...styles.main, ...(sidebarOpen ? {} : styles.mainCollapsed) }}>
+      <main style={styles.main}>
         <header style={styles.header}>
             <div style={styles.flexCenter}>
                 <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ padding: '8px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', marginRight: '16px' }}><Menu size={20} color="#475569" /></button>
-                <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTheme.main, marginRight: '12px' }}><currentTheme.icon size={24} /></div>
-                <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{menu.find(i => i.id === activeTab)?.label}</h1>
-                {data && <div style={{ marginLeft: '24px', fontSize: '14px', color: '#64748b', display: 'flex', gap: '16px' }}><span style={styles.flexCenter}><Calendar size={14} style={{ marginRight: '4px' }}/> Ref: {formatMonth(data.dates[data.dates.length -1])}</span><span style={{ ...styles.flexCenter, backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', color: '#334155' }}><Clock size={14} style={{ marginRight: '4px' }}/> Dia Útil {data.daysWorked}/{data.totalDays}</span></div>}
+                {!isMobile && <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTheme.main, marginRight: '12px' }}><currentTheme.icon size={24} /></div>}
+                <h1 style={{ fontSize: isMobile ? '18px' : '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{menu.find(i => i.id === activeTab)?.label}</h1>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', backgroundColor: '#f0fdf4', borderRadius: '99px', border: '1px solid #dcfce7' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e' }}></div>
-                <span style={{ fontSize: '12px', fontWeight: '600', color: '#15803d' }}>Online</span>
-            </div>
+            {data && !isMobile && <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: '#64748b' }}><span style={styles.flexCenter}><Calendar size={14} style={{ marginRight: '4px' }}/> {formatMonth(data.dates[data.dates.length -1])}</span><span style={{ ...styles.flexCenter, backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', color: '#334155' }}><Clock size={14} style={{ marginRight: '4px' }}/> {data.daysWorked}/{data.totalDays}</span></div>}
         </header>
         <div style={styles.content}>
-            {activeTab === 'gestao' ? <FileUploader onDataSaved={setData} /> : <ProductExecutiveView productName={activeTab} data={data} dates={data.dates} daysWorked={data.daysWorked} totalDays={data.totalDays} theme={currentTheme} />}
+            {activeTab === 'gestao' ? <FileUploader onDataSaved={setData} isMobile={isMobile} /> : <ProductExecutiveView productName={activeTab} data={data} dates={data.dates} daysWorked={data.daysWorked} totalDays={data.totalDays} theme={currentTheme} isMobile={isMobile} />}
         </div>
       </main>
     </div>
