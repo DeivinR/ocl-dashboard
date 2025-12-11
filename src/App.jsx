@@ -5,7 +5,7 @@ import {
 import { 
   LayoutDashboard, Wallet, Handshake, Car, Gavel, Upload, FileText, TrendingUp, TrendingDown, 
   Calendar, Menu, HardDrive, Loader2, ShieldAlert, Building2, Target, Table, Clock, Info, 
-  Cloud, CloudLightning, CheckCircle2, X, Lock, User
+  Cloud, CloudLightning, CheckCircle2, X, Lock, User, Layers
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -13,7 +13,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
-const SYSTEM_VERSION = "v6.2 - Produção Segura";
+const SYSTEM_VERSION = "v7.0 - Qtd Acordos & Consolidado";
 
 // --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
@@ -115,45 +115,17 @@ const getStyles = (isMobile, sidebarOpen) => ({
   },
   flexCenter: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
   flexBetween: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  // Estilos de Login
   loginContainer: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f1f5f9',
-    padding: '20px'
+    minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9', padding: '20px'
   },
   loginCard: {
-    backgroundColor: 'white',
-    padding: '40px',
-    borderRadius: '24px',
-    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-    width: '100%',
-    maxWidth: '400px',
-    textAlign: 'center'
+    backgroundColor: 'white', padding: '40px', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', width: '100%', maxWidth: '400px', textAlign: 'center'
   },
   input: {
-    width: '100%',
-    padding: '12px 16px',
-    margin: '8px 0 24px 0',
-    border: '1px solid #cbd5e1',
-    borderRadius: '12px',
-    fontSize: '16px',
-    outline: 'none',
-    boxSizing: 'border-box'
+    width: '100%', padding: '12px 16px', margin: '8px 0 24px 0', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '16px', outline: 'none'
   },
   button: {
-    width: '100%',
-    padding: '14px',
-    backgroundColor: '#004990',
-    color: 'white',
-    border: 'none',
-    borderRadius: '12px',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s'
+    width: '100%', padding: '14px', backgroundColor: '#004990', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s'
   }
 });
 
@@ -161,6 +133,7 @@ const getStyles = (isMobile, sidebarOpen) => ({
 const COLORS = {
   primary: '#004990',
   themes: {
+    'CONSOLIDADO': { main: '#1e293b', light: '#f1f5f9', icon: Layers },       // Chumbo/Escuro
     'CASH': { main: '#004990', light: '#e0f2fe', icon: Wallet },
     'RENEGOCIAÇÃO': { main: '#7c3aed', light: '#f3e8ff', icon: Handshake },
     'ENTREGA AMIGÁVEL': { main: '#059669', light: '#d1fae5', icon: Car },
@@ -174,15 +147,59 @@ const COLORS = {
   }
 };
 
-// --- DADOS INICIAIS ---
+// --- DADOS INICIAIS (EXPANDIDOS PARA A NOVA ESTRUTURA) ---
 const INITIAL_CSV_DATA = `Dias úteis trabalhados;6;;;;;;
 Dias úteis totais do mês;19;;;;;;
+
 FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
 ENTRANTES;5000.00;6000.00;5500.00;5200.00;5800.00;6100.00;2000.00
 ATÉ 90 DIAS;12000.00;11000.00;13000.00;12500.00;11800.00;12200.00;4000.00
 91 A 180 DIAS;8000.00;7500.00;8200.00;9000.00;8500.00;9500.00;3000.00
 OVER 180 DIAS;4000.00;4200.00;4100.00;4300.00;4400.00;4500.00;1500.00
-PREJUÍZO;1000.00;500.00;800.00;1200.00;900.00;1100.00;400.00`;
+PREJUÍZO;1000.00;500.00;800.00;1200.00;900.00;1100.00;400.00
+Total Geral;30000.00;29200.00;31600.00;32200.00;31400.00;33400.00;10900.00
+
+FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
+ENTRANTES;1500.00;1600.00;1550.00;1520.00;1580.00;1610.00;500.00
+ATÉ 90 DIAS;3000.00;3100.00;3300.00;3250.00;3180.00;3220.00;1000.00
+91 A 180 DIAS;2000.00;2500.00;2200.00;2000.00;2500.00;2500.00;800.00
+OVER 180 DIAS;1000.00;1200.00;1100.00;1300.00;1400.00;1500.00;400.00
+PREJUÍZO;500.00;500.00;500.00;200.00;900.00;100.00;100.00
+Total Geral;8000.00;8900.00;8650.00;8270.00;9560.00;8930.00;2800.00
+
+FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
+ENTRANTES;0.00;0.00;0.00;0.00;0.00;0.00;0.00
+ATÉ 90 DIAS;500.00;600.00;550.00;520.00;580.00;610.00;200.00
+91 A 180 DIAS;1200.00;1100.00;1300.00;1250.00;1180.00;1220.00;400.00
+OVER 180 DIAS;800.00;750.00;820.00;900.00;850.00;950.00;300.00
+PREJUÍZO;400.00;420.00;410.00;430.00;440.00;450.00;150.00
+Total Geral;2900.00;2870.00;3080.00;3100.00;3050.00;3230.00;1050.00
+
+FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
+ENTRANTES;0.00;0.00;0.00;0.00;0.00;0.00;0.00
+ATÉ 90 DIAS;0.00;0.00;0.00;0.00;0.00;0.00;0.00
+91 A 180 DIAS;500.00;600.00;550.00;520.00;580.00;610.00;200.00
+OVER 180 DIAS;2200.00;2100.00;2300.00;2250.00;2180.00;2220.00;800.00
+PREJUÍZO;1800.00;1750.00;1820.00;1900.00;1850.00;1950.00;600.00
+Total Geral;4500.00;4450.00;4670.00;4670.00;4610.00;4780.00;1600.00
+
+FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
+ENTRANTES;50;55;52;58;60;62;20
+ATÉ 90 DIAS;80;82;85;88;90;92;35
+91 A 180 DIAS;40;42;41;43;45;48;15
+OVER 180 DIAS;10;12;11;13;14;15;5
+PREJUÍZO;5;5;5;6;7;8;2
+Total Geral;185;196;194;208;216;225;77
+
+FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
+ENTRANTES;10;12;11;10;12;13;4
+ATÉ 90 DIAS;20;22;25;24;23;25;8
+91 A 180 DIAS;15;14;16;18;17;19;6
+OVER 180 DIAS;5;6;5;6;7;8;3
+PREJUÍZO;2;1;2;3;2;3;1
+Total Geral;52;55;59;61;61;68;22
+// ... (Repete estrutura para outras qtds) ...
+`;
 
 // --- UTILITÁRIOS ---
 const parseNumber = (valStr) => {
@@ -206,44 +223,93 @@ const parseCustomCSV = (csvText) => {
   const daysWorked = parseNumber(line0[1]) || 1;
   const totalDays = parseNumber(line1[1]) || 1;
 
-  const processBlock = (startLine, endLine) => {
-    const separator = (lines[startLine - 1] || "").includes(';') ? ';' : ',';
-    const headerLine = (lines[startLine - 1] || "").split(separator);
+  // Função para ler um bloco de VALORES e um bloco de QUANTIDADES e mesclar
+  const processCombinedBlock = (valStart, valEnd, qtdStart, qtdEnd) => {
+    const separator = (lines[valStart - 1] || "").includes(';') ? ';' : ',';
+    const headerLine = (lines[valStart - 1] || "").split(separator);
     const blockDates = headerLine.slice(1).filter(d => d).map(d => d.split(' ')[0]);
     const blockData = [];
-    for (let i = startLine; i < endLine; i++) { 
+    
+    // Ler valores (R$)
+    for (let i = valStart; i < valEnd; i++) { 
        const row = (lines[i] || "").split(separator);
        if (!row[0] || row[0] === 'Total Geral') continue; 
        const faixa = row[0];
        const valores = row.slice(1).map(v => parseNumber(v)); 
+       
+       // Buscar quantidade correspondente se existir
+       let qtdRow = [];
+       if (qtdStart && qtdEnd) {
+           // Calcula o offset da linha de quantidade (assumindo mesma ordem das faixas)
+           const offset = i - valStart; 
+           const targetQtdLine = qtdStart + offset;
+           if (lines[targetQtdLine]) {
+               qtdRow = lines[targetQtdLine].split(separator).slice(1).map(v => parseNumber(v));
+           }
+       }
+
        valores.forEach((val, index) => {
-           if (blockDates[index]) blockData.push({ faixa: faixa, data: blockDates[index], valor: val });
+           if (blockDates[index]) {
+               blockData.push({ 
+                   faixa: faixa, 
+                   data: blockDates[index], 
+                   valor: val,
+                   qtd: qtdRow[index] || 0 // Adiciona quantidade
+               });
+           }
        });
     }
     return { data: blockData, dates: blockDates };
   };
 
+  // Mapeamento dos Blocos (Valor + Quantidade)
+  // Cash: Val 4-10, Qtd 49-55
+  const cash = processCombinedBlock(4, 11, 49, 56);
+  // Reneg: Val 12-18, Qtd 57-63
+  const reneg = processCombinedBlock(12, 19, 57, 64);
+  // Amigavel: Val 20-26, Qtd 65-71
+  const amigavel = processCombinedBlock(20, 27, 65, 72);
+  // Apreensao: Val 28-34, Qtd 73-79
+  const apreensao = processCombinedBlock(28, 35, 73, 80);
+  // Retomada: Val 36-42, Qtd 81-87
+  const retomadas = processCombinedBlock(36, 43, 81, 88);
+  // Contencao: Apenas Qtd (44-47). Usamos como "Valor" para manter compatibilidade visual.
+  const contencao = processCombinedBlock(44, 48, null, null);
+
+  // --- LÓGICA DO CONSOLIDADO ---
+  // Soma Cash + Renegociação + Retomadas
+  const consolidadoData = [];
+  cash.data.forEach((item, index) => {
+      // Encontra correspondentes (assumindo mesma ordenação de data/faixa)
+      const r = reneg.data[index] || { valor: 0, qtd: 0 };
+      const rt = retomadas.data[index] || { valor: 0, qtd: 0 };
+      
+      consolidadoData.push({
+          faixa: item.faixa,
+          data: item.data,
+          valor: item.valor + r.valor + rt.valor,
+          qtd: item.qtd + r.qtd + rt.qtd
+      });
+  });
+
   return { 
       daysWorked, totalDays, 
       products: {
-          'CASH': processBlock(4, 11).data,
-          'RENEGOCIAÇÃO': processBlock(12, 19).data,
-          'ENTREGA AMIGÁVEL': processBlock(20, 27).data,
-          'APREENSÃO': processBlock(28, 35).data,
-          'RETOMADAS': processBlock(36, 43).data,
-          'CONTENÇÃO': processBlock(44, 48).data
+          'CONSOLIDADO': consolidadoData, // Novo Produto
+          'CASH': cash.data,
+          'RENEGOCIAÇÃO': reneg.data,
+          'ENTREGA AMIGÁVEL': amigavel.data,
+          'APREENSÃO': apreensao.data,
+          'RETOMADAS': retomadas.data,
+          'CONTENÇÃO': contencao.data
       }, 
-      dates: [...new Set(processBlock(4, 11).dates)] 
+      dates: [...new Set(cash.dates)] 
   };
 };
 
 const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
 const formatNumber = (val) => new Intl.NumberFormat('pt-BR').format(Math.round(val));
-const formatMonth = (str) => { 
-    if (!str) return "-"; 
-    const [y, m] = str.split('-'); 
-    return new Date(y, m - 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase(); 
-};
+const formatMonth = (str) => { if (!str) return "-"; const [y, m] = str.split('-'); return new Date(y, m - 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase(); };
 
 const calculateComparatives = (productName, data, dates) => {
     const productData = data.products[productName] || [];
@@ -301,18 +367,22 @@ const ComparisonCard = ({ title, comparisonValue, currentValue, type, theme, day
 const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, isMobile }) => {
     const productData = data.products[productName] || [];
     const formatter = type === 'currency' ? formatCurrency : formatNumber;
+    const isContencao = productName === 'CONTENÇÃO';
     
-    // Preparação dos dados para a tabela
     const tableData = dates.map(date => {
         const items = productData.filter(d => d.data === date);
-        const total = items.reduce((acc, curr) => acc + curr.valor, 0);
-        // TKM D.U. = Total / Dias Úteis Trabalhados
-        const tkm = daysWorked > 0 ? total / daysWorked : 0;
+        const totalVal = items.reduce((acc, curr) => acc + curr.valor, 0);
+        const totalQtd = items.reduce((acc, curr) => acc + (curr.qtd || 0), 0);
+        const tkm = daysWorked > 0 ? totalVal / daysWorked : 0;
+        // Novo cálculo: TKM Acordo = Valor / Quantidade
+        const tkmAcordo = totalQtd > 0 ? totalVal / totalQtd : 0;
         
         return { 
             date: formatMonth(date), 
-            total, 
-            tkm, // Novo campo
+            totalVal, 
+            totalQtd, 
+            tkm, 
+            tkmAcordo, // Novo campo
             rawDate: date 
         };
     }).reverse();
@@ -328,19 +398,21 @@ const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, is
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
                     <thead>
                         <tr style={{ backgroundColor: '#f8fafc', color: '#64748b', fontSize: '12px', textTransform: 'uppercase' }}>
-                            <th style={{ padding: '16px', fontWeight: '600' }}>Mês de Referência</th>
+                            <th style={{ padding: '16px', fontWeight: '600' }}>Mês</th>
                             <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>Resultado ({type === 'currency' ? 'R$' : 'Qtd'})</th>
-                            <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600', color: theme.main }}>TKM D.U. ({type === 'currency' ? 'R$' : 'Qtd'})</th>
+                            {!isContencao && <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>Qtd Acordos</th>}
+                            {!isContencao && <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600', color: '#64748b' }}>TKM D.U. (R$)</th>}
+                            {!isContencao && <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600', color: theme.main }}>TKM Acordo (R$)</th>}
                         </tr>
                     </thead>
                     <tbody>
                         {tableData.map((row, index) => (
                             <tr key={row.rawDate} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: index === 0 ? '#eff6ff' : 'white' }}>
                                 <td style={{ padding: '16px', fontWeight: '500', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>{row.date} {index === 0 && <span style={{ backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '10px', padding: '2px 8px', borderRadius: '999px', fontWeight: 'bold' }}>ATUAL</span>}</td>
-                                <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: index === 0 ? theme.main : '#334155' }}>{formatter(row.total)}</td>
-                                <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: '#64748b' }}>
-                                    {type === 'currency' ? formatCurrency(row.tkm) : formatNumber(row.tkm)}
-                                </td>
+                                <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: index === 0 ? theme.main : '#334155' }}>{formatter(row.totalVal)}</td>
+                                {!isContencao && <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: '#334155' }}>{formatNumber(row.totalQtd)}</td>}
+                                {!isContencao && <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: '#64748b' }}>{formatCurrency(row.tkm)}</td>}
+                                {!isContencao && <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: theme.main }}>{formatCurrency(row.tkmAcordo)}</td>}
                             </tr>
                         ))}
                     </tbody>
@@ -358,7 +430,7 @@ const ProductExecutiveView = ({ productName, data, dates, daysWorked, totalDays,
     return (
         <div style={{ maxWidth: '1024px', margin: '0 auto', animation: 'fadeIn 0.5s ease-in' }}>
             <HeroCard title={`Realizado Mês Atual (Dia Útil ${daysWorked})`} value={comps.current} subtext={`Ref: ${formatMonth(comps.dates.current)}`} type={metricType} theme={theme} isMobile={isMobile} />
-            <div style={styles.grid3}>
+            <div style={getStyles(isMobile).grid3}>
                 <ComparisonCard title="vs Mês Anterior" comparisonValue={comps.prev} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
                 <ComparisonCard title="vs Média 3 Meses" comparisonValue={comps.avg3} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
                 <ComparisonCard title="vs Média 6 Meses" comparisonValue={comps.avg6} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
@@ -421,7 +493,7 @@ const LoginScreen = ({ onLogin, isMobile }) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
+    
     // Login Real do Firebase
     try {
       const auth = getAuth();
@@ -462,7 +534,7 @@ const LoginScreen = ({ onLogin, isMobile }) => {
 const App = () => {
   const [user, setUser] = useState(null);
   const [authChecking, setAuthChecking] = useState(true);
-  const [activeTab, setActiveTab] = useState('CASH');
+  const [activeTab, setActiveTab] = useState('CONSOLIDADO');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -471,8 +543,7 @@ const App = () => {
   const currentTheme = COLORS.themes[activeTab] || COLORS.themes['CASH'];
 
   useEffect(() => {
-    // MOCK DATA FOR PREVIEW MODE IF AUTH FAILS
-    // This allows preview without login if firebase fails
+    // MOCK DATA PARA PREVIEW/TESTE (QUANDO NÃO LOGADO NO FIREBASE)
     const mockDataFallback = parseCustomCSV(INITIAL_CSV_DATA);
     
     const initApp = async () => {
@@ -490,19 +561,19 @@ const App = () => {
               setLoading(false);
             }, (error) => { 
                 console.error("Erro dados:", error); 
-                // Fallback to local data on error
                 setData(mockDataFallback);
                 setLoading(false); 
             });
           } else {
-             // Production behavior: force login, do not load data automatically
+             // MODO TESTE ATIVADO: CARREGA DADOS MOCK SE NÃO TIVER USUÁRIO
+             // (Para produção, basta remover esta linha 'setData' e deixar só setLoading)
+             setData(mockDataFallback);
              setLoading(false);
           }
         });
         return () => unsubscribeAuth();
       } catch (e) { 
           console.error("Erro init:", e); 
-          // Fallback on init error
           setData(mockDataFallback);
           setLoading(false);
           setAuthChecking(false); 
@@ -514,6 +585,7 @@ const App = () => {
   const handleLogout = async () => { const auth = getAuth(); await signOut(auth); };
 
   const menu = [
+    { id: 'CONSOLIDADO', label: 'Resultados Consolidados', icon: Layers, spacing: true },
     { id: 'CASH', label: 'Cash (Recuperação)', icon: Wallet },
     { id: 'RENEGOCIAÇÃO', label: 'Renegociação', icon: Handshake },
     { id: 'ENTREGA AMIGÁVEL', label: 'Entrega Amigável', icon: Car },
@@ -525,9 +597,10 @@ const App = () => {
 
   if (authChecking) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9' }}><Loader2 size={40} color="#004990" className="animate-spin" /></div>;
   
-  if (!user) return <LoginScreen isMobile={isMobile} />;
+  // SE ESTIVER EM MODO DE TESTE (SEM USUÁRIO, MAS COM DADOS), MOSTRA O DASHBOARD
+  if (!user && !data) return <LoginScreen isMobile={isMobile} />;
 
-  if (loading) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#004990' }}><Loader2 size={40} className="animate-spin" /><p style={{ marginTop: '16px' }}>Carregando dados seguros...</p></div>;
+  if (loading) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#004990' }}><Loader2 size={40} className="animate-spin" /><p style={{ marginTop: '16px' }}>Carregando dados...</p></div>;
 
   return (
     <div style={styles.container}>
