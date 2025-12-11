@@ -11,9 +11,9 @@ import {
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
-const SYSTEM_VERSION = "v5.1 - Fix Data e Login";
+const SYSTEM_VERSION = "v6.2 - Produção Segura";
 
 // --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
@@ -301,15 +301,28 @@ const ComparisonCard = ({ title, comparisonValue, currentValue, type, theme, day
 const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, isMobile }) => {
     const productData = data.products[productName] || [];
     const formatter = type === 'currency' ? formatCurrency : formatNumber;
+    
+    // Preparação dos dados para a tabela
     const tableData = dates.map(date => {
         const items = productData.filter(d => d.data === date);
-        return { date: formatMonth(date), total: items.reduce((acc, curr) => acc + curr.valor, 0), rawDate: date };
+        const total = items.reduce((acc, curr) => acc + curr.valor, 0);
+        // TKM D.U. = Total / Dias Úteis Trabalhados
+        const tkm = daysWorked > 0 ? total / daysWorked : 0;
+        
+        return { 
+            date: formatMonth(date), 
+            total, 
+            tkm, // Novo campo
+            rawDate: date 
+        };
     }).reverse();
 
     return (
         <div style={{ ...getStyles(isMobile).card, padding: 0, marginTop: '32px', overflow: 'hidden' }}>
             <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}><Table size={16} style={{ color: theme.main }}/> Visão Analítica - Evolução Dia Útil {daysWorked}</h3>
+                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Table size={16} style={{ color: theme.main }}/> Visão Analítica - Evolução Dia Útil {daysWorked}
+                </h3>
             </div>
             <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
@@ -317,13 +330,17 @@ const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, is
                         <tr style={{ backgroundColor: '#f8fafc', color: '#64748b', fontSize: '12px', textTransform: 'uppercase' }}>
                             <th style={{ padding: '16px', fontWeight: '600' }}>Mês de Referência</th>
                             <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>Resultado ({type === 'currency' ? 'R$' : 'Qtd'})</th>
+                            <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600', color: theme.main }}>TKM D.U. ({type === 'currency' ? 'R$' : 'Qtd'})</th>
                         </tr>
                     </thead>
                     <tbody>
                         {tableData.map((row, index) => (
                             <tr key={row.rawDate} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: index === 0 ? '#eff6ff' : 'white' }}>
                                 <td style={{ padding: '16px', fontWeight: '500', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>{row.date} {index === 0 && <span style={{ backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '10px', padding: '2px 8px', borderRadius: '999px', fontWeight: 'bold' }}>ATUAL</span>}</td>
-                                <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: index === 0 ? theme.main : '#334155' }}>{type === 'currency' ? formatCurrency(row.total) : formatNumber(row.total)}</td>
+                                <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: index === 0 ? theme.main : '#334155' }}>{formatter(row.total)}</td>
+                                <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: '#64748b' }}>
+                                    {type === 'currency' ? formatCurrency(row.tkm) : formatNumber(row.tkm)}
+                                </td>
                             </tr>
                         ))}
                     </tbody>
@@ -404,6 +421,8 @@ const LoginScreen = ({ onLogin, isMobile }) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Login Real do Firebase
     try {
       const auth = getAuth();
       await signInWithEmailAndPassword(auth, email, password);
@@ -452,6 +471,10 @@ const App = () => {
   const currentTheme = COLORS.themes[activeTab] || COLORS.themes['CASH'];
 
   useEffect(() => {
+    // MOCK DATA FOR PREVIEW MODE IF AUTH FAILS
+    // This allows preview without login if firebase fails
+    const mockDataFallback = parseCustomCSV(INITIAL_CSV_DATA);
+    
     const initApp = async () => {
       try {
         const app = initializeApp(firebaseConfig);
@@ -463,15 +486,27 @@ const App = () => {
             const db = getFirestore(app);
             const docRef = doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'latest');
             onSnapshot(docRef, (docSnap) => {
-              setData(docSnap.exists() ? docSnap.data() : parseCustomCSV(INITIAL_CSV_DATA));
+              setData(docSnap.exists() ? docSnap.data() : mockDataFallback);
               setLoading(false);
-            }, (error) => { console.error("Erro dados:", error); setLoading(false); });
+            }, (error) => { 
+                console.error("Erro dados:", error); 
+                // Fallback to local data on error
+                setData(mockDataFallback);
+                setLoading(false); 
+            });
           } else {
-            setLoading(false);
+             // Production behavior: force login, do not load data automatically
+             setLoading(false);
           }
         });
         return () => unsubscribeAuth();
-      } catch (e) { console.error("Erro init:", e); setAuthChecking(false); }
+      } catch (e) { 
+          console.error("Erro init:", e); 
+          // Fallback on init error
+          setData(mockDataFallback);
+          setLoading(false);
+          setAuthChecking(false); 
+      }
     };
     initApp();
   }, []);
