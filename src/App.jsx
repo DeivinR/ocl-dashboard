@@ -13,7 +13,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
-const SYSTEM_VERSION = "v7.0 - Qtd Acordos & Consolidado";
+const SYSTEM_VERSION = "v7.1 - Fix Detecção de Datas";
 
 // --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
@@ -147,7 +147,7 @@ const COLORS = {
   }
 };
 
-// --- DADOS INICIAIS (EXPANDIDOS PARA A NOVA ESTRUTURA) ---
+// --- DADOS INICIAIS (EXPANDIDOS) ---
 const INITIAL_CSV_DATA = `Dias úteis trabalhados;6;;;;;;
 Dias úteis totais do mês;19;;;;;;
 
@@ -197,9 +197,7 @@ ATÉ 90 DIAS;20;22;25;24;23;25;8
 91 A 180 DIAS;15;14;16;18;17;19;6
 OVER 180 DIAS;5;6;5;6;7;8;3
 PREJUÍZO;2;1;2;3;2;3;1
-Total Geral;52;55;59;61;61;68;22
-// ... (Repete estrutura para outras qtds) ...
-`;
+Total Geral;52;55;59;61;61;68;22`;
 
 // --- UTILITÁRIOS ---
 const parseNumber = (valStr) => {
@@ -226,7 +224,11 @@ const parseCustomCSV = (csvText) => {
   // Função para ler um bloco de VALORES e um bloco de QUANTIDADES e mesclar
   const processCombinedBlock = (valStart, valEnd, qtdStart, qtdEnd) => {
     const separator = (lines[valStart - 1] || "").includes(';') ? ';' : ',';
-    const headerLine = (lines[valStart - 1] || "").split(separator);
+    
+    // CORREÇÃO: Tentar achar o cabeçalho se a linha exata estiver vazia (tolerância de +/- 1 linha)
+    let headerLine = (lines[valStart - 1] || "").split(separator);
+    if (!headerLine[1] && lines[valStart-2]) headerLine = lines[valStart-2].split(separator);
+    
     const blockDates = headerLine.slice(1).filter(d => d).map(d => d.split(' ')[0]);
     const blockData = [];
     
@@ -240,7 +242,6 @@ const parseCustomCSV = (csvText) => {
        // Buscar quantidade correspondente se existir
        let qtdRow = [];
        if (qtdStart && qtdEnd) {
-           // Calcula o offset da linha de quantidade (assumindo mesma ordem das faixas)
            const offset = i - valStart; 
            const targetQtdLine = qtdStart + offset;
            if (lines[targetQtdLine]) {
@@ -262,40 +263,33 @@ const parseCustomCSV = (csvText) => {
     return { data: blockData, dates: blockDates };
   };
 
-  // Mapeamento dos Blocos (Valor + Quantidade)
-  // Cash: Val 4-10, Qtd 49-55
   const cash = processCombinedBlock(4, 11, 49, 56);
-  // Reneg: Val 12-18, Qtd 57-63
   const reneg = processCombinedBlock(12, 19, 57, 64);
-  // Amigavel: Val 20-26, Qtd 65-71
   const amigavel = processCombinedBlock(20, 27, 65, 72);
-  // Apreensao: Val 28-34, Qtd 73-79
   const apreensao = processCombinedBlock(28, 35, 73, 80);
-  // Retomada: Val 36-42, Qtd 81-87
   const retomadas = processCombinedBlock(36, 43, 81, 88);
-  // Contencao: Apenas Qtd (44-47). Usamos como "Valor" para manter compatibilidade visual.
   const contencao = processCombinedBlock(44, 48, null, null);
 
-  // --- LÓGICA DO CONSOLIDADO ---
-  // Soma Cash + Renegociação + Retomadas
   const consolidadoData = [];
-  cash.data.forEach((item, index) => {
-      // Encontra correspondentes (assumindo mesma ordenação de data/faixa)
-      const r = reneg.data[index] || { valor: 0, qtd: 0 };
-      const rt = retomadas.data[index] || { valor: 0, qtd: 0 };
-      
-      consolidadoData.push({
-          faixa: item.faixa,
-          data: item.data,
-          valor: item.valor + r.valor + rt.valor,
-          qtd: item.qtd + r.qtd + rt.qtd
+  // Verifica se cash.data existe antes de iterar
+  if (cash.data) {
+      cash.data.forEach((item, index) => {
+          const r = reneg.data[index] || { valor: 0, qtd: 0 };
+          const rt = retomadas.data[index] || { valor: 0, qtd: 0 };
+          
+          consolidadoData.push({
+              faixa: item.faixa,
+              data: item.data,
+              valor: item.valor + r.valor + rt.valor,
+              qtd: item.qtd + r.qtd + rt.qtd
+          });
       });
-  });
+  }
 
   return { 
       daysWorked, totalDays, 
       products: {
-          'CONSOLIDADO': consolidadoData, // Novo Produto
+          'CONSOLIDADO': consolidadoData, 
           'CASH': cash.data,
           'RENEGOCIAÇÃO': reneg.data,
           'ENTREGA AMIGÁVEL': amigavel.data,
@@ -309,11 +303,19 @@ const parseCustomCSV = (csvText) => {
 
 const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
 const formatNumber = (val) => new Intl.NumberFormat('pt-BR').format(Math.round(val));
-const formatMonth = (str) => { if (!str) return "-"; const [y, m] = str.split('-'); return new Date(y, m - 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase(); };
+const formatMonth = (str) => { 
+    if (!str) return "-"; 
+    // Validação extra para datas mal formadas
+    if (!str.includes('-')) return str;
+    const [y, m] = str.split('-'); 
+    return new Date(y, m - 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase(); 
+};
 
 const calculateComparatives = (productName, data, dates) => {
+    // Verificação de segurança se 'dates' for undefined ou null
+    if (!dates || dates.length === 0) return { current: 0, prev: 0, avg3: 0, avg6: 0, dates: { current: '', prev: '' } };
+
     const productData = data.products[productName] || [];
-    if (productData.length === 0) return { current: 0, prev: 0, avg3: 0, avg6: 0, dates: { current: '', prev: '' } };
     const n = dates.length;
     const currentMonth = dates[n - 1]; 
     const prevMonth = dates[n - 2];    
