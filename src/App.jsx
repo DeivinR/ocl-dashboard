@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-// Removendo imports de gráficos que não serão mais usados para limpar o código
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, AreaChart, Area, Cell
+} from 'recharts';
 import { 
   LayoutDashboard, Wallet, Handshake, Car, Gavel, Upload, FileText, TrendingUp, TrendingDown, 
   Calendar, Menu, HardDrive, Loader2, ShieldAlert, Building2, Target, Table, Clock, Info, 
-  Cloud, CloudLightning, CheckCircle2, X
+  Cloud, CloudLightning, CheckCircle2, X, Lock, User
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
-import { getAuth, signInAnonymously } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 
-const SYSTEM_VERSION = "v4.4 - Visual Limpo (Sem Gráfico)";
+const SYSTEM_VERSION = "v5.1 - Fix Data e Login";
 
 // --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
@@ -113,6 +115,46 @@ const getStyles = (isMobile, sidebarOpen) => ({
   },
   flexCenter: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
   flexBetween: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  // Estilos de Login
+  loginContainer: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f1f5f9',
+    padding: '20px'
+  },
+  loginCard: {
+    backgroundColor: 'white',
+    padding: '40px',
+    borderRadius: '24px',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+    width: '100%',
+    maxWidth: '400px',
+    textAlign: 'center'
+  },
+  input: {
+    width: '100%',
+    padding: '12px 16px',
+    margin: '8px 0 24px 0',
+    border: '1px solid #cbd5e1',
+    borderRadius: '12px',
+    fontSize: '16px',
+    outline: 'none',
+    boxSizing: 'border-box'
+  },
+  button: {
+    width: '100%',
+    padding: '14px',
+    backgroundColor: '#004990',
+    color: 'white',
+    border: 'none',
+    borderRadius: '12px',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s'
+  }
 });
 
 // --- CORES ---
@@ -197,7 +239,11 @@ const parseCustomCSV = (csvText) => {
 
 const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
 const formatNumber = (val) => new Intl.NumberFormat('pt-BR').format(Math.round(val));
-const formatMonth = (str) => { if (!str) return "-"; const [y, m] = str.split('-'); return new Date(y, m - 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase(); };
+const formatMonth = (str) => { 
+    if (!str) return "-"; 
+    const [y, m] = str.split('-'); 
+    return new Date(y, m - 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase(); 
+};
 
 const calculateComparatives = (productName, data, dates) => {
     const productData = data.products[productName] || [];
@@ -336,7 +382,7 @@ const FileUploader = ({ onDataSaved, isMobile }) => {
             <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>Central Cloud</h2>
             <p style={{ color: '#64748b', marginBottom: '32px' }}>Sincronize o CSV para a diretoria.</p>
             <input type="file" ref={fileRef} onChange={(e) => handleProcess(e.target.files[0])} accept=".csv,.txt" style={{ display: 'none' }} />
-            <div onClick={() => fileRef.current.click()} style={{ border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '40px', cursor: 'pointer', backgroundColor: '#f8fafc', transition: 'all 0.2s ease' }}>
+            <div onClick={() => fileRef.current.click()} style={{ border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '40px', cursor: 'pointer', backgroundColor: '#f8fafc', transition: 'all 0.2s ease' }} onMouseOver={(e) => { e.currentTarget.style.borderColor = '#004990'; e.currentTarget.style.backgroundColor = '#eff6ff'; }} onMouseOut={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.backgroundColor = '#f8fafc'; }}>
                 <HardDrive size={48} color="#94a3b8" style={{ margin: '0 auto 16px auto', display: 'block' }} />
                 <span style={{ fontWeight: 'bold', color: '#475569' }}>Clique para Carregar CSV</span>
             </div>
@@ -346,7 +392,57 @@ const FileUploader = ({ onDataSaved, isMobile }) => {
     );
 };
 
+// --- COMPONENTE DE LOGIN ---
+const LoginScreen = ({ onLogin, isMobile }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const styles = getStyles(isMobile);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const auth = getAuth();
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      console.error(err);
+      setError('Credenciais inválidas. Tente novamente.');
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={styles.loginContainer}>
+      <div style={styles.loginCard}>
+        <div style={{ width: '60px', height: '60px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto' }}>
+          <Building2 size={32} color="#004990" />
+        </div>
+        <h2 style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>OCL Dashboard</h2>
+        <p style={{ color: '#64748b', marginBottom: '32px' }}>Acesso Restrito à Diretoria</p>
+        <form onSubmit={handleSubmit}>
+          <div style={{ textAlign: 'left', marginBottom: '16px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '4px' }}>E-mail Corporativo</label>
+            <input type="email" required style={styles.input} placeholder="seu.nome@ocladvogados.com.br" value={email} onChange={(e) => setEmail(e.target.value)}/>
+          </div>
+          <div style={{ textAlign: 'left', marginBottom: '24px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '4px' }}>Senha</label>
+            <input type="password" required style={styles.input} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}/>
+          </div>
+          {error && <p style={{ color: '#ef4444', fontSize: '14px', marginBottom: '16px' }}>{error}</p>}
+          <button type="submit" style={styles.button} disabled={loading}>{loading ? <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto' }} /> : 'Entrar no Sistema'}</button>
+        </form>
+        <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '24px' }}>© {new Date().getFullYear()} OCL Advogados Associados</p>
+      </div>
+    </div>
+  );
+};
+
 const App = () => {
+  const [user, setUser] = useState(null);
+  const [authChecking, setAuthChecking] = useState(true);
   const [activeTab, setActiveTab] = useState('CASH');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -356,21 +452,31 @@ const App = () => {
   const currentTheme = COLORS.themes[activeTab] || COLORS.themes['CASH'];
 
   useEffect(() => {
-    if (isMobile) setSidebarOpen(false); // Fecha sidebar ao carregar no mobile
-    const init = async () => {
-        try {
-            const app = initializeApp(firebaseConfig);
+    const initApp = async () => {
+      try {
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+          setUser(currentUser);
+          setAuthChecking(false);
+          if (currentUser) {
             const db = getFirestore(app);
-            const auth = getAuth(app);
-            await signInAnonymously(auth);
-            onSnapshot(doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'latest'), (doc) => {
-                setData(doc.exists() ? doc.data() : parseCustomCSV(INITIAL_CSV_DATA));
-                setLoading(false);
-            });
-        } catch (e) { console.error(e); setData(parseCustomCSV(INITIAL_CSV_DATA)); setLoading(false); }
+            const docRef = doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'latest');
+            onSnapshot(docRef, (docSnap) => {
+              setData(docSnap.exists() ? docSnap.data() : parseCustomCSV(INITIAL_CSV_DATA));
+              setLoading(false);
+            }, (error) => { console.error("Erro dados:", error); setLoading(false); });
+          } else {
+            setLoading(false);
+          }
+        });
+        return () => unsubscribeAuth();
+      } catch (e) { console.error("Erro init:", e); setAuthChecking(false); }
     };
-    init();
-  }, [isMobile]);
+    initApp();
+  }, []);
+
+  const handleLogout = async () => { const auth = getAuth(); await signOut(auth); };
 
   const menu = [
     { id: 'CASH', label: 'Cash (Recuperação)', icon: Wallet },
@@ -382,13 +488,15 @@ const App = () => {
     { id: 'gestao', label: 'Gestão de Dados', icon: Upload, spacing: true },
   ];
 
-  if (loading) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#004990' }}><Loader2 size={40} className="animate-spin" /><p style={{ marginTop: '16px' }}>Conectando ao OCL Cloud...</p></div>;
+  if (authChecking) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9' }}><Loader2 size={40} color="#004990" className="animate-spin" /></div>;
+  
+  if (!user) return <LoginScreen isMobile={isMobile} />;
+
+  if (loading) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#004990' }}><Loader2 size={40} className="animate-spin" /><p style={{ marginTop: '16px' }}>Carregando dados seguros...</p></div>;
 
   return (
     <div style={styles.container}>
-      {/* Overlay para Mobile */}
       <div style={styles.overlay} onClick={() => setSidebarOpen(false)} />
-
       <aside style={styles.sidebar}>
         <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', position: 'relative' }}>
             {sidebarOpen ? <div style={styles.flexCenter}><div style={{ width: '40px', height: '40px', backgroundColor: 'white', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#004990', marginRight: '12px' }}><Building2 size={24} /></div><div><span style={{ fontWeight: 'bold', fontSize: '18px', display: 'block' }}>OCL</span><span style={{ fontSize: '10px', color: '#93c5fd', textTransform: 'uppercase' }}>Advogados</span></div></div> : <Building2 size={24} />}
@@ -402,9 +510,13 @@ const App = () => {
                 </button>
             ))}
         </nav>
-        <div style={{ padding: '16px', textAlign: 'center', fontSize: '10px', color: 'rgba(255,255,255,0.4)', borderTop: '1px solid rgba(255,255,255,0.1)' }}>{sidebarOpen && <p>{SYSTEM_VERSION}</p>}</div>
+        <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '12px', borderRadius: '8px', border: 'none', backgroundColor: 'rgba(0,0,0,0.2)', color: '#bfdbfe', cursor: 'pointer', fontSize: '14px' }}>
+                <Lock size={16} />
+                {sidebarOpen && <span style={{ marginLeft: '12px' }}>Sair do Sistema</span>}
+            </button>
+        </div>
       </aside>
-
       <main style={styles.main}>
         <header style={styles.header}>
             <div style={styles.flexCenter}>
@@ -412,7 +524,7 @@ const App = () => {
                 {!isMobile && <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTheme.main, marginRight: '12px' }}><currentTheme.icon size={24} /></div>}
                 <h1 style={{ fontSize: isMobile ? '18px' : '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{menu.find(i => i.id === activeTab)?.label}</h1>
             </div>
-            {data && !isMobile && <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: '#64748b' }}><span style={styles.flexCenter}><Calendar size={14} style={{ marginRight: '4px' }}/> {formatMonth(data.dates[data.dates.length -1])}</span><span style={{ ...styles.flexCenter, backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', color: '#334155' }}><Clock size={14} style={{ marginRight: '4px' }}/> {data.daysWorked}/{data.totalDays}</span></div>}
+            {data && !isMobile && <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: '#64748b' }}><span style={styles.flexCenter}><Calendar size={14} style={{ marginRight: '4px' }}/> {data.dates && data.dates.length > 0 ? formatMonth(data.dates[data.dates.length -1]) : '-'}</span><span style={{ ...styles.flexCenter, backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', color: '#334155' }}><Clock size={14} style={{ marginRight: '4px' }}/> {data.daysWorked}/{data.totalDays}</span></div>}
         </header>
         <div style={styles.content}>
             {activeTab === 'gestao' ? <FileUploader onDataSaved={setData} isMobile={isMobile} /> : <ProductExecutiveView productName={activeTab} data={data} dates={data.dates} daysWorked={data.daysWorked} totalDays={data.totalDays} theme={currentTheme} isMobile={isMobile} />}
