@@ -19,7 +19,7 @@ const SYSTEM_VERSION = "v8.6 - Fix Tela Branca & Logos";
 // --- CONFIGURAÇÃO DAS LOGOS ---
 // Certifique-se de ter os dois arquivos na pasta public
 const LOGO_LIGHT_URL = "/logo-white.png"; // Para fundo escuro (Menu Lateral)
-const LOGO_DARK_URL = "/logo.png";        // Para fundo claro (Login)
+const LOGO_DARK_URL = "/logo-dark.png";        // Para fundo claro (Login)
 
 // --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
