@@ -4,9 +4,9 @@ import {
 } from 'recharts';
 import { 
   LayoutDashboard, Wallet, Handshake, Car, Gavel, Upload, FileText, TrendingUp, TrendingDown, 
-  Calendar, Menu, HardDrive, Loader2, ShieldAlert, Building2, Target, Table, Clock, Info, 
+  Calendar, Menu, HardDrive, Loader2, ShieldAlert, Target, Table, Clock, Info, 
   Cloud, CloudLightning, CheckCircle2, X, Lock, User, Layers, RefreshCw, Eye, ArrowRight,
-  ChevronLeft, ChevronRight, TestTube
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -14,7 +14,11 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
-const SYSTEM_VERSION = "v8.2 - Fix Upload Homologação";
+const SYSTEM_VERSION = "v1.1.0";
+
+// --- CONFIGURAÇÃO DA LOGO ---
+// Certifique-se de que o arquivo 'logo.png' está na pasta 'public'
+const LOGO_URL = "/logo.png"; 
 
 // --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
@@ -82,9 +86,9 @@ const getStyles = (isMobile, sidebarOpen) => ({
     display: 'flex', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
-    position: 'sticky', 
+    position: 'sticky', // Garante que fique fixo no topo
     top: 0, 
-    zIndex: 30,
+    zIndex: 30, // Z-index alto para ficar sobre o conteúdo
     boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'
   },
   content: { 
@@ -118,6 +122,7 @@ const getStyles = (isMobile, sidebarOpen) => ({
   },
   flexCenter: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
   flexBetween: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  // Botões de Navegação Mobile
   navButton: {
     padding: '8px',
     borderRadius: '8px',
@@ -137,12 +142,16 @@ const getStyles = (isMobile, sidebarOpen) => ({
     cursor: 'not-allowed',
     backgroundColor: '#f1f5f9'
   },
+  // Login
   loginContainer: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9', padding: '20px' },
   loginCard: { backgroundColor: 'white', padding: '40px', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', width: '100%', maxWidth: '400px', textAlign: 'center' },
   input: { width: '100%', padding: '12px 16px', margin: '8px 0 24px 0', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '16px', outline: 'none', boxSizing: 'border-box' },
   button: { width: '100%', padding: '14px', backgroundColor: '#004990', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' },
   tabButtonActive: { flex: 1, padding: '12px', borderBottom: '3px solid #004990', color: '#004990', fontWeight: 'bold', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
-  tabButtonInactive: { flex: 1, padding: '12px', borderBottom: '3px solid transparent', color: '#94a3b8', fontWeight: 'normal', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' }
+  tabButtonInactive: { flex: 1, padding: '12px', borderBottom: '3px solid transparent', color: '#94a3b8', fontWeight: 'normal', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
+  // Estilo da Logo
+  logoContainer: { display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' },
+  logoImage: { maxWidth: '180px', maxHeight: '60px', objectFit: 'contain' }
 });
 
 // --- CORES ---
@@ -166,15 +175,6 @@ const COLORS = {
 // --- DADOS INICIAIS (EXPANDIDOS) ---
 const INITIAL_CSV_DATA = `Dias úteis trabalhados;6;;;;;;
 Dias úteis totais do mês;19;;;;;;
-
-FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
-ENTRANTES;28863.71;41532.11;29652.40;25136.71;27900.03;21259.80;9189.90
-ATÉ 90 DIAS;61474.62;49641.29;78019.67;65478.22;61000.50;55200.10;18983.68
-91 A 180 DIAS;23882.85;21897.05;23847.29;35395.00;29236.10;61340.62;21126.79
-OVER 180 DIAS;15516.43;19096.42;31343.15;21956.00;31880.72;20366.38;43214.30
-PREJUÍZO;8617.10;0.00;2896.94;6176.01;6737.71;14506.05;8205.79
-Total Geral;138354.71;132166.87;165759.45;154141.94;156754.96;172672.95;99720.46
-
 FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
 ENTRANTES;5000.00;6000.00;5500.00;5200.00;5800.00;6100.00;2000.00
 ATÉ 90 DIAS;12000.00;11000.00;13000.00;12500.00;11800.00;12200.00;4000.00
@@ -463,10 +463,9 @@ const FileUploader = ({ onDataSaved, isMobile, isPreviewMode, onEnterHomologMode
                     onDataSaved(processed);
                     setStatus('success-cloud');
                 } else {
-                    // MODO HOMOLOGAÇÃO: Atualiza localmente sem salvar no banco
-                    onDataSaved(processed); 
-                    // NÃO CHAMA onEnterHomologMode AQUI, pois já estamos logados no modo correto
-                    // ou já temos o estado configurado. Apenas atualizamos os dados da sessão.
+                    onDataSaved(processed);
+                    // Se estiver em produção e carregar local, força modo preview para não travar
+                    if (onEnterHomologMode) onEnterHomologMode();
                     setStatus('success-local');
                 }
                 
@@ -489,7 +488,7 @@ const FileUploader = ({ onDataSaved, isMobile, isPreviewMode, onEnterHomologMode
             </p>
             <input type="file" ref={fileRef} onChange={(e) => handleProcess(e.target.files[0], 'cloud')} accept=".csv,.txt" style={{ display: 'none' }} />
             
-            {/* Input secundário para ação local */}
+            {/* Input secundário para ação local (apenas chama o handler com modo 'local') */}
             <input type="file" id="localUpload" onChange={(e) => handleProcess(e.target.files[0], 'local')} accept=".csv,.txt" style={{ display: 'none' }} />
 
             <div style={{ display: 'flex', gap: '16px', flexDirection: isMobile ? 'column' : 'row' }}>
@@ -535,7 +534,7 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
     if (activeTab === 'homolog') {
         if (email === "admin@avocati.adv.br" && password === "abc@123") {
             try {
-                // Tenta conectar anônimo (pode falhar em ambientes restritos, ok)
+                // Tenta login anônimo para liberar acesso de leitura
                 const auth = getAuth();
                 await signInAnonymously(auth).catch(() => {}); 
                 // CHAMA O MODO OFFLINE EXPLICITAMENTE
@@ -564,19 +563,28 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
   return (
     <div style={styles.loginContainer}>
       <div style={styles.loginCard}>
-        <div style={{ width: '60px', height: '60px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto' }}>
-          <Building2 size={32} color="#004990" />
+        <div style={styles.logoContainer}>
+            <img src={LOGO_URL} alt="OCL" style={styles.logoImage} />
         </div>
-        <h2 style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>OCL Dashboard</h2>
         
         {/* Abas de Login */}
         <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '24px' }}>
-            <button onClick={() => setActiveTab('prod')} style={activeTab === 'prod' ? styles.tabButtonActive : styles.tabButtonInactive}>Área Oficial</button>
-            <button onClick={() => setActiveTab('homolog')} style={activeTab === 'homolog' ? styles.tabButtonActive : styles.tabButtonInactive}>Área de Testes</button>
+            <button 
+                onClick={() => setActiveTab('prod')}
+                style={activeTab === 'prod' ? styles.tabButtonActive : styles.tabButtonInactive}
+            >
+                Área Oficial
+            </button>
+            <button 
+                onClick={() => setActiveTab('homolog')}
+                style={activeTab === 'homolog' ? styles.tabButtonActive : styles.tabButtonInactive}
+            >
+                Área de Testes
+            </button>
         </div>
 
         <p style={{ color: '#64748b', marginBottom: '24px', fontSize: '14px' }}>
-            {activeTab === 'prod' ? 'Acesso restrito à Diretoria e Gestão.' : 'Ambiente de Homologação e Testes.'}
+            {activeTab === 'prod' ? 'Acesso restrito a Gestão.' : 'Ambiente de Homologação e Testes.'}
         </p>
         
         <form onSubmit={handleSubmit}>
@@ -589,11 +597,15 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
             <input type="password" required style={styles.input} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}/>
           </div>
           {error && <p style={{ color: '#ef4444', fontSize: '14px', marginBottom: '16px' }}>{error}</p>}
+          
           <button type="submit" style={{ ...styles.button, backgroundColor: activeTab === 'homolog' ? '#f59e0b' : '#004990' }} disabled={loading}>
             {loading ? <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto' }} /> : (activeTab === 'homolog' ? 'Acessar Homologação' : 'Entrar no Sistema')}
           </button>
         </form>
-        <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '24px' }}>{activeTab === 'homolog' ? 'Ambiente simulado. Dados não oficiais.' : `© ${new Date().getFullYear()} OCL Advogados Associados`}</p>
+        
+        <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '24px' }}>
+            {activeTab === 'homolog' ? 'Ambiente simulado. Dados não oficiais.' : `© ${new Date().getFullYear()} OCL Advogados Associados`}
+        </p>
       </div>
     </div>
   );
@@ -629,7 +641,7 @@ const App = () => {
                 setData(mockDataFallback); 
                 setLoading(false);
             } else {
-                // Usuário real (Produção)
+                // Login Real (Produção)
                 setIsHomologMode(false);
                 const db = getFirestore(app);
                 const docRef = doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'latest');
@@ -713,7 +725,7 @@ const App = () => {
       <div style={styles.overlay} onClick={() => setSidebarOpen(false)} />
       <aside style={styles.sidebar}>
         <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', position: 'relative' }}>
-            {sidebarOpen ? <div style={styles.flexCenter}><div style={{ width: '40px', height: '40px', backgroundColor: 'white', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#004990', marginRight: '12px' }}><Building2 size={24} /></div><div><span style={{ fontWeight: 'bold', fontSize: '18px', display: 'block' }}>OCL</span><span style={{ fontSize: '10px', color: '#93c5fd', textTransform: 'uppercase' }}>Advogados</span></div></div> : <Building2 size={24} />}
+            {sidebarOpen ? <div style={styles.flexCenter}><img src={LOGO_URL} alt="OCL" style={styles.logoImage} /></div> : <img src={LOGO_URL} alt="OCL" style={{ maxWidth: '40px', maxHeight: '40px' }} />}
             {isMobile && sidebarOpen && <button onClick={() => setSidebarOpen(false)} style={{ position: 'absolute', right: '10px', top: '10px', background: 'none', border: 'none', color: 'white' }}><X size={24} /></button>}
         </div>
         <nav style={{ flex: 1, padding: '16px', overflowY: 'auto' }}>
