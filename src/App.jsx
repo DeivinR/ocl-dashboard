@@ -14,12 +14,11 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
-const SYSTEM_VERSION = "v8.5 - Logos Dinâmicas (Dark/Light)";
+const SYSTEM_VERSION = "v8.6 - Fix Tela Branca Login";
 
 // --- CONFIGURAÇÃO DAS LOGOS ---
-// Certifique-se de colocar estes arquivos na pasta 'public'
-const LOGO_LIGHT_URL = "/logo-white.png"; // Para fundo escuro (Menu Lateral)
-const LOGO_DARK_URL = "/logo-dark.png";   // Para fundo claro (Login)
+const LOGO_LIGHT_URL = "/logo-white.png"; 
+const LOGO_DARK_URL = "/logo.png";   
 
 // --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
@@ -142,14 +141,12 @@ const getStyles = (isMobile, sidebarOpen) => ({
     cursor: 'not-allowed',
     backgroundColor: '#f1f5f9'
   },
-  // Login
   loginContainer: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9', padding: '20px' },
   loginCard: { backgroundColor: 'white', padding: '40px', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', width: '100%', maxWidth: '400px', textAlign: 'center' },
   input: { width: '100%', padding: '12px 16px', margin: '8px 0 24px 0', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '16px', outline: 'none', boxSizing: 'border-box' },
   button: { width: '100%', padding: '14px', backgroundColor: '#004990', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' },
   tabButtonActive: { flex: 1, padding: '12px', borderBottom: '3px solid #004990', color: '#004990', fontWeight: 'bold', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
   tabButtonInactive: { flex: 1, padding: '12px', borderBottom: '3px solid transparent', color: '#94a3b8', fontWeight: 'normal', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
-  // Estilo da Logo
   logoContainer: { display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' },
   logoImage: { maxWidth: '240px', maxHeight: '100px', objectFit: 'contain' }
 });
@@ -172,7 +169,7 @@ const COLORS = {
   }
 };
 
-// --- DADOS INICIAIS (EXPANDIDOS) ---
+// --- DADOS INICIAIS (MOCK) ---
 const INITIAL_CSV_DATA = `Dias úteis trabalhados;6;;;;;;
 Dias úteis totais do mês;19;;;;;;
 FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
@@ -180,7 +177,8 @@ ENTRANTES;5000.00;6000.00;5500.00;5200.00;5800.00;6100.00;2000.00
 ATÉ 90 DIAS;12000.00;11000.00;13000.00;12500.00;11800.00;12200.00;4000.00
 91 A 180 DIAS;8000.00;7500.00;8200.00;9000.00;8500.00;9500.00;3000.00
 OVER 180 DIAS;4000.00;4200.00;4100.00;4300.00;4400.00;4500.00;1500.00
-PREJUÍZO;1000.00;500.00;800.00;1200.00;900.00;1100.00;400.00`;
+PREJUÍZO;1000.00;500.00;800.00;1200.00;900.00;1100.00;400.00
+Total Geral;30000.00;29200.00;31600.00;32200.00;31400.00;33400.00;10900.00`;
 
 // --- UTILITÁRIOS ---
 const parseNumber = (valStr) => {
@@ -338,15 +336,8 @@ const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, is
     const tableData = dates.map(date => {
         const items = productData.filter(d => d.data === date);
         const totalVal = items.reduce((acc, curr) => acc + curr.valor, 0);
-        // TKM D.U. = Total / Dias Úteis Trabalhados
         const tkm = daysWorked > 0 ? totalVal / daysWorked : 0;
-        
-        return { 
-            date: formatMonth(date), 
-            totalVal, 
-            tkm, // Novo campo
-            rawDate: date 
-        };
+        return { date: formatMonth(date), totalVal, tkm, rawDate: date };
     }).reverse();
 
     return (
@@ -513,6 +504,7 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
     try {
       const auth = getAuth();
       await signInWithEmailAndPassword(auth, email, password);
+      // Sucesso - o onAuthStateChanged no App cuidará do resto
     } catch (err) {
       console.error(err);
       setError('Acesso negado. Verifique suas credenciais.');
@@ -529,18 +521,8 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
         
         {/* Abas de Login */}
         <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '24px' }}>
-            <button 
-                onClick={() => setActiveTab('prod')}
-                style={activeTab === 'prod' ? styles.tabButtonActive : styles.tabButtonInactive}
-            >
-                Área Oficial
-            </button>
-            <button 
-                onClick={() => setActiveTab('homolog')}
-                style={activeTab === 'homolog' ? styles.tabButtonActive : styles.tabButtonInactive}
-            >
-                Área de Testes
-            </button>
+            <button onClick={() => setActiveTab('prod')} style={activeTab === 'prod' ? styles.tabButtonActive : styles.tabButtonInactive}>Área Oficial</button>
+            <button onClick={() => setActiveTab('homolog')} style={activeTab === 'homolog' ? styles.tabButtonActive : styles.tabButtonInactive}>Área de Testes</button>
         </div>
 
         <p style={{ color: '#64748b', marginBottom: '24px', fontSize: '14px' }}>
@@ -557,15 +539,11 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
             <input type="password" required style={styles.input} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}/>
           </div>
           {error && <p style={{ color: '#ef4444', fontSize: '14px', marginBottom: '16px' }}>{error}</p>}
-          
           <button type="submit" style={{ ...styles.button, backgroundColor: activeTab === 'homolog' ? '#f59e0b' : '#004990' }} disabled={loading}>
             {loading ? <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto' }} /> : (activeTab === 'homolog' ? 'Acessar Homologação' : 'Entrar no Sistema')}
           </button>
         </form>
-        
-        <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '24px' }}>
-            {activeTab === 'homolog' ? 'Ambiente simulado. Dados não oficiais.' : `© ${new Date().getFullYear()} OCL Advogados Associados`}
-        </p>
+        <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '24px' }}>{activeTab === 'homolog' ? 'Ambiente simulado. Dados não oficiais.' : `© ${new Date().getFullYear()} OCL Advogados Associados`}</p>
       </div>
     </div>
   );
@@ -585,7 +563,6 @@ const App = () => {
 
   useEffect(() => {
     const mockDataFallback = parseCustomCSV(INITIAL_CSV_DATA);
-    
     const initApp = async () => {
       try {
         const app = initializeApp(firebaseConfig);
@@ -594,32 +571,30 @@ const App = () => {
           setUser(currentUser);
           setAuthChecking(false);
           
-          if (currentUser) {
-            if (currentUser.isAnonymous) {
-                // Se o usuário é anônimo (veio do login de homolog), ativa modo homolog
-                setIsHomologMode(true);
-                setData(mockDataFallback); 
-                setLoading(false);
-            } else {
-                // Login Real (Produção)
-                setIsHomologMode(false);
-                const db = getFirestore(app);
-                const docRef = doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'latest');
-                onSnapshot(docRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        setData(docSnap.data());
-                    } else {
-                        setData(mockDataFallback);
-                    }
-                    setLoading(false);
-                }, (error) => { 
-                    console.error("Erro dados:", error);
+          if (currentUser && !currentUser.isAnonymous) {
+            // Login Real (Produção)
+            setIsHomologMode(false);
+            const db = getFirestore(app);
+            const docRef = doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'latest');
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    setData(docSnap.data());
+                } else {
                     setData(mockDataFallback);
-                    setLoading(false); 
-                });
-            }
+                }
+                setLoading(false);
+            }, (error) => { 
+                console.error("Erro dados:", error);
+                setData(mockDataFallback);
+                setLoading(false); 
+            });
           } else {
-             // Sem usuário: Fica na tela de login
+             // Sem usuário ou usuário anônimo (homolog): 
+             // Se for homolog (isHomologMode = true), o LoginScreen já cuidou de setar o estado.
+             // Se não, o loading pára para mostrar o LoginScreen.
+             if (isHomologMode) {
+                 setData(mockDataFallback);
+             }
              setLoading(false);
           }
         });
@@ -631,7 +606,7 @@ const App = () => {
       }
     };
     initApp();
-  }, []);
+  }, [isHomologMode]); // Adicionei dependência isHomologMode para reagir à mudança
 
   const handleLogout = async () => { 
       const auth = getAuth(); 
@@ -675,10 +650,10 @@ const App = () => {
 
   if (authChecking) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9' }}><Loader2 size={40} color="#004990" className="animate-spin" /></div>;
   
-  // SE NÃO TIVER USUÁRIO LOGADO E NÃO FOR MODO HOMOLOG OFFLINE, MOSTRA LOGIN
-  if (!user && !isHomologMode) return <LoginScreen isMobile={isMobile} onEnterHomologMode={() => { setIsHomologMode(true); setData(parseCustomCSV(INITIAL_CSV_DATA)); }} />;
+  // Condição para mostrar Login: Se não tem user logado E não está em modo homolog
+  if (!user && !isHomologMode) return <LoginScreen isMobile={isMobile} onEnterHomologMode={() => { setIsHomologMode(true); setData(parseCustomCSV(INITIAL_CSV_DATA)); setLoading(false); }} />;
 
-  if (loading) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#004990' }}><Loader2 size={40} className="animate-spin" /><p style={{ marginTop: '16px' }}>Carregando dados...</p></div>;
+  if (loading) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#004990' }}><Loader2 size={40} className="animate-spin" /><p style={{ marginTop: '16px' }}>Carregando dados seguros...</p></div>;
 
   return (
     <div style={styles.container}>
