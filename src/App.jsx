@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import { 
   LayoutDashboard, Wallet, Handshake, Car, Gavel, Upload, FileText, TrendingUp, TrendingDown, 
-  Calendar, Menu, HardDrive, Loader2, ShieldAlert, Target, Table, Clock, Info, 
+  Calendar, Menu, HardDrive, Loader2, ShieldAlert, Building2, Target, Table, Clock, Info, 
   Cloud, CloudLightning, CheckCircle2, X, Lock, User, Layers, RefreshCw, Eye, ArrowRight,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
@@ -14,11 +14,12 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
-const SYSTEM_VERSION = "v8.6 - Fix Tela Branca Login";
+const SYSTEM_VERSION = "v8.6 - Fix Tela Branca & Logos";
 
 // --- CONFIGURAÇÃO DAS LOGOS ---
-const LOGO_LIGHT_URL = "/logo-white.png"; 
-const LOGO_DARK_URL = "/logo.png";   
+// Certifique-se de ter os dois arquivos na pasta public
+const LOGO_LIGHT_URL = "/logo-white.png"; // Para fundo escuro (Menu Lateral)
+const LOGO_DARK_URL = "/logo.png";        // Para fundo claro (Login)
 
 // --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
@@ -147,7 +148,8 @@ const getStyles = (isMobile, sidebarOpen) => ({
   button: { width: '100%', padding: '14px', backgroundColor: '#004990', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' },
   tabButtonActive: { flex: 1, padding: '12px', borderBottom: '3px solid #004990', color: '#004990', fontWeight: 'bold', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
   tabButtonInactive: { flex: 1, padding: '12px', borderBottom: '3px solid transparent', color: '#94a3b8', fontWeight: 'normal', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
-  logoContainer: { display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' },
+  // Estilo da Logo - AUMENTADO
+  logoContainer: { display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '32px' },
   logoImage: { maxWidth: '240px', maxHeight: '100px', objectFit: 'contain' }
 });
 
@@ -169,7 +171,7 @@ const COLORS = {
   }
 };
 
-// --- DADOS INICIAIS (MOCK) ---
+// --- DADOS INICIAIS (EXPANDIDOS) ---
 const INITIAL_CSV_DATA = `Dias úteis trabalhados;6;;;;;;
 Dias úteis totais do mês;19;;;;;;
 FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
@@ -177,8 +179,7 @@ ENTRANTES;5000.00;6000.00;5500.00;5200.00;5800.00;6100.00;2000.00
 ATÉ 90 DIAS;12000.00;11000.00;13000.00;12500.00;11800.00;12200.00;4000.00
 91 A 180 DIAS;8000.00;7500.00;8200.00;9000.00;8500.00;9500.00;3000.00
 OVER 180 DIAS;4000.00;4200.00;4100.00;4300.00;4400.00;4500.00;1500.00
-PREJUÍZO;1000.00;500.00;800.00;1200.00;900.00;1100.00;400.00
-Total Geral;30000.00;29200.00;31600.00;32200.00;31400.00;33400.00;10900.00`;
+PREJUÍZO;1000.00;500.00;800.00;1200.00;900.00;1100.00;400.00`;
 
 // --- UTILITÁRIOS ---
 const parseNumber = (valStr) => {
@@ -548,11 +549,15 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
             <input type="password" required style={styles.input} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}/>
           </div>
           {error && <p style={{ color: '#ef4444', fontSize: '14px', marginBottom: '16px' }}>{error}</p>}
+          
           <button type="submit" style={{ ...styles.button, backgroundColor: activeTab === 'homolog' ? '#f59e0b' : '#004990' }} disabled={loading}>
             {loading ? <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto' }} /> : (activeTab === 'homolog' ? 'Acessar Homologação' : 'Entrar no Sistema')}
           </button>
         </form>
-        <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '24px' }}>{activeTab === 'homolog' ? 'Ambiente simulado. Dados não oficiais.' : `© ${new Date().getFullYear()} OCL Advogados Associados`}</p>
+        
+        <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '24px' }}>
+            {activeTab === 'homolog' ? 'Ambiente simulado. Dados não oficiais.' : `© ${new Date().getFullYear()} OCL Advogados Associados`}
+        </p>
       </div>
     </div>
   );
@@ -661,7 +666,7 @@ const App = () => {
   
   if (!user && !isHomologMode) return <LoginScreen isMobile={isMobile} onEnterHomologMode={() => { setIsHomologMode(true); setData(parseCustomCSV(INITIAL_CSV_DATA)); }} />;
 
-  if (loading) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#004990' }}><Loader2 size={40} className="animate-spin" /><p style={{ marginTop: '16px' }}>Carregando dados seguros...</p></div>;
+  if (loading) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#004990' }}><Loader2 size={40} className="animate-spin" /><p style={{ marginTop: '16px' }}>Carregando dados...</p></div>;
 
   return (
     <div style={styles.container}>
