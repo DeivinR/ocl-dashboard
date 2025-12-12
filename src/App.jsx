@@ -14,12 +14,11 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
-const SYSTEM_VERSION = "v8.6 - Fix Tela Branca & Logos";
+const SYSTEM_VERSION = "v1.0 - Oficial de Produção";
 
 // --- CONFIGURAÇÃO DAS LOGOS ---
-// Certifique-se de ter os dois arquivos na pasta public
 const LOGO_LIGHT_URL = "/logo-white.png"; // Para fundo escuro (Menu Lateral)
-const LOGO_DARK_URL = "/logo-dark.png";        // Para fundo claro (Login)
+const LOGO_DARK_URL = "/logo.png";        // Para fundo claro (Login)
 
 // --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
@@ -148,8 +147,7 @@ const getStyles = (isMobile, sidebarOpen) => ({
   button: { width: '100%', padding: '14px', backgroundColor: '#004990', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' },
   tabButtonActive: { flex: 1, padding: '12px', borderBottom: '3px solid #004990', color: '#004990', fontWeight: 'bold', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
   tabButtonInactive: { flex: 1, padding: '12px', borderBottom: '3px solid transparent', color: '#94a3b8', fontWeight: 'normal', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
-  // Estilo da Logo - AUMENTADO
-  logoContainer: { display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '32px' },
+  logoContainer: { display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' },
   logoImage: { maxWidth: '240px', maxHeight: '100px', objectFit: 'contain' }
 });
 
@@ -171,7 +169,7 @@ const COLORS = {
   }
 };
 
-// --- DADOS INICIAIS (EXPANDIDOS) ---
+// --- DADOS INICIAIS (MOCK) ---
 const INITIAL_CSV_DATA = `Dias úteis trabalhados;6;;;;;;
 Dias úteis totais do mês;19;;;;;;
 FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
@@ -216,12 +214,16 @@ const parseCustomCSV = (csvText) => {
        if (!row[0] || row[0] === 'Total Geral') continue; 
        const faixa = row[0];
        const valores = row.slice(1).map(v => parseNumber(v)); 
+       
        let qtdRow = [];
        if (qtdStart && qtdEnd) {
            const offset = i - valStart; 
            const targetQtdLine = qtdStart + offset;
-           if (lines[targetQtdLine]) qtdRow = lines[targetQtdLine].split(separator).slice(1).map(v => parseNumber(v));
+           if (lines[targetQtdLine]) {
+               qtdRow = lines[targetQtdLine].split(separator).slice(1).map(v => parseNumber(v));
+           }
        }
+
        valores.forEach((val, index) => {
            if (blockDates[index]) {
                blockData.push({ 
@@ -248,6 +250,7 @@ const parseCustomCSV = (csvText) => {
       cash.data.forEach((item, index) => {
           const r = reneg.data[index] || { valor: 0, qtd: 0 };
           const rt = retomadas.data[index] || { valor: 0, qtd: 0 };
+          
           consolidadoData.push({
               faixa: item.faixa,
               data: item.data,
@@ -337,8 +340,10 @@ const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, is
     const tableData = dates.map(date => {
         const items = productData.filter(d => d.data === date);
         const totalVal = items.reduce((acc, curr) => acc + curr.valor, 0);
+        const totalQtd = items.reduce((acc, curr) => acc + (curr.qtd || 0), 0);
         const tkm = daysWorked > 0 ? totalVal / daysWorked : 0;
-        return { date: formatMonth(date), totalVal, tkm, rawDate: date };
+        const tkmAcordo = totalQtd > 0 ? totalVal / totalQtd : 0;
+        return { date: formatMonth(date), totalVal, totalQtd, tkm, tkmAcordo, rawDate: date };
     }).reverse();
 
     return (
@@ -354,7 +359,9 @@ const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, is
                         <tr style={{ backgroundColor: '#f8fafc', color: '#64748b', fontSize: '12px', textTransform: 'uppercase' }}>
                             <th style={{ padding: '16px', fontWeight: '600' }}>Mês</th>
                             <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>Resultado ({type === 'currency' ? 'R$' : 'Qtd'})</th>
+                            {!isContencao && <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>Qtd Acordos</th>}
                             {!isContencao && <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600', color: '#64748b' }}>TKM D.U. (R$)</th>}
+                            {!isContencao && <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600', color: theme.main }}>TKM Acordo (R$)</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -362,7 +369,9 @@ const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, is
                             <tr key={row.rawDate} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: index === 0 ? '#eff6ff' : 'white' }}>
                                 <td style={{ padding: '16px', fontWeight: '500', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>{row.date} {index === 0 && <span style={{ backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '10px', padding: '2px 8px', borderRadius: '999px', fontWeight: 'bold' }}>ATUAL</span>}</td>
                                 <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: index === 0 ? theme.main : '#334155' }}>{formatter(row.totalVal)}</td>
+                                {!isContencao && <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: '#334155' }}>{formatNumber(row.totalQtd)}</td>}
                                 {!isContencao && <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: '#64748b' }}>{formatCurrency(row.tkm)}</td>}
+                                {!isContencao && <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: theme.main }}>{formatCurrency(row.tkmAcordo)}</td>}
                             </tr>
                         ))}
                     </tbody>
@@ -488,8 +497,10 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
     if (activeTab === 'homolog') {
         if (email === "admin@avocati.adv.br" && password === "abc@123") {
             try {
+                // Tenta login anônimo para liberar acesso de leitura
                 const auth = getAuth();
                 await signInAnonymously(auth).catch(() => {}); 
+                // CHAMA O MODO OFFLINE EXPLICITAMENTE
                 onEnterHomologMode();
             } catch (err) {
                 onEnterHomologMode();
@@ -588,10 +599,12 @@ const App = () => {
           
           if (currentUser) {
             if (currentUser.isAnonymous) {
+                // Se o usuário é anônimo (veio do login de homolog), ativa modo homolog
                 setIsHomologMode(true);
                 setData(mockDataFallback); 
                 setLoading(false);
             } else {
+                // Login Real (Produção)
                 setIsHomologMode(false);
                 const db = getFirestore(app);
                 const docRef = doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'latest');
@@ -664,6 +677,7 @@ const App = () => {
 
   if (authChecking) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9' }}><Loader2 size={40} color="#004990" className="animate-spin" /></div>;
   
+  // SE NÃO TIVER USUÁRIO LOGADO E NÃO FOR MODO HOMOLOG OFFLINE, MOSTRA LOGIN
   if (!user && !isHomologMode) return <LoginScreen isMobile={isMobile} onEnterHomologMode={() => { setIsHomologMode(true); setData(parseCustomCSV(INITIAL_CSV_DATA)); }} />;
 
   if (loading) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#004990' }}><Loader2 size={40} className="animate-spin" /><p style={{ marginTop: '16px' }}>Carregando dados...</p></div>;
