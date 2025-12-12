@@ -14,11 +14,11 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
-const SYSTEM_VERSION = "v1.2.0";
+const SYSTEM_VERSION = "v1.3 - Carregamento Instantâneo";
 
 // --- CONFIGURAÇÃO DA LOGO ---
-const LOGO_LIGHT_URL = "/logo-white.png"; // Para fundo escuro (Menu Lateral)
-const LOGO_DARK_URL = "/logo.png";        // Para fundo claro (Login)
+const LOGO_LIGHT_URL = "/logo-white.png"; 
+const LOGO_DARK_URL = "/logo.png";        
 
 // --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
@@ -42,114 +42,27 @@ const useIsMobile = () => {
   return isMobile;
 };
 
-// --- ESTILOS GLOBAIS E UTILITÁRIOS ---
+// --- ESTILOS GLOBAIS ---
 const getStyles = (isMobile, sidebarOpen) => ({
-  container: { 
-    fontFamily: 'system-ui, -apple-system, sans-serif', 
-    backgroundColor: '#f8fafc', 
-    minHeight: '100vh', 
-    display: 'flex', 
-    color: '#1e293b',
-    overflowX: 'hidden' 
-  },
-  sidebar: { 
-    width: isMobile ? '280px' : (sidebarOpen ? '280px' : '80px'),
-    backgroundColor: '#004990', 
-    color: 'white', 
-    display: 'flex', 
-    flexDirection: 'column', 
-    position: 'fixed', 
-    height: '100%', 
-    zIndex: 50, 
-    boxShadow: '4px 0 24px rgba(0,0,0,0.1)', 
-    transition: 'transform 0.3s ease, width 0.3s ease',
-    transform: isMobile ? (sidebarOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none',
-  },
-  overlay: {
-    display: isMobile && sidebarOpen ? 'block' : 'none',
-    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 40
-  },
-  main: { 
-    flex: 1, 
-    marginLeft: isMobile ? '0' : (sidebarOpen ? '280px' : '80px'), 
-    transition: 'margin-left 0.3s ease', 
-    display: 'flex', 
-    flexDirection: 'column', 
-    minHeight: '100vh',
-    width: '100%'
-  },
-  header: { 
-    padding: isMobile ? '12px 16px' : '24px 32px', 
-    backgroundColor: 'white', 
-    borderBottom: '1px solid #e2e8f0', 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    position: 'sticky', // Garante que fique fixo no topo
-    top: 0, 
-    zIndex: 30, // Z-index alto para ficar sobre o conteúdo
-    boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'
-  },
-  content: { 
-    padding: isMobile ? '16px' : '32px', 
-    overflowY: 'auto', 
-    flex: 1,
-    paddingBottom: isMobile ? '80px' : '32px' 
-  },
-  card: { 
-    backgroundColor: 'white', 
-    borderRadius: '16px', 
-    padding: isMobile ? '20px' : '24px', 
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', 
-    border: '1px solid #f1f5f9' 
-  },
-  grid3: { 
-    display: 'grid', 
-    gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', 
-    gap: '24px', 
-    marginBottom: '32px' 
-  },
-  heroCard: { 
-    borderRadius: '16px', 
-    padding: isMobile ? '24px' : '32px', 
-    color: 'white', 
-    position: 'relative', 
-    overflow: 'hidden', 
-    textAlign: 'center', 
-    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-    marginBottom: '32px'
-  },
+  container: { fontFamily: 'system-ui, -apple-system, sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh', display: 'flex', color: '#1e293b', overflowX: 'hidden' },
+  sidebar: { width: isMobile ? '280px' : (sidebarOpen ? '280px' : '80px'), backgroundColor: '#004990', color: 'white', display: 'flex', flexDirection: 'column', position: 'fixed', height: '100%', zIndex: 50, boxShadow: '4px 0 24px rgba(0,0,0,0.1)', transition: 'transform 0.3s ease, width 0.3s ease', transform: isMobile ? (sidebarOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none' },
+  overlay: { display: isMobile && sidebarOpen ? 'block' : 'none', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 40 },
+  main: { flex: 1, marginLeft: isMobile ? '0' : (sidebarOpen ? '280px' : '80px'), transition: 'margin-left 0.3s ease', display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' },
+  header: { padding: isMobile ? '12px 16px' : '24px 32px', backgroundColor: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 30, boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.08)' : 'none' },
+  content: { padding: isMobile ? '16px' : '32px', overflowY: 'auto', flex: 1, paddingBottom: isMobile ? '80px' : '32px' },
+  card: { backgroundColor: 'white', borderRadius: '16px', padding: isMobile ? '20px' : '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #f1f5f9' },
+  grid3: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '24px', marginBottom: '32px' },
+  heroCard: { borderRadius: '16px', padding: isMobile ? '24px' : '32px', color: 'white', position: 'relative', overflow: 'hidden', textAlign: 'center', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '32px' },
   flexCenter: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
   flexBetween: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  // Botões de Navegação Mobile
-  navButton: {
-    padding: '8px',
-    borderRadius: '8px',
-    border: '1px solid #e2e8f0',
-    backgroundColor: '#f8fafc',
-    color: '#004990',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    width: '40px',
-    height: '40px',
-    transition: 'background-color 0.2s'
-  },
-  navButtonDisabled: {
-    opacity: 0.3,
-    cursor: 'not-allowed',
-    backgroundColor: '#f1f5f9'
-  },
-  // Login
+  navButton: { padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#004990', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '40px', height: '40px', transition: 'background-color 0.2s' },
+  navButtonDisabled: { opacity: 0.3, cursor: 'not-allowed', backgroundColor: '#f1f5f9' },
   loginContainer: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9', padding: '20px' },
   loginCard: { backgroundColor: 'white', padding: '40px', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', width: '100%', maxWidth: '400px', textAlign: 'center' },
   input: { width: '100%', padding: '12px 16px', margin: '8px 0 24px 0', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '16px', outline: 'none', boxSizing: 'border-box' },
   button: { width: '100%', padding: '14px', backgroundColor: '#004990', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' },
   tabButtonActive: { flex: 1, padding: '12px', borderBottom: '3px solid #004990', color: '#004990', fontWeight: 'bold', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
   tabButtonInactive: { flex: 1, padding: '12px', borderBottom: '3px solid transparent', color: '#94a3b8', fontWeight: 'normal', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
-  // Estilo da Logo
   logoContainer: { display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' },
   logoImage: { maxWidth: '240px', maxHeight: '100px', objectFit: 'contain' }
 });
@@ -167,65 +80,20 @@ const COLORS = {
     'CONTENÇÃO': { main: '#0891b2', light: '#cffafe', icon: ShieldAlert },
     'gestao': { main: '#475569', light: '#f1f5f9', icon: Upload }
   },
-  faixas: {
-    'ENTRANTES': '#22d3ee', 'ATÉ 90 DIAS': '#3b82f6', '91 A 180 DIAS': '#8b5cf6', 'OVER 180 DIAS': '#ef4444', 'PREJUÍZO': '#64748b'
-  }
+  faixas: { 'ENTRANTES': '#22d3ee', 'ATÉ 90 DIAS': '#3b82f6', '91 A 180 DIAS': '#8b5cf6', 'OVER 180 DIAS': '#ef4444', 'PREJUÍZO': '#64748b' }
 };
 
-// --- DADOS INICIAIS (EXPANDIDOS) ---
+// --- DADOS INICIAIS ---
 const INITIAL_CSV_DATA = `Dias úteis trabalhados;6;;;;;;
 Dias úteis totais do mês;19;;;;;;
-
 FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
 ENTRANTES;5000.00;6000.00;5500.00;5200.00;5800.00;6100.00;2000.00
 ATÉ 90 DIAS;12000.00;11000.00;13000.00;12500.00;11800.00;12200.00;4000.00
 91 A 180 DIAS;8000.00;7500.00;8200.00;9000.00;8500.00;9500.00;3000.00
 OVER 180 DIAS;4000.00;4200.00;4100.00;4300.00;4400.00;4500.00;1500.00
-PREJUÍZO;1000.00;500.00;800.00;1200.00;900.00;1100.00;400.00
-Total Geral;30000.00;29200.00;31600.00;32200.00;31400.00;33400.00;10900.00
+PREJUÍZO;1000.00;500.00;800.00;1200.00;900.00;1100.00;400.00`;
 
-FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
-ENTRANTES;1500.00;1600.00;1550.00;1520.00;1580.00;1610.00;500.00
-ATÉ 90 DIAS;3000.00;3100.00;3300.00;3250.00;3180.00;3220.00;1000.00
-91 A 180 DIAS;2000.00;2500.00;2200.00;2000.00;2500.00;2500.00;800.00
-OVER 180 DIAS;1000.00;1200.00;1100.00;1300.00;1400.00;1500.00;400.00
-PREJUÍZO;500.00;500.00;500.00;200.00;900.00;100.00;100.00
-Total Geral;8000.00;8900.00;8650.00;8270.00;9560.00;8930.00;2800.00
-
-FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
-ENTRANTES;0.00;0.00;0.00;0.00;0.00;0.00;0.00
-ATÉ 90 DIAS;500.00;600.00;550.00;520.00;580.00;610.00;200.00
-91 A 180 DIAS;1200.00;1100.00;1300.00;1250.00;1180.00;1220.00;400.00
-OVER 180 DIAS;800.00;750.00;820.00;900.00;850.00;950.00;300.00
-PREJUÍZO;400.00;420.00;410.00;430.00;440.00;450.00;150.00
-Total Geral;2900.00;2870.00;3080.00;3100.00;3050.00;3230.00;1050.00
-
-FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
-ENTRANTES;0.00;0.00;0.00;0.00;0.00;0.00;0.00
-ATÉ 90 DIAS;0.00;0.00;0.00;0.00;0.00;0.00;0.00
-91 A 180 DIAS;500.00;600.00;550.00;520.00;580.00;610.00;200.00
-OVER 180 DIAS;2200.00;2100.00;2300.00;2250.00;2180.00;2220.00;800.00
-PREJUÍZO;1800.00;1750.00;1820.00;1900.00;1850.00;1950.00;600.00
-Total Geral;4500.00;4450.00;4670.00;4670.00;4610.00;4780.00;1600.00
-
-FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
-ENTRANTES;50;55;52;58;60;62;20
-ATÉ 90 DIAS;80;82;85;88;90;92;35
-91 A 180 DIAS;40;42;41;43;45;48;15
-OVER 180 DIAS;10;12;11;13;14;15;5
-PREJUÍZO;5;5;5;6;7;8;2
-Total Geral;185;196;194;208;216;225;77
-
-FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
-ENTRANTES;10;12;11;10;12;13;4
-ATÉ 90 DIAS;20;22;25;24;23;25;8
-91 A 180 DIAS;15;14;16;18;17;19;6
-OVER 180 DIAS;5;6;5;6;7;8;3
-PREJUÍZO;2;1;2;3;2;3;1
-Total Geral;52;55;59;61;61;68;22
-`;
-
-// --- UTILITÁRIOS ---
+// --- UTILITÁRIOS (Parse e Format) ---
 const parseNumber = (valStr) => {
     if (!valStr) return 0;
     if (typeof valStr === 'number') return valStr;
@@ -268,12 +136,7 @@ const parseCustomCSV = (csvText) => {
        }
        valores.forEach((val, index) => {
            if (blockDates[index]) {
-               blockData.push({ 
-                   faixa: faixa, 
-                   data: blockDates[index], 
-                   valor: val,
-                   qtd: qtdRow[index] || 0
-               });
+               blockData.push({ faixa: faixa, data: blockDates[index], valor: val, qtd: qtdRow[index] || 0 });
            }
        });
     }
@@ -292,26 +155,13 @@ const parseCustomCSV = (csvText) => {
       cash.data.forEach((item, index) => {
           const r = reneg.data[index] || { valor: 0, qtd: 0 };
           const rt = retomadas.data[index] || { valor: 0, qtd: 0 };
-          consolidadoData.push({
-              faixa: item.faixa,
-              data: item.data,
-              valor: item.valor + r.valor + rt.valor,
-              qtd: item.qtd + r.qtd + rt.qtd
-          });
+          consolidadoData.push({ faixa: item.faixa, data: item.data, valor: item.valor + r.valor + rt.valor, qtd: item.qtd + r.qtd + rt.qtd });
       });
   }
 
   return { 
       daysWorked, totalDays, 
-      products: {
-          'CONSOLIDADO': consolidadoData, 
-          'CASH': cash.data,
-          'RENEGOCIAÇÃO': reneg.data,
-          'ENTREGA AMIGÁVEL': amigavel.data,
-          'APREENSÃO': apreensao.data,
-          'RETOMADAS': retomadas.data,
-          'CONTENÇÃO': contencao.data
-      }, 
+      products: { 'CONSOLIDADO': consolidadoData, 'CASH': cash.data, 'RENEGOCIAÇÃO': reneg.data, 'ENTREGA AMIGÁVEL': amigavel.data, 'APREENSÃO': apreensao.data, 'RETOMADAS': retomadas.data, 'CONTENÇÃO': contencao.data }, 
       dates: [...new Set(cash.dates)] 
   };
 };
@@ -381,7 +231,6 @@ const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, is
     const tableData = dates.map(date => {
         const items = productData.filter(d => d.data === date);
         const totalVal = items.reduce((acc, curr) => acc + curr.valor, 0);
-        const totalQtd = items.reduce((acc, curr) => acc + (curr.qtd || 0), 0);
         const tkm = daysWorked > 0 ? totalVal / daysWorked : 0;
         return { date: formatMonth(date), totalVal, tkm, rawDate: date };
     }).reverse();
@@ -430,7 +279,6 @@ const ProductExecutiveView = ({ productName, data, dates, daysWorked, totalDays,
                 <ComparisonCard title="vs Média 3 Meses" comparisonValue={comps.avg3} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
                 <ComparisonCard title="vs Média 6 Meses" comparisonValue={comps.avg6} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
             </div>
-            
             <AnalyticalTable productName={productName} data={data} dates={dates} daysWorked={daysWorked} type={metricType} theme={theme} isMobile={isMobile} />
             
             {/* Navegação Mobile no final da página */}
@@ -487,7 +335,6 @@ const FileUploader = ({ onDataSaved, isMobile, isPreviewMode, onEnterHomologMode
             </p>
             <input type="file" ref={fileRef} onChange={(e) => handleProcess(e.target.files[0], 'cloud')} accept=".csv,.txt" style={{ display: 'none' }} />
             
-            {/* Input secundário para ação local */}
             <input type="file" id="localUpload" onChange={(e) => handleProcess(e.target.files[0], 'local')} accept=".csv,.txt" style={{ display: 'none' }} />
 
             <div style={{ display: 'flex', gap: '16px', flexDirection: isMobile ? 'column' : 'row' }}>
@@ -515,7 +362,7 @@ const FileUploader = ({ onDataSaved, isMobile, isPreviewMode, onEnterHomologMode
     );
 };
 
-// --- COMPONENTE DE LOGIN (COM ABAS: PRODUÇÃO vs HOMOLOG) ---
+// --- COMPONENTE DE LOGIN ---
 const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
   const [activeTab, setActiveTab] = useState('prod'); 
   const [email, setEmail] = useState('');
@@ -529,7 +376,6 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
     setLoading(true);
     setError('');
 
-    // --- FLUXO HOMOLOGAÇÃO ---
     if (activeTab === 'homolog') {
         if (email === "admin@avocati.adv.br" && password === "abc@123") {
             try {
@@ -546,7 +392,6 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
         return;
     }
 
-    // --- FLUXO PRODUÇÃO (FIREBASE) ---
     try {
       const auth = getAuth();
       await signInWithEmailAndPassword(auth, email, password);
@@ -564,20 +409,9 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
             <img src={LOGO_DARK_URL} alt="OCL" style={styles.logoImage} />
         </div>
         
-        {/* Abas de Login */}
         <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '24px' }}>
-            <button 
-                onClick={() => setActiveTab('prod')}
-                style={activeTab === 'prod' ? styles.tabButtonActive : styles.tabButtonInactive}
-            >
-                Área Oficial
-            </button>
-            <button 
-                onClick={() => setActiveTab('homolog')}
-                style={activeTab === 'homolog' ? styles.tabButtonActive : styles.tabButtonInactive}
-            >
-                Área de Testes
-            </button>
+            <button onClick={() => setActiveTab('prod')} style={activeTab === 'prod' ? styles.tabButtonActive : styles.tabButtonInactive}>Área Oficial</button>
+            <button onClick={() => setActiveTab('homolog')} style={activeTab === 'homolog' ? styles.tabButtonActive : styles.tabButtonInactive}>Área de Testes</button>
         </div>
 
         <p style={{ color: '#64748b', marginBottom: '24px', fontSize: '14px' }}>
@@ -594,15 +428,11 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
             <input type="password" required style={styles.input} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}/>
           </div>
           {error && <p style={{ color: '#ef4444', fontSize: '14px', marginBottom: '16px' }}>{error}</p>}
-          
           <button type="submit" style={{ ...styles.button, backgroundColor: activeTab === 'homolog' ? '#f59e0b' : '#004990' }} disabled={loading}>
             {loading ? <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto' }} /> : (activeTab === 'homolog' ? 'Acessar Homologação' : 'Entrar no Sistema')}
           </button>
         </form>
-        
-        <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '24px' }}>
-            {activeTab === 'homolog' ? 'Ambiente simulado. Dados não oficiais.' : `© 1996 OCL Advogados Associados`}
-        </p>
+        <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '24px' }}>© 1996 OCL Advogados Associados</p>
       </div>
     </div>
   );
@@ -621,7 +451,10 @@ const App = () => {
   const [isHomologMode, setIsHomologMode] = useState(false); 
 
   useEffect(() => {
+    // IMPORTANTE: Esta inicialização com MOCK DATA é o que previne a TELA BRANCA no login.
+    // O sistema "nasce" com dados, mesmo que zerados, e atualiza assim que o Firebase conecta.
     const mockDataFallback = parseCustomCSV(INITIAL_CSV_DATA);
+    setData(mockDataFallback); 
     
     const initApp = async () => {
       try {
@@ -633,12 +466,10 @@ const App = () => {
           
           if (currentUser) {
             if (currentUser.isAnonymous) {
-                // Se o usuário é anônimo (veio do login de homolog), ativa modo homolog
                 setIsHomologMode(true);
                 setData(mockDataFallback); 
                 setLoading(false);
             } else {
-                // Login Real (Produção)
                 setIsHomologMode(false);
                 const db = getFirestore(app);
                 const docRef = doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'latest');
@@ -651,7 +482,7 @@ const App = () => {
                     setLoading(false);
                 }, (error) => { 
                     console.error("Erro dados:", error);
-                    setData(mockDataFallback);
+                    // Em caso de erro, mantém o mock data que já foi setado, evitando tela branca
                     setLoading(false); 
                 });
             }
@@ -673,7 +504,7 @@ const App = () => {
       const auth = getAuth(); 
       await signOut(auth); 
       setIsHomologMode(false);
-      setData(null);
+      // Não limpamos setData aqui para evitar flash de tela branca na saída, se quiser
   };
 
   const menu = [
@@ -687,7 +518,6 @@ const App = () => {
     { id: 'gestao', label: 'Gestão de Dados', icon: Upload, spacing: true },
   ];
 
-  // Navegação Mobile
   const handleNextTab = () => {
       const currentIndex = menu.findIndex(item => item.id === activeTab);
       if (currentIndex < menu.length - 2) { 
@@ -711,10 +541,10 @@ const App = () => {
 
   if (authChecking) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9' }}><Loader2 size={40} color="#004990" className="animate-spin" /></div>;
   
-  // SE NÃO TIVER USUÁRIO LOGADO E NÃO FOR MODO HOMOLOG OFFLINE, MOSTRA LOGIN
   if (!user && !isHomologMode) return <LoginScreen isMobile={isMobile} onEnterHomologMode={() => { setIsHomologMode(true); setData(parseCustomCSV(INITIAL_CSV_DATA)); }} />;
 
-  if (loading) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#004990' }}><Loader2 size={40} className="animate-spin" /><p style={{ marginTop: '16px' }}>Carregando dados...</p></div>;
+  // Loading removido visualmente se já tiver dados (mesmo que mock), para evitar tela branca
+  if (loading && !data) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#004990' }}><Loader2 size={40} className="animate-spin" /><p style={{ marginTop: '16px' }}>Carregando dados...</p></div>;
 
   return (
     <div style={styles.container}>
