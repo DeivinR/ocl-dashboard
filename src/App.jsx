@@ -504,7 +504,6 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
     try {
       const auth = getAuth();
       await signInWithEmailAndPassword(auth, email, password);
-      // Sucesso - o onAuthStateChanged no App cuidará do resto
     } catch (err) {
       console.error(err);
       setError('Acesso negado. Verifique suas credenciais.');
@@ -521,8 +520,18 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
         
         {/* Abas de Login */}
         <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '24px' }}>
-            <button onClick={() => setActiveTab('prod')} style={activeTab === 'prod' ? styles.tabButtonActive : styles.tabButtonInactive}>Área Oficial</button>
-            <button onClick={() => setActiveTab('homolog')} style={activeTab === 'homolog' ? styles.tabButtonActive : styles.tabButtonInactive}>Área de Testes</button>
+            <button 
+                onClick={() => setActiveTab('prod')}
+                style={activeTab === 'prod' ? styles.tabButtonActive : styles.tabButtonInactive}
+            >
+                Área Oficial
+            </button>
+            <button 
+                onClick={() => setActiveTab('homolog')}
+                style={activeTab === 'homolog' ? styles.tabButtonActive : styles.tabButtonInactive}
+            >
+                Área de Testes
+            </button>
         </div>
 
         <p style={{ color: '#64748b', marginBottom: '24px', fontSize: '14px' }}>
@@ -563,6 +572,7 @@ const App = () => {
 
   useEffect(() => {
     const mockDataFallback = parseCustomCSV(INITIAL_CSV_DATA);
+    
     const initApp = async () => {
       try {
         const app = initializeApp(firebaseConfig);
@@ -571,30 +581,29 @@ const App = () => {
           setUser(currentUser);
           setAuthChecking(false);
           
-          if (currentUser && !currentUser.isAnonymous) {
-            // Login Real (Produção)
-            setIsHomologMode(false);
-            const db = getFirestore(app);
-            const docRef = doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'latest');
-            onSnapshot(docRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    setData(docSnap.data());
-                } else {
-                    setData(mockDataFallback);
-                }
+          if (currentUser) {
+            if (currentUser.isAnonymous) {
+                setIsHomologMode(true);
+                setData(mockDataFallback); 
                 setLoading(false);
-            }, (error) => { 
-                console.error("Erro dados:", error);
-                setData(mockDataFallback);
-                setLoading(false); 
-            });
+            } else {
+                setIsHomologMode(false);
+                const db = getFirestore(app);
+                const docRef = doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'latest');
+                onSnapshot(docRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        setData(docSnap.data());
+                    } else {
+                        setData(mockDataFallback);
+                    }
+                    setLoading(false);
+                }, (error) => { 
+                    console.error("Erro dados:", error);
+                    setData(mockDataFallback);
+                    setLoading(false); 
+                });
+            }
           } else {
-             // Sem usuário ou usuário anônimo (homolog): 
-             // Se for homolog (isHomologMode = true), o LoginScreen já cuidou de setar o estado.
-             // Se não, o loading pára para mostrar o LoginScreen.
-             if (isHomologMode) {
-                 setData(mockDataFallback);
-             }
              setLoading(false);
           }
         });
@@ -606,7 +615,7 @@ const App = () => {
       }
     };
     initApp();
-  }, [isHomologMode]); // Adicionei dependência isHomologMode para reagir à mudança
+  }, []);
 
   const handleLogout = async () => { 
       const auth = getAuth(); 
@@ -650,8 +659,7 @@ const App = () => {
 
   if (authChecking) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9' }}><Loader2 size={40} color="#004990" className="animate-spin" /></div>;
   
-  // Condição para mostrar Login: Se não tem user logado E não está em modo homolog
-  if (!user && !isHomologMode) return <LoginScreen isMobile={isMobile} onEnterHomologMode={() => { setIsHomologMode(true); setData(parseCustomCSV(INITIAL_CSV_DATA)); setLoading(false); }} />;
+  if (!user && !isHomologMode) return <LoginScreen isMobile={isMobile} onEnterHomologMode={() => { setIsHomologMode(true); setData(parseCustomCSV(INITIAL_CSV_DATA)); }} />;
 
   if (loading) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#004990' }}><Loader2 size={40} className="animate-spin" /><p style={{ marginTop: '16px' }}>Carregando dados seguros...</p></div>;
 
