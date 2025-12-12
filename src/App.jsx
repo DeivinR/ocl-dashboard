@@ -14,9 +14,9 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
-const SYSTEM_VERSION = "v1.0 - Oficial de Produção";
+const SYSTEM_VERSION = "v1.2.0";
 
-// --- CONFIGURAÇÃO DAS LOGOS ---
+// --- CONFIGURAÇÃO DA LOGO ---
 const LOGO_LIGHT_URL = "/logo-white.png"; // Para fundo escuro (Menu Lateral)
 const LOGO_DARK_URL = "/logo.png";        // Para fundo claro (Login)
 
@@ -86,9 +86,9 @@ const getStyles = (isMobile, sidebarOpen) => ({
     display: 'flex', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
-    position: 'sticky', 
+    position: 'sticky', // Garante que fique fixo no topo
     top: 0, 
-    zIndex: 30,
+    zIndex: 30, // Z-index alto para ficar sobre o conteúdo
     boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'
   },
   content: { 
@@ -122,6 +122,7 @@ const getStyles = (isMobile, sidebarOpen) => ({
   },
   flexCenter: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
   flexBetween: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  // Botões de Navegação Mobile
   navButton: {
     padding: '8px',
     borderRadius: '8px',
@@ -141,12 +142,14 @@ const getStyles = (isMobile, sidebarOpen) => ({
     cursor: 'not-allowed',
     backgroundColor: '#f1f5f9'
   },
+  // Login
   loginContainer: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9', padding: '20px' },
   loginCard: { backgroundColor: 'white', padding: '40px', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', width: '100%', maxWidth: '400px', textAlign: 'center' },
   input: { width: '100%', padding: '12px 16px', margin: '8px 0 24px 0', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '16px', outline: 'none', boxSizing: 'border-box' },
   button: { width: '100%', padding: '14px', backgroundColor: '#004990', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' },
   tabButtonActive: { flex: 1, padding: '12px', borderBottom: '3px solid #004990', color: '#004990', fontWeight: 'bold', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
   tabButtonInactive: { flex: 1, padding: '12px', borderBottom: '3px solid transparent', color: '#94a3b8', fontWeight: 'normal', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
+  // Estilo da Logo
   logoContainer: { display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' },
   logoImage: { maxWidth: '240px', maxHeight: '100px', objectFit: 'contain' }
 });
@@ -169,15 +172,58 @@ const COLORS = {
   }
 };
 
-// --- DADOS INICIAIS (MOCK) ---
+// --- DADOS INICIAIS (EXPANDIDOS) ---
 const INITIAL_CSV_DATA = `Dias úteis trabalhados;6;;;;;;
 Dias úteis totais do mês;19;;;;;;
+
 FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
 ENTRANTES;5000.00;6000.00;5500.00;5200.00;5800.00;6100.00;2000.00
 ATÉ 90 DIAS;12000.00;11000.00;13000.00;12500.00;11800.00;12200.00;4000.00
 91 A 180 DIAS;8000.00;7500.00;8200.00;9000.00;8500.00;9500.00;3000.00
 OVER 180 DIAS;4000.00;4200.00;4100.00;4300.00;4400.00;4500.00;1500.00
-PREJUÍZO;1000.00;500.00;800.00;1200.00;900.00;1100.00;400.00`;
+PREJUÍZO;1000.00;500.00;800.00;1200.00;900.00;1100.00;400.00
+Total Geral;30000.00;29200.00;31600.00;32200.00;31400.00;33400.00;10900.00
+
+FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
+ENTRANTES;1500.00;1600.00;1550.00;1520.00;1580.00;1610.00;500.00
+ATÉ 90 DIAS;3000.00;3100.00;3300.00;3250.00;3180.00;3220.00;1000.00
+91 A 180 DIAS;2000.00;2500.00;2200.00;2000.00;2500.00;2500.00;800.00
+OVER 180 DIAS;1000.00;1200.00;1100.00;1300.00;1400.00;1500.00;400.00
+PREJUÍZO;500.00;500.00;500.00;200.00;900.00;100.00;100.00
+Total Geral;8000.00;8900.00;8650.00;8270.00;9560.00;8930.00;2800.00
+
+FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
+ENTRANTES;0.00;0.00;0.00;0.00;0.00;0.00;0.00
+ATÉ 90 DIAS;500.00;600.00;550.00;520.00;580.00;610.00;200.00
+91 A 180 DIAS;1200.00;1100.00;1300.00;1250.00;1180.00;1220.00;400.00
+OVER 180 DIAS;800.00;750.00;820.00;900.00;850.00;950.00;300.00
+PREJUÍZO;400.00;420.00;410.00;430.00;440.00;450.00;150.00
+Total Geral;2900.00;2870.00;3080.00;3100.00;3050.00;3230.00;1050.00
+
+FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
+ENTRANTES;0.00;0.00;0.00;0.00;0.00;0.00;0.00
+ATÉ 90 DIAS;0.00;0.00;0.00;0.00;0.00;0.00;0.00
+91 A 180 DIAS;500.00;600.00;550.00;520.00;580.00;610.00;200.00
+OVER 180 DIAS;2200.00;2100.00;2300.00;2250.00;2180.00;2220.00;800.00
+PREJUÍZO;1800.00;1750.00;1820.00;1900.00;1850.00;1950.00;600.00
+Total Geral;4500.00;4450.00;4670.00;4670.00;4610.00;4780.00;1600.00
+
+FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
+ENTRANTES;50;55;52;58;60;62;20
+ATÉ 90 DIAS;80;82;85;88;90;92;35
+91 A 180 DIAS;40;42;41;43;45;48;15
+OVER 180 DIAS;10;12;11;13;14;15;5
+PREJUÍZO;5;5;5;6;7;8;2
+Total Geral;185;196;194;208;216;225;77
+
+FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
+ENTRANTES;10;12;11;10;12;13;4
+ATÉ 90 DIAS;20;22;25;24;23;25;8
+91 A 180 DIAS;15;14;16;18;17;19;6
+OVER 180 DIAS;5;6;5;6;7;8;3
+PREJUÍZO;2;1;2;3;2;3;1
+Total Geral;52;55;59;61;61;68;22
+`;
 
 // --- UTILITÁRIOS ---
 const parseNumber = (valStr) => {
@@ -214,16 +260,12 @@ const parseCustomCSV = (csvText) => {
        if (!row[0] || row[0] === 'Total Geral') continue; 
        const faixa = row[0];
        const valores = row.slice(1).map(v => parseNumber(v)); 
-       
        let qtdRow = [];
        if (qtdStart && qtdEnd) {
            const offset = i - valStart; 
            const targetQtdLine = qtdStart + offset;
-           if (lines[targetQtdLine]) {
-               qtdRow = lines[targetQtdLine].split(separator).slice(1).map(v => parseNumber(v));
-           }
+           if (lines[targetQtdLine]) qtdRow = lines[targetQtdLine].split(separator).slice(1).map(v => parseNumber(v));
        }
-
        valores.forEach((val, index) => {
            if (blockDates[index]) {
                blockData.push({ 
@@ -250,7 +292,6 @@ const parseCustomCSV = (csvText) => {
       cash.data.forEach((item, index) => {
           const r = reneg.data[index] || { valor: 0, qtd: 0 };
           const rt = retomadas.data[index] || { valor: 0, qtd: 0 };
-          
           consolidadoData.push({
               faixa: item.faixa,
               data: item.data,
@@ -342,8 +383,7 @@ const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, is
         const totalVal = items.reduce((acc, curr) => acc + curr.valor, 0);
         const totalQtd = items.reduce((acc, curr) => acc + (curr.qtd || 0), 0);
         const tkm = daysWorked > 0 ? totalVal / daysWorked : 0;
-        const tkmAcordo = totalQtd > 0 ? totalVal / totalQtd : 0;
-        return { date: formatMonth(date), totalVal, totalQtd, tkm, tkmAcordo, rawDate: date };
+        return { date: formatMonth(date), totalVal, tkm, rawDate: date };
     }).reverse();
 
     return (
@@ -359,9 +399,7 @@ const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, is
                         <tr style={{ backgroundColor: '#f8fafc', color: '#64748b', fontSize: '12px', textTransform: 'uppercase' }}>
                             <th style={{ padding: '16px', fontWeight: '600' }}>Mês</th>
                             <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>Resultado ({type === 'currency' ? 'R$' : 'Qtd'})</th>
-                            {!isContencao && <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>Qtd Acordos</th>}
                             {!isContencao && <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600', color: '#64748b' }}>TKM D.U. (R$)</th>}
-                            {!isContencao && <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600', color: theme.main }}>TKM Acordo (R$)</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -369,9 +407,7 @@ const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, is
                             <tr key={row.rawDate} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: index === 0 ? '#eff6ff' : 'white' }}>
                                 <td style={{ padding: '16px', fontWeight: '500', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>{row.date} {index === 0 && <span style={{ backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '10px', padding: '2px 8px', borderRadius: '999px', fontWeight: 'bold' }}>ATUAL</span>}</td>
                                 <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: index === 0 ? theme.main : '#334155' }}>{formatter(row.totalVal)}</td>
-                                {!isContencao && <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: '#334155' }}>{formatNumber(row.totalQtd)}</td>}
                                 {!isContencao && <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: '#64748b' }}>{formatCurrency(row.tkm)}</td>}
-                                {!isContencao && <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: theme.main }}>{formatCurrency(row.tkmAcordo)}</td>}
                             </tr>
                         ))}
                     </tbody>
@@ -394,7 +430,7 @@ const ProductExecutiveView = ({ productName, data, dates, daysWorked, totalDays,
                 <ComparisonCard title="vs Média 3 Meses" comparisonValue={comps.avg3} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
                 <ComparisonCard title="vs Média 6 Meses" comparisonValue={comps.avg6} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
             </div>
-            {/* GRÁFICO REMOVIDO DAQUI */}
+            
             <AnalyticalTable productName={productName} data={data} dates={dates} daysWorked={daysWorked} type={metricType} theme={theme} isMobile={isMobile} />
             
             {/* Navegação Mobile no final da página */}
@@ -497,10 +533,8 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
     if (activeTab === 'homolog') {
         if (email === "admin@avocati.adv.br" && password === "abc@123") {
             try {
-                // Tenta login anônimo para liberar acesso de leitura
                 const auth = getAuth();
                 await signInAnonymously(auth).catch(() => {}); 
-                // CHAMA O MODO OFFLINE EXPLICITAMENTE
                 onEnterHomologMode();
             } catch (err) {
                 onEnterHomologMode();
@@ -567,7 +601,7 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
         </form>
         
         <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '24px' }}>
-            {activeTab === 'homolog' ? 'Ambiente simulado. Dados não oficiais.' : `© ${new Date().getFullYear()} OCL Advogados Associados`}
+            {activeTab === 'homolog' ? 'Ambiente simulado. Dados não oficiais.' : `© 1996 OCL Advogados Associados`}
         </p>
       </div>
     </div>
