@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Wallet, Handshake, Car, Gavel, Upload, FileText, TrendingUp, TrendingDown, 
   Calendar, Menu, HardDrive, Loader2, ShieldAlert, Building2, Target, Table, Clock, Info, 
   Cloud, CloudLightning, CheckCircle2, X, Lock, User, Layers, RefreshCw, Eye, ArrowRight,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, TestTube
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -14,7 +14,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
-const SYSTEM_VERSION = "v1.0.0";
+const SYSTEM_VERSION = "v8.2 - Fix Upload Homologação";
 
 // --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
@@ -82,9 +82,9 @@ const getStyles = (isMobile, sidebarOpen) => ({
     display: 'flex', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
-    position: 'sticky', // Garante que fique fixo no topo
+    position: 'sticky', 
     top: 0, 
-    zIndex: 30, // Z-index alto para ficar sobre o conteúdo
+    zIndex: 30,
     boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'
   },
   content: { 
@@ -118,7 +118,6 @@ const getStyles = (isMobile, sidebarOpen) => ({
   },
   flexCenter: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
   flexBetween: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  // Botões de Navegação Mobile
   navButton: {
     padding: '8px',
     borderRadius: '8px',
@@ -138,11 +137,12 @@ const getStyles = (isMobile, sidebarOpen) => ({
     cursor: 'not-allowed',
     backgroundColor: '#f1f5f9'
   },
-  // Login
   loginContainer: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9', padding: '20px' },
   loginCard: { backgroundColor: 'white', padding: '40px', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', width: '100%', maxWidth: '400px', textAlign: 'center' },
-  input: { width: '100%', padding: '12px 16px', margin: '8px 0 24px 0', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '16px', outline: 'none' },
-  button: { width: '100%', padding: '14px', backgroundColor: '#004990', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }
+  input: { width: '100%', padding: '12px 16px', margin: '8px 0 24px 0', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '16px', outline: 'none', boxSizing: 'border-box' },
+  button: { width: '100%', padding: '14px', backgroundColor: '#004990', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' },
+  tabButtonActive: { flex: 1, padding: '12px', borderBottom: '3px solid #004990', color: '#004990', fontWeight: 'bold', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
+  tabButtonInactive: { flex: 1, padding: '12px', borderBottom: '3px solid transparent', color: '#94a3b8', fontWeight: 'normal', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' }
 });
 
 // --- CORES ---
@@ -166,6 +166,14 @@ const COLORS = {
 // --- DADOS INICIAIS (EXPANDIDOS) ---
 const INITIAL_CSV_DATA = `Dias úteis trabalhados;6;;;;;;
 Dias úteis totais do mês;19;;;;;;
+
+FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
+ENTRANTES;28863.71;41532.11;29652.40;25136.71;27900.03;21259.80;9189.90
+ATÉ 90 DIAS;61474.62;49641.29;78019.67;65478.22;61000.50;55200.10;18983.68
+91 A 180 DIAS;23882.85;21897.05;23847.29;35395.00;29236.10;61340.62;21126.79
+OVER 180 DIAS;15516.43;19096.42;31343.15;21956.00;31880.72;20366.38;43214.30
+PREJUÍZO;8617.10;0.00;2896.94;6176.01;6737.71;14506.05;8205.79
+Total Geral;138354.71;132166.87;165759.45;154141.94;156754.96;172672.95;99720.46
 
 FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
 ENTRANTES;5000.00;6000.00;5500.00;5200.00;5800.00;6100.00;2000.00
@@ -372,8 +380,9 @@ const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, is
     const tableData = dates.map(date => {
         const items = productData.filter(d => d.data === date);
         const totalVal = items.reduce((acc, curr) => acc + curr.valor, 0);
+        const totalQtd = items.reduce((acc, curr) => acc + (curr.qtd || 0), 0);
         const tkm = daysWorked > 0 ? totalVal / daysWorked : 0;
-        return { date: formatMonth(date), totalVal, tkm, rawDate: date };
+        return { date: formatMonth(date), totalVal, totalQtd, tkm, rawDate: date };
     }).reverse();
 
     return (
@@ -420,12 +429,12 @@ const ProductExecutiveView = ({ productName, data, dates, daysWorked, totalDays,
                 <ComparisonCard title="vs Média 3 Meses" comparisonValue={comps.avg3} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
                 <ComparisonCard title="vs Média 6 Meses" comparisonValue={comps.avg6} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
             </div>
-            
+            {/* GRÁFICO REMOVIDO DAQUI */}
             <AnalyticalTable productName={productName} data={data} dates={dates} daysWorked={daysWorked} type={metricType} theme={theme} isMobile={isMobile} />
-
+            
             {/* Navegação Mobile no final da página */}
             {isMobile && nextTabName && (
-                <button onClick={onNextTab} style={{ ...getStyles(isMobile).mobileNavButton, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '16px', marginTop: '32px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', color: '#004990', fontWeight: 'bold', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', cursor: 'pointer' }}>
+                <button onClick={onNextTab} style={getStyles(isMobile).mobileNavButton}>
                     Próximo: {nextTabName} <ArrowRight size={16} />
                 </button>
             )}
@@ -433,7 +442,7 @@ const ProductExecutiveView = ({ productName, data, dates, daysWorked, totalDays,
     );
 };
 
-const FileUploader = ({ onDataSaved, isMobile, isPreviewMode }) => {
+const FileUploader = ({ onDataSaved, isMobile, isPreviewMode, onEnterHomologMode }) => {
     const [status, setStatus] = useState('idle');
     const fileRef = useRef(null);
     const auth = getAuth();
@@ -454,7 +463,10 @@ const FileUploader = ({ onDataSaved, isMobile, isPreviewMode }) => {
                     onDataSaved(processed);
                     setStatus('success-cloud');
                 } else {
-                    onDataSaved(processed);
+                    // MODO HOMOLOGAÇÃO: Atualiza localmente sem salvar no banco
+                    onDataSaved(processed); 
+                    // NÃO CHAMA onEnterHomologMode AQUI, pois já estamos logados no modo correto
+                    // ou já temos o estado configurado. Apenas atualizamos os dados da sessão.
                     setStatus('success-local');
                 }
                 
@@ -477,7 +489,7 @@ const FileUploader = ({ onDataSaved, isMobile, isPreviewMode }) => {
             </p>
             <input type="file" ref={fileRef} onChange={(e) => handleProcess(e.target.files[0], 'cloud')} accept=".csv,.txt" style={{ display: 'none' }} />
             
-            {/* Input secundário para ação local (apenas chama o handler com modo 'local') */}
+            {/* Input secundário para ação local */}
             <input type="file" id="localUpload" onChange={(e) => handleProcess(e.target.files[0], 'local')} accept=".csv,.txt" style={{ display: 'none' }} />
 
             <div style={{ display: 'flex', gap: '16px', flexDirection: isMobile ? 'column' : 'row' }}>
@@ -505,9 +517,86 @@ const FileUploader = ({ onDataSaved, isMobile, isPreviewMode }) => {
     );
 };
 
-// --- COMPONENTE DE LOGIN (SIMULADO NA PREVIEW) ---
-const LoginScreen = ({ onLogin, isMobile }) => {
-  return <div>Login Screen (Oculto na Preview)</div>;
+// --- COMPONENTE DE LOGIN (COM ABAS: PRODUÇÃO vs HOMOLOG) ---
+const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
+  const [activeTab, setActiveTab] = useState('prod'); 
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const styles = getStyles(isMobile);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    // --- FLUXO HOMOLOGAÇÃO ---
+    if (activeTab === 'homolog') {
+        if (email === "admin@avocati.adv.br" && password === "abc@123") {
+            try {
+                // Tenta conectar anônimo (pode falhar em ambientes restritos, ok)
+                const auth = getAuth();
+                await signInAnonymously(auth).catch(() => {}); 
+                // CHAMA O MODO OFFLINE EXPLICITAMENTE
+                onEnterHomologMode();
+            } catch (err) {
+                onEnterHomologMode();
+            }
+        } else {
+            setError('Credenciais de Homologação inválidas.');
+            setLoading(false);
+        }
+        return;
+    }
+
+    // --- FLUXO PRODUÇÃO (FIREBASE) ---
+    try {
+      const auth = getAuth();
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      console.error(err);
+      setError('Acesso negado. Verifique suas credenciais.');
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={styles.loginContainer}>
+      <div style={styles.loginCard}>
+        <div style={{ width: '60px', height: '60px', backgroundColor: '#eff6ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto' }}>
+          <Building2 size={32} color="#004990" />
+        </div>
+        <h2 style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>OCL Dashboard</h2>
+        
+        {/* Abas de Login */}
+        <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '24px' }}>
+            <button onClick={() => setActiveTab('prod')} style={activeTab === 'prod' ? styles.tabButtonActive : styles.tabButtonInactive}>Área Oficial</button>
+            <button onClick={() => setActiveTab('homolog')} style={activeTab === 'homolog' ? styles.tabButtonActive : styles.tabButtonInactive}>Área de Testes</button>
+        </div>
+
+        <p style={{ color: '#64748b', marginBottom: '24px', fontSize: '14px' }}>
+            {activeTab === 'prod' ? 'Acesso restrito à Diretoria e Gestão.' : 'Ambiente de Homologação e Testes.'}
+        </p>
+        
+        <form onSubmit={handleSubmit}>
+          <div style={{ textAlign: 'left', marginBottom: '16px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '4px' }}>E-mail</label>
+            <input type="email" required style={styles.input} placeholder="seu.email@dominio.com.br" value={email} onChange={(e) => setEmail(e.target.value)}/>
+          </div>
+          <div style={{ textAlign: 'left', marginBottom: '24px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '4px' }}>Senha</label>
+            <input type="password" required style={styles.input} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}/>
+          </div>
+          {error && <p style={{ color: '#ef4444', fontSize: '14px', marginBottom: '16px' }}>{error}</p>}
+          <button type="submit" style={{ ...styles.button, backgroundColor: activeTab === 'homolog' ? '#f59e0b' : '#004990' }} disabled={loading}>
+            {loading ? <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto' }} /> : (activeTab === 'homolog' ? 'Acessar Homologação' : 'Entrar no Sistema')}
+          </button>
+        </form>
+        <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '24px' }}>{activeTab === 'homolog' ? 'Ambiente simulado. Dados não oficiais.' : `© ${new Date().getFullYear()} OCL Advogados Associados`}</p>
+      </div>
+    </div>
+  );
 };
 
 const App = () => {
@@ -520,7 +609,7 @@ const App = () => {
   const isMobile = useIsMobile();
   const styles = getStyles(isMobile, sidebarOpen);
   const currentTheme = COLORS.themes[activeTab] || COLORS.themes['CASH'];
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isHomologMode, setIsHomologMode] = useState(false); 
 
   useEffect(() => {
     const mockDataFallback = parseCustomCSV(INITIAL_CSV_DATA);
@@ -532,31 +621,39 @@ const App = () => {
         const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
           setUser(currentUser);
           setAuthChecking(false);
+          
           if (currentUser) {
-            const db = getFirestore(app);
-            const docRef = doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'latest');
-            onSnapshot(docRef, (docSnap) => {
-              setData(docSnap.exists() ? docSnap.data() : mockDataFallback);
-              setLoading(false);
-            }, (error) => { 
-                console.warn("Modo Preview (Erro Firestore):", error);
-                setIsPreviewMode(true);
-                setData(mockDataFallback);
-                setLoading(false); 
-            });
+            if (currentUser.isAnonymous) {
+                // Se o usuário é anônimo (veio do login de homolog), ativa modo homolog
+                setIsHomologMode(true);
+                setData(mockDataFallback); 
+                setLoading(false);
+            } else {
+                // Usuário real (Produção)
+                setIsHomologMode(false);
+                const db = getFirestore(app);
+                const docRef = doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'latest');
+                onSnapshot(docRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        setData(docSnap.data());
+                    } else {
+                        setData(mockDataFallback);
+                    }
+                    setLoading(false);
+                }, (error) => { 
+                    console.error("Erro dados:", error);
+                    setData(mockDataFallback);
+                    setLoading(false); 
+                });
+            }
           } else {
-             // MODO TESTE ATIVADO: CARREGA DADOS MOCK SE NÃO TIVER USUÁRIO
-             // (Para produção, basta remover esta linha 'setData' e deixar só setLoading)
-             setIsPreviewMode(true);
-             setData(mockDataFallback);
+             // Sem usuário: Fica na tela de login
              setLoading(false);
           }
         });
         return () => unsubscribeAuth();
       } catch (e) { 
-          console.warn("Modo Preview (Erro Init):", e); 
-          setIsPreviewMode(true);
-          setData(mockDataFallback);
+          console.error("Erro init:", e); 
           setLoading(false);
           setAuthChecking(false); 
       }
@@ -564,7 +661,12 @@ const App = () => {
     initApp();
   }, []);
 
-  const handleLogout = async () => { const auth = getAuth(); await signOut(auth); };
+  const handleLogout = async () => { 
+      const auth = getAuth(); 
+      await signOut(auth); 
+      setIsHomologMode(false);
+      setData(null);
+  };
 
   const menu = [
     { id: 'CONSOLIDADO', label: 'Resultados Consolidados', icon: Layers, spacing: true },
@@ -577,7 +679,7 @@ const App = () => {
     { id: 'gestao', label: 'Gestão de Dados', icon: Upload, spacing: true },
   ];
 
-  // Lógica de Navegação Mobile (Próxima Aba)
+  // Navegação Mobile
   const handleNextTab = () => {
       const currentIndex = menu.findIndex(item => item.id === activeTab);
       if (currentIndex < menu.length - 2) { 
@@ -586,11 +688,9 @@ const App = () => {
           window.scrollTo(0,0);
       }
   };
-  
   const currentMenuIndex = menu.findIndex(item => item.id === activeTab);
   const nextTabName = (currentMenuIndex < menu.length - 2) ? menu[currentMenuIndex + 1].label : null;
 
-  // Lógica de Navegação Mobile (Aba Anterior)
   const handlePrevTab = () => {
       const currentIndex = menu.findIndex(item => item.id === activeTab);
       if (currentIndex > 0) {
@@ -599,13 +699,12 @@ const App = () => {
           window.scrollTo(0,0);
       }
   };
-
   const prevTabName = (currentMenuIndex > 0) ? menu[currentMenuIndex - 1].label : null;
 
   if (authChecking) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9' }}><Loader2 size={40} color="#004990" className="animate-spin" /></div>;
   
-  // SE ESTIVER EM MODO DE TESTE (SEM USUÁRIO, MAS COM DADOS), MOSTRA O DASHBOARD
-  if (!user && !data) return <LoginScreen isMobile={isMobile} />;
+  // SE NÃO TIVER USUÁRIO LOGADO E NÃO FOR MODO HOMOLOG OFFLINE, MOSTRA LOGIN
+  if (!user && !isHomologMode) return <LoginScreen isMobile={isMobile} onEnterHomologMode={() => { setIsHomologMode(true); setData(parseCustomCSV(INITIAL_CSV_DATA)); }} />;
 
   if (loading) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#004990' }}><Loader2 size={40} className="animate-spin" /><p style={{ marginTop: '16px' }}>Carregando dados...</p></div>;
 
@@ -626,13 +725,11 @@ const App = () => {
             ))}
         </nav>
         <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-            {!isPreviewMode && (
-                <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '12px', borderRadius: '8px', border: 'none', backgroundColor: 'rgba(0,0,0,0.2)', color: '#bfdbfe', cursor: 'pointer', fontSize: '14px' }}>
-                    <Lock size={16} />
-                    {sidebarOpen && <span style={{ marginLeft: '12px' }}>Sair do Sistema</span>}
-                </button>
-            )}
-            {isPreviewMode && sidebarOpen && <div style={{ fontSize: '10px', color: '#fbbf24', textAlign: 'center' }}>Modo Homologação</div>}
+            <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '12px', borderRadius: '8px', border: 'none', backgroundColor: 'rgba(0,0,0,0.2)', color: '#bfdbfe', cursor: 'pointer', fontSize: '14px' }}>
+                <Lock size={16} />
+                {sidebarOpen && <span style={{ marginLeft: '12px' }}>Sair do Sistema</span>}
+            </button>
+            {isHomologMode && sidebarOpen && <div style={{ fontSize: '10px', color: '#fbbf24', textAlign: 'center', marginTop: '8px' }}>Modo Homologação</div>}
         </div>
       </aside>
       <main style={styles.main}>
@@ -643,30 +740,18 @@ const App = () => {
                 <h1 style={{ fontSize: isMobile ? '18px' : '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{menu.find(i => i.id === activeTab)?.label}</h1>
             </div>
             
-            {/* Navegação Mobile no Header */}
+            {/* Navegação Mobile */}
             {isMobile && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <button 
-                        onClick={handlePrevTab} 
-                        disabled={!prevTabName}
-                        style={{ ...getStyles(isMobile).navButton, opacity: !prevTabName ? 0.3 : 1 }}
-                    >
-                        <ChevronLeft size={20} />
-                    </button>
-                    <button 
-                        onClick={handleNextTab} 
-                        disabled={!nextTabName}
-                        style={{ ...getStyles(isMobile).navButton, opacity: !nextTabName ? 0.3 : 1 }}
-                    >
-                        <ChevronRight size={20} />
-                    </button>
+                    <button onClick={handlePrevTab} disabled={!prevTabName} style={{ ...getStyles(isMobile).navButton, opacity: !prevTabName ? 0.3 : 1 }}><ChevronLeft size={20} /></button>
+                    <button onClick={handleNextTab} disabled={!nextTabName} style={{ ...getStyles(isMobile).navButton, opacity: !nextTabName ? 0.3 : 1 }}><ChevronRight size={20} /></button>
                 </div>
             )}
 
             {data && !isMobile && <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: '#64748b' }}><span style={styles.flexCenter}><Calendar size={14} style={{ marginRight: '4px' }}/> {data.dates && data.dates.length > 0 ? formatMonth(data.dates[data.dates.length -1]) : '-'}</span><span style={{ ...styles.flexCenter, backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', color: '#334155' }}><Clock size={14} style={{ marginRight: '4px' }}/> {data.daysWorked}/{data.totalDays}</span></div>}
         </header>
         <div style={styles.content}>
-            {activeTab === 'gestao' ? <FileUploader onDataSaved={setData} isMobile={isMobile} isPreviewMode={isPreviewMode} /> : <ProductExecutiveView productName={activeTab} data={data} dates={data.dates} daysWorked={data.daysWorked} totalDays={data.totalDays} theme={currentTheme} isMobile={isMobile} onNextTab={handleNextTab} nextTabName={nextTabName} />}
+            {activeTab === 'gestao' ? <FileUploader onDataSaved={setData} isMobile={isMobile} isPreviewMode={isHomologMode} onEnterHomologMode={() => { /* Apenas para garantir que o upload local funcione */ }} /> : <ProductExecutiveView productName={activeTab} data={data} dates={data.dates} daysWorked={data.daysWorked} totalDays={data.totalDays} theme={currentTheme} isMobile={isMobile} onNextTab={handleNextTab} nextTabName={nextTabName} />}
         </div>
       </main>
     </div>
