@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Wallet, Handshake, Car, Gavel, Upload, FileText, TrendingUp, TrendingDown, 
   Calendar, Menu, HardDrive, Loader2, ShieldAlert, Building2, Target, Table, Clock, Info, 
   Cloud, CloudLightning, CheckCircle2, X, Lock, User, Layers, RefreshCw, Eye, ArrowRight,
-  ChevronLeft, ChevronRight // Novos ícones para navegação
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -14,7 +14,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
-const SYSTEM_VERSION = "v1.0.0 - Versão Oficial (Fix Style)";
+const SYSTEM_VERSION = "v1.0.0";
 
 // --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
@@ -84,16 +84,14 @@ const getStyles = (isMobile, sidebarOpen) => ({
     alignItems: 'center', 
     position: 'sticky', // Garante que fique fixo no topo
     top: 0, 
-    zIndex: 30,
-    boxShadow: isMobile ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+    zIndex: 30, // Z-index alto para ficar sobre o conteúdo
+    boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'
   },
   content: { 
-    paddingTop: isMobile ? '16px' : '32px',
-    paddingLeft: isMobile ? '16px' : '32px',
-    paddingRight: isMobile ? '16px' : '32px',
-    paddingBottom: isMobile ? '32px' : '32px',
+    padding: isMobile ? '16px' : '32px', 
     overflowY: 'auto', 
     flex: 1,
+    paddingBottom: isMobile ? '80px' : '32px' 
   },
   card: { 
     backgroundColor: 'white', 
@@ -120,16 +118,25 @@ const getStyles = (isMobile, sidebarOpen) => ({
   },
   flexCenter: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
   flexBetween: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  // Botões de Navegação Mobile
   navButton: {
     padding: '8px',
     borderRadius: '8px',
     border: '1px solid #e2e8f0',
-    backgroundColor: 'white',
+    backgroundColor: '#f8fafc',
     color: '#004990',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    width: '40px',
+    height: '40px',
+    transition: 'background-color 0.2s'
+  },
+  navButtonDisabled: {
+    opacity: 0.3,
+    cursor: 'not-allowed',
+    backgroundColor: '#f1f5f9'
   },
   // Login
   loginContainer: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9', padding: '20px' },
@@ -156,7 +163,7 @@ const COLORS = {
   }
 };
 
-// --- DADOS INICIAIS (EXPANDIDOS PARA A NOVA ESTRUTURA) ---
+// --- DADOS INICIAIS (EXPANDIDOS) ---
 const INITIAL_CSV_DATA = `Dias úteis trabalhados;6;;;;;;
 Dias úteis totais do mês;19;;;;;;
 
@@ -207,7 +214,6 @@ ATÉ 90 DIAS;20;22;25;24;23;25;8
 OVER 180 DIAS;5;6;5;6;7;8;3
 PREJUÍZO;2;1;2;3;2;3;1
 Total Geral;52;55;59;61;61;68;22
-// ... (Repete estrutura para outras qtds) ...
 `;
 
 // --- UTILITÁRIOS ---
@@ -249,11 +255,8 @@ const parseCustomCSV = (csvText) => {
        if (qtdStart && qtdEnd) {
            const offset = i - valStart; 
            const targetQtdLine = qtdStart + offset;
-           if (lines[targetQtdLine]) {
-               qtdRow = lines[targetQtdLine].split(separator).slice(1).map(v => parseNumber(v));
-           }
+           if (lines[targetQtdLine]) qtdRow = lines[targetQtdLine].split(separator).slice(1).map(v => parseNumber(v));
        }
-
        valores.forEach((val, index) => {
            if (blockDates[index]) {
                blockData.push({ 
@@ -369,10 +372,8 @@ const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, is
     const tableData = dates.map(date => {
         const items = productData.filter(d => d.data === date);
         const totalVal = items.reduce((acc, curr) => acc + curr.valor, 0);
-        const totalQtd = items.reduce((acc, curr) => acc + (curr.qtd || 0), 0);
         const tkm = daysWorked > 0 ? totalVal / daysWorked : 0;
-        const tkmAcordo = totalQtd > 0 ? totalVal / totalQtd : 0;
-        return { date: formatMonth(date), totalVal, totalQtd, tkm, tkmAcordo, rawDate: date };
+        return { date: formatMonth(date), totalVal, tkm, rawDate: date };
     }).reverse();
 
     return (
@@ -419,12 +420,12 @@ const ProductExecutiveView = ({ productName, data, dates, daysWorked, totalDays,
                 <ComparisonCard title="vs Média 3 Meses" comparisonValue={comps.avg3} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
                 <ComparisonCard title="vs Média 6 Meses" comparisonValue={comps.avg6} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
             </div>
-            {/* GRÁFICO REMOVIDO DAQUI */}
-            <AnalyticalTable productName={productName} data={data} dates={dates} daysWorked={daysWorked} type={metricType} theme={theme} isMobile={isMobile} />
             
+            <AnalyticalTable productName={productName} data={data} dates={dates} daysWorked={daysWorked} type={metricType} theme={theme} isMobile={isMobile} />
+
             {/* Navegação Mobile no final da página */}
             {isMobile && nextTabName && (
-                <button onClick={onNextTab} style={getStyles(isMobile).mobileNavButton}>
+                <button onClick={onNextTab} style={{ ...getStyles(isMobile).mobileNavButton, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '16px', marginTop: '32px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', color: '#004990', fontWeight: 'bold', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', cursor: 'pointer' }}>
                     Próximo: {nextTabName} <ArrowRight size={16} />
                 </button>
             )}
@@ -579,8 +580,7 @@ const App = () => {
   // Lógica de Navegação Mobile (Próxima Aba)
   const handleNextTab = () => {
       const currentIndex = menu.findIndex(item => item.id === activeTab);
-      // Se não for a última aba (Gestão de Dados), avança
-      if (currentIndex < menu.length - 2) { // -2 para não ir para Gestão automaticamente
+      if (currentIndex < menu.length - 2) { 
           const nextTab = menu[currentIndex + 1];
           setActiveTab(nextTab.id);
           window.scrollTo(0,0);
@@ -593,7 +593,6 @@ const App = () => {
   // Lógica de Navegação Mobile (Aba Anterior)
   const handlePrevTab = () => {
       const currentIndex = menu.findIndex(item => item.id === activeTab);
-      // Se não for a primeira aba, volta
       if (currentIndex > 0) {
           const prevTab = menu[currentIndex - 1];
           setActiveTab(prevTab.id);
@@ -602,7 +601,6 @@ const App = () => {
   };
 
   const prevTabName = (currentMenuIndex > 0) ? menu[currentMenuIndex - 1].label : null;
-
 
   if (authChecking) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9' }}><Loader2 size={40} color="#004990" className="animate-spin" /></div>;
   
@@ -651,14 +649,14 @@ const App = () => {
                     <button 
                         onClick={handlePrevTab} 
                         disabled={!prevTabName}
-                        style={{ ...styles.navButton, opacity: !prevTabName ? 0.3 : 1 }}
+                        style={{ ...getStyles(isMobile).navButton, opacity: !prevTabName ? 0.3 : 1 }}
                     >
                         <ChevronLeft size={20} />
                     </button>
                     <button 
                         onClick={handleNextTab} 
                         disabled={!nextTabName}
-                        style={{ ...styles.navButton, opacity: !nextTabName ? 0.3 : 1 }}
+                        style={{ ...getStyles(isMobile).navButton, opacity: !nextTabName ? 0.3 : 1 }}
                     >
                         <ChevronRight size={20} />
                     </button>
