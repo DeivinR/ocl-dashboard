@@ -14,11 +14,12 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
-const SYSTEM_VERSION = "v1.1.0";
+const SYSTEM_VERSION = "v8.5 - Logos Dinâmicas (Dark/Light)";
 
-// --- CONFIGURAÇÃO DA LOGO ---
-// Certifique-se de que o arquivo 'logo.png' está na pasta 'public'
-const LOGO_URL = "/logo.png"; 
+// --- CONFIGURAÇÃO DAS LOGOS ---
+// Certifique-se de colocar estes arquivos na pasta 'public'
+const LOGO_LIGHT_URL = "/logo-white.png"; // Para fundo escuro (Menu Lateral)
+const LOGO_DARK_URL = "/logo-dark.png";   // Para fundo claro (Login)
 
 // --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
@@ -86,9 +87,9 @@ const getStyles = (isMobile, sidebarOpen) => ({
     display: 'flex', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
-    position: 'sticky', // Garante que fique fixo no topo
+    position: 'sticky', 
     top: 0, 
-    zIndex: 30, // Z-index alto para ficar sobre o conteúdo
+    zIndex: 30,
     boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.08)' : 'none'
   },
   content: { 
@@ -122,7 +123,6 @@ const getStyles = (isMobile, sidebarOpen) => ({
   },
   flexCenter: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
   flexBetween: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  // Botões de Navegação Mobile
   navButton: {
     padding: '8px',
     borderRadius: '8px',
@@ -151,7 +151,7 @@ const getStyles = (isMobile, sidebarOpen) => ({
   tabButtonInactive: { flex: 1, padding: '12px', borderBottom: '3px solid transparent', color: '#94a3b8', fontWeight: 'normal', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
   // Estilo da Logo
   logoContainer: { display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' },
-  logoImage: { maxWidth: '180px', maxHeight: '60px', objectFit: 'contain' }
+  logoImage: { maxWidth: '240px', maxHeight: '100px', objectFit: 'contain' }
 });
 
 // --- CORES ---
@@ -180,49 +180,7 @@ ENTRANTES;5000.00;6000.00;5500.00;5200.00;5800.00;6100.00;2000.00
 ATÉ 90 DIAS;12000.00;11000.00;13000.00;12500.00;11800.00;12200.00;4000.00
 91 A 180 DIAS;8000.00;7500.00;8200.00;9000.00;8500.00;9500.00;3000.00
 OVER 180 DIAS;4000.00;4200.00;4100.00;4300.00;4400.00;4500.00;1500.00
-PREJUÍZO;1000.00;500.00;800.00;1200.00;900.00;1100.00;400.00
-Total Geral;30000.00;29200.00;31600.00;32200.00;31400.00;33400.00;10900.00
-
-FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
-ENTRANTES;1500.00;1600.00;1550.00;1520.00;1580.00;1610.00;500.00
-ATÉ 90 DIAS;3000.00;3100.00;3300.00;3250.00;3180.00;3220.00;1000.00
-91 A 180 DIAS;2000.00;2500.00;2200.00;2000.00;2500.00;2500.00;800.00
-OVER 180 DIAS;1000.00;1200.00;1100.00;1300.00;1400.00;1500.00;400.00
-PREJUÍZO;500.00;500.00;500.00;200.00;900.00;100.00;100.00
-Total Geral;8000.00;8900.00;8650.00;8270.00;9560.00;8930.00;2800.00
-
-FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
-ENTRANTES;0.00;0.00;0.00;0.00;0.00;0.00;0.00
-ATÉ 90 DIAS;500.00;600.00;550.00;520.00;580.00;610.00;200.00
-91 A 180 DIAS;1200.00;1100.00;1300.00;1250.00;1180.00;1220.00;400.00
-OVER 180 DIAS;800.00;750.00;820.00;900.00;850.00;950.00;300.00
-PREJUÍZO;400.00;420.00;410.00;430.00;440.00;450.00;150.00
-Total Geral;2900.00;2870.00;3080.00;3100.00;3050.00;3230.00;1050.00
-
-FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
-ENTRANTES;0.00;0.00;0.00;0.00;0.00;0.00;0.00
-ATÉ 90 DIAS;0.00;0.00;0.00;0.00;0.00;0.00;0.00
-91 A 180 DIAS;500.00;600.00;550.00;520.00;580.00;610.00;200.00
-OVER 180 DIAS;2200.00;2100.00;2300.00;2250.00;2180.00;2220.00;800.00
-PREJUÍZO;1800.00;1750.00;1820.00;1900.00;1850.00;1950.00;600.00
-Total Geral;4500.00;4450.00;4670.00;4670.00;4610.00;4780.00;1600.00
-
-FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
-ENTRANTES;50;55;52;58;60;62;20
-ATÉ 90 DIAS;80;82;85;88;90;92;35
-91 A 180 DIAS;40;42;41;43;45;48;15
-OVER 180 DIAS;10;12;11;13;14;15;5
-PREJUÍZO;5;5;5;6;7;8;2
-Total Geral;185;196;194;208;216;225;77
-
-FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
-ENTRANTES;10;12;11;10;12;13;4
-ATÉ 90 DIAS;20;22;25;24;23;25;8
-91 A 180 DIAS;15;14;16;18;17;19;6
-OVER 180 DIAS;5;6;5;6;7;8;3
-PREJUÍZO;2;1;2;3;2;3;1
-Total Geral;52;55;59;61;61;68;22
-`;
+PREJUÍZO;1000.00;500.00;800.00;1200.00;900.00;1100.00;400.00`;
 
 // --- UTILITÁRIOS ---
 const parseNumber = (valStr) => {
@@ -380,9 +338,15 @@ const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, is
     const tableData = dates.map(date => {
         const items = productData.filter(d => d.data === date);
         const totalVal = items.reduce((acc, curr) => acc + curr.valor, 0);
-        const totalQtd = items.reduce((acc, curr) => acc + (curr.qtd || 0), 0);
+        // TKM D.U. = Total / Dias Úteis Trabalhados
         const tkm = daysWorked > 0 ? totalVal / daysWorked : 0;
-        return { date: formatMonth(date), totalVal, totalQtd, tkm, rawDate: date };
+        
+        return { 
+            date: formatMonth(date), 
+            totalVal, 
+            tkm, // Novo campo
+            rawDate: date 
+        };
     }).reverse();
 
     return (
@@ -434,7 +398,7 @@ const ProductExecutiveView = ({ productName, data, dates, daysWorked, totalDays,
             
             {/* Navegação Mobile no final da página */}
             {isMobile && nextTabName && (
-                <button onClick={onNextTab} style={getStyles(isMobile).mobileNavButton}>
+                <button onClick={onNextTab} style={getStyles(isMobile).navButton}>
                     Próximo: {nextTabName} <ArrowRight size={16} />
                 </button>
             )}
@@ -464,8 +428,6 @@ const FileUploader = ({ onDataSaved, isMobile, isPreviewMode, onEnterHomologMode
                     setStatus('success-cloud');
                 } else {
                     onDataSaved(processed);
-                    // Se estiver em produção e carregar local, força modo preview para não travar
-                    if (onEnterHomologMode) onEnterHomologMode();
                     setStatus('success-local');
                 }
                 
@@ -488,7 +450,7 @@ const FileUploader = ({ onDataSaved, isMobile, isPreviewMode, onEnterHomologMode
             </p>
             <input type="file" ref={fileRef} onChange={(e) => handleProcess(e.target.files[0], 'cloud')} accept=".csv,.txt" style={{ display: 'none' }} />
             
-            {/* Input secundário para ação local (apenas chama o handler com modo 'local') */}
+            {/* Input secundário para ação local */}
             <input type="file" id="localUpload" onChange={(e) => handleProcess(e.target.files[0], 'local')} accept=".csv,.txt" style={{ display: 'none' }} />
 
             <div style={{ display: 'flex', gap: '16px', flexDirection: isMobile ? 'column' : 'row' }}>
@@ -534,10 +496,8 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
     if (activeTab === 'homolog') {
         if (email === "admin@avocati.adv.br" && password === "abc@123") {
             try {
-                // Tenta login anônimo para liberar acesso de leitura
                 const auth = getAuth();
                 await signInAnonymously(auth).catch(() => {}); 
-                // CHAMA O MODO OFFLINE EXPLICITAMENTE
                 onEnterHomologMode();
             } catch (err) {
                 onEnterHomologMode();
@@ -564,7 +524,7 @@ const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
     <div style={styles.loginContainer}>
       <div style={styles.loginCard}>
         <div style={styles.logoContainer}>
-            <img src={LOGO_URL} alt="OCL" style={styles.logoImage} />
+            <img src={LOGO_DARK_URL} alt="OCL" style={styles.logoImage} />
         </div>
         
         {/* Abas de Login */}
@@ -725,7 +685,7 @@ const App = () => {
       <div style={styles.overlay} onClick={() => setSidebarOpen(false)} />
       <aside style={styles.sidebar}>
         <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', position: 'relative' }}>
-            {sidebarOpen ? <div style={styles.flexCenter}><img src={LOGO_URL} alt="OCL" style={styles.logoImage} /></div> : <img src={LOGO_URL} alt="OCL" style={{ maxWidth: '40px', maxHeight: '40px' }} />}
+            {sidebarOpen ? <div style={styles.flexCenter}><img src={LOGO_LIGHT_URL} alt="OCL" style={styles.logoImage} /></div> : <img src={LOGO_LIGHT_URL} alt="OCL" style={{ maxWidth: '40px', maxHeight: '40px' }} />}
             {isMobile && sidebarOpen && <button onClick={() => setSidebarOpen(false)} style={{ position: 'absolute', right: '10px', top: '10px', background: 'none', border: 'none', color: 'white' }}><X size={24} /></button>}
         </div>
         <nav style={{ flex: 1, padding: '16px', overflowY: 'auto' }}>
