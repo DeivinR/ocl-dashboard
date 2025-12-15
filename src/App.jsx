@@ -12,9 +12,9 @@ import {
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "firebase/auth";
 
-const SYSTEM_VERSION = "v2.3 - Retomadas Logic Update";
+const SYSTEM_VERSION = "v2.7 - Silent Auth Fallback";
 
 // --- CONFIGURAÇÃO DA LOGO ---
 const LOGO_LIGHT_URL = "/logo-white.png"; 
@@ -44,7 +44,7 @@ const useIsMobile = () => {
 
 // --- CORES & TEMA ---
 const THEME = {
-  primary: '#003366', // Azul OCL Institucional
+  primary: '#003366', 
   secondary: '#004990',
   accent: '#F59E0B',
   bg: '#F1F5F9',
@@ -59,7 +59,6 @@ const THEME = {
 const parseCurrency = (valStr) => {
     if (!valStr) return 0;
     if (typeof valStr === 'number') return valStr;
-    // Remove R$, espaços, troca ponto de milhar por nada e vírgula por ponto
     let clean = valStr.toString().replace(/[R$\s]/g, '').trim();
     if (clean.includes(',') && clean.includes('.')) {
         clean = clean.replace(/\./g, '').replace(',', '.');
@@ -70,26 +69,23 @@ const parseCurrency = (valStr) => {
 };
 
 const parseDate = (dateStr) => {
-    // Espera formato YYYY-MM-DD do CSV novo ou similar
     if (!dateStr) return null;
     const parts = dateStr.split('-');
-    if (parts.length === 3) return dateStr; // Já está ok
+    if (parts.length === 3) return dateStr; 
     return dateStr;
 };
 
-// NOVA LÓGICA DE LEITURA DO CSV (Estruturada)
+// NOVA LÓGICA DE LEITURA DO CSV (Estruturada & Higienizada)
 const parseStructuredCSV = (csvText, manualDU) => {
     const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
     if (lines.length < 2) return null;
 
-    // Identificar cabeçalhos (assumindo separador ;)
     const headers = lines[0].split(';').map(h => h.trim().toUpperCase());
     
-    // Mapear índices das colunas importantes
     const colMap = {
         PRODUTO: headers.indexOf('PRODUTO'),
-        REPASSE: headers.indexOf('REPASSE'), // Valor recuperado
-        HO: headers.indexOf('HO'), // Honorários
+        REPASSE: headers.indexOf('REPASSE'),
+        HO: headers.indexOf('HO'),
         DU: headers.indexOf('DU'),
         PERIODO: headers.indexOf('PERÍODO'),
         TIPO: headers.indexOf('TIPO'),
@@ -98,31 +94,28 @@ const parseStructuredCSV = (csvText, manualDU) => {
 
     const rawData = [];
     
-    // Processar linhas
     for (let i = 1; i < lines.length; i++) {
         const row = lines[i].split(';');
         if (row.length < headers.length) continue;
 
         const du = parseInt(row[colMap.DU]) || 0;
 
+        // IMPORTANTE: O uso de "|| ''" previne o erro "Unsupported field value: undefined" do Firebase
         rawData.push({
-            produto: row[colMap.PRODUTO]?.trim(),
+            produto: row[colMap.PRODUTO]?.trim() || "Outros", 
             valor: parseCurrency(row[colMap.REPASSE]),
-            ho: parseCurrency(row[colMap.HO]), // Capturando HO
+            ho: parseCurrency(row[colMap.HO]),
             du: du,
-            periodo: row[colMap.PERIODO], // YYYY-MM-DD
-            tipo: row[colMap.TIPO]?.trim(),
-            risco: row[colMap.RISCO]?.trim()
+            periodo: row[colMap.PERIODO] || "",
+            tipo: row[colMap.TIPO]?.trim() || "",
+            risco: row[colMap.RISCO]?.trim() || ""
         });
     }
 
-    // Identificar data mais recente
     const uniqueDates = [...new Set(rawData.map(d => d.periodo))].sort();
     
-    // Calcular Max DU: Se o usuário digitou, usa o dele. Senão, tenta achar o máximo do CSV (fallback).
     let finalDU = manualDU ? parseInt(manualDU) : 1; 
     
-    // Fallback: Se não veio manual, pega o maior DU do último mês disponível
     if (!manualDU) {
         const latestDate = uniqueDates[uniqueDates.length - 1];
         const currentMonthData = rawData.filter(d => d.periodo === latestDate);
@@ -132,7 +125,7 @@ const parseStructuredCSV = (csvText, manualDU) => {
     return {
         rawData,
         dates: uniqueDates,
-        currentDU: finalDU // Agora fixado pelo input do usuário
+        currentDU: finalDU
     };
 };
 
@@ -144,7 +137,7 @@ const formatMonth = (str) => {
     return new Date(y, m - 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase(); 
 };
 
-// --- CÁLCULO DE KPIS (Inteligência de Negócio) ---
+// --- CÁLCULO DE KPIS ---
 const calculateKPIs = (data, category) => {
     if (!data || !data.rawData) return { current: 0, prev: 0, avg3: 0, avg6: 0, history: [] };
 
@@ -153,11 +146,9 @@ const calculateKPIs = (data, category) => {
     const currentDate = dates[n - 1];
     const prevDate = dates[n - 2];
     
-    // Filtro principal: Categorizar os dados brutos
     const filterByCategory = (item) => {
-        // Lógica de mapeamento OCL
-        if (category === 'CONSOLIDADO') return true; // Soma tudo
-        if (category === 'CONTENÇÃO') return item.risco && item.risco.length > 2; // Tem algo escrito na coluna risco
+        if (category === 'CONSOLIDADO') return true; 
+        if (category === 'CONTENÇÃO') return item.risco && item.risco.length > 2; 
         
         const prod = item.produto?.toUpperCase();
         
@@ -165,27 +156,22 @@ const calculateKPIs = (data, category) => {
         if (category === 'RENEGOCIAÇÃO') return prod === 'RENEGOCIAÇÃO';
         if (category === 'ENTREGA AMIGÁVEL') return prod === 'ENTREGA AMIGÁVEL';
         if (category === 'APREENSÃO') return prod === 'APREENSÃO';
-        
-        // NOVA LÓGICA RETOMADAS: Junção de Entrega Amigável + Apreensão
         if (category === 'RETOMADAS') return prod === 'ENTREGA AMIGÁVEL' || prod === 'APREENSÃO';
         
         return false;
     };
 
-    // Função auxiliar para determinar QUAL valor somar (Repasse vs HO)
     const getValueToSum = (item) => {
-        if (category === 'CONTENÇÃO') return 1; // Contagem de contratos
-        return item.ho; // AGORA PADRONIZADO: Todos os KPIs financeiros usam Honorários (HO)
+        if (category === 'CONTENÇÃO') return 1; 
+        return item.ho; 
     };
 
-    // Função para somar valores até o DU de corte (comparação justa)
     const sumUntilDU = (targetDate, limitDU) => {
         return rawData
             .filter(d => d.periodo === targetDate && d.du <= limitDU && filterByCategory(d))
             .reduce((acc, curr) => acc + getValueToSum(curr), 0);
     };
 
-    // Função para somar valor total do mês (para histórico fechado)
     const sumTotalMonth = (targetDate) => {
         return rawData
             .filter(d => d.periodo === targetDate && filterByCategory(d))
@@ -193,7 +179,7 @@ const calculateKPIs = (data, category) => {
     };
 
     const currentVal = sumUntilDU(currentDate, currentDU);
-    const prevVal = sumUntilDU(prevDate, currentDU); // Compara com o mesmo momento do mês anterior
+    const prevVal = sumUntilDU(prevDate, currentDU);
 
     const last3 = dates.slice(Math.max(0, n - 4), n - 1);
     const last6 = dates.slice(Math.max(0, n - 7), n - 1);
@@ -201,12 +187,11 @@ const calculateKPIs = (data, category) => {
     const avg3Val = last3.reduce((acc, d) => acc + sumUntilDU(d, currentDU), 0) / (last3.length || 1);
     const avg6Val = last6.reduce((acc, d) => acc + sumUntilDU(d, currentDU), 0) / (last6.length || 1);
 
-    // Histórico para o gráfico/tabela
     const history = dates.map(d => ({
         date: d,
         label: formatMonth(d),
-        value: sumTotalMonth(d), // Valor cheio do mês
-        valueAtDU: sumUntilDU(d, currentDU), // Valor no mesmo ponto
+        value: sumTotalMonth(d),
+        valueAtDU: sumUntilDU(d, currentDU),
         isCurrent: d === currentDate
     })).reverse();
 
@@ -219,7 +204,6 @@ const calculateKPIs = (data, category) => {
         currentDU
     };
 };
-
 
 // --- COMPONENTES UI ---
 
@@ -315,7 +299,6 @@ const ProductDashboard = ({ category, data, isMobile, onNext, nextName }) => {
     const isContencao = category === 'CONTENÇÃO';
     const type = isContencao ? 'number' : 'currency';
     
-    // Cálculos de variação
     const varPrev = kpis.prev > 0 ? ((kpis.current - kpis.prev) / kpis.prev) * 100 : 0;
     const varAvg3 = kpis.avg3 > 0 ? ((kpis.current - kpis.avg3) / kpis.avg3) * 100 : 0;
 
@@ -388,18 +371,20 @@ const ProductDashboard = ({ category, data, isMobile, onNext, nextName }) => {
 // --- UPLOADER (GESTÃO) ---
 const FileUploader = ({ onDataSaved, isMobile, isHomolog }) => {
     const [status, setStatus] = useState('idle');
-    const [manualDU, setManualDU] = useState('1'); // Estado para o input manual
+    const [manualDU, setManualDU] = useState('1'); 
     const db = getFirestore();
     const auth = getAuth();
+    
+    // Identificação dinâmica do App ID para evitar erros de permissão em diferentes ambientes
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'ocl-dashboard';
 
     const handleFile = async (e, mode) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Validar DU
         if (!manualDU || parseInt(manualDU) < 1) {
             alert("Por favor, informe o Dia Útil atual (DU) antes de carregar.");
-            e.target.value = null; // Reset input
+            e.target.value = null; 
             return;
         }
         
@@ -407,7 +392,7 @@ const FileUploader = ({ onDataSaved, isMobile, isHomolog }) => {
         const reader = new FileReader();
         reader.onload = async (evt) => {
             const text = evt.target.result;
-            // Passamos o manualDU para a função de processamento
+            // Sanitização e Processamento
             const processed = parseStructuredCSV(text, manualDU);
             
             if (!processed || processed.rawData.length === 0) {
@@ -418,16 +403,26 @@ const FileUploader = ({ onDataSaved, isMobile, isHomolog }) => {
 
             if (mode === 'cloud' && !isHomolog) {
                 const user = auth.currentUser;
-                if (!user) { alert("Erro de autenticação"); return; }
+                // Verificação de segurança adicional para garantir sessão ativa
+                if (!user) { 
+                    alert("Erro de autenticação: Sessão expirada."); 
+                    setStatus('idle');
+                    return; 
+                }
                 
                 try {
-                     const docRef = doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'v2_latest');
-                     await setDoc(docRef, { ...processed, updatedAt: new Date().toISOString() });
+                     // Caminho do documento usando o appId dinâmico para garantir permissão
+                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'dashboards', 'v2_latest');
+                     
+                     // Converte para string JSON e volta para remover quaisquer 'undefined' residuais
+                     const cleanData = JSON.parse(JSON.stringify({ ...processed, updatedAt: new Date().toISOString() }));
+                     
+                     await setDoc(docRef, cleanData);
                      onDataSaved(processed);
                      setStatus('success-cloud');
                 } catch(err) {
-                    console.error(err);
-                    alert("Erro ao salvar no Firebase.");
+                    console.error("Erro Firebase:", err);
+                    alert("Erro ao salvar no Firebase: " + err.message);
                     setStatus('idle');
                 }
             } else {
@@ -440,7 +435,7 @@ const FileUploader = ({ onDataSaved, isMobile, isHomolog }) => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto pt-10 text-center">
+        <div className="max-w-2xl mx-auto pt-10 text-center pb-20">
             <Card className="p-10">
                 <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
                     <CloudLightning size={40} className="text-[#003366]" />
@@ -448,7 +443,6 @@ const FileUploader = ({ onDataSaved, isMobile, isHomolog }) => {
                 <h2 className="text-2xl font-bold text-slate-800 mb-2">Central de Dados OCL</h2>
                 <p className="text-slate-500 mb-8">Importe o arquivo CSV e defina o dia útil de referência.</p>
                 
-                {/* SETOR DE CONFIGURAÇÃO DO DIA ÚTIL */}
                 <div className="mb-8 p-4 bg-slate-50 rounded-xl border border-slate-200 inline-block text-left w-full md:w-auto">
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
                         <Settings size={14} className="inline mr-1"/> Defina o Dia Útil (D.U.) Atual
@@ -469,7 +463,7 @@ const FileUploader = ({ onDataSaved, isMobile, isHomolog }) => {
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-4 justify-center">
-                    <label className="cursor-pointer bg-[#003366] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#002244] transition flex items-center justify-center gap-2">
+                    <label className={`cursor-pointer bg-[#003366] text-white px-6 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 ${isHomolog ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#002244]'}`}>
                         <Cloud size={20} />
                         Publicar na Nuvem (Oficial)
                         <input type="file" className="hidden" accept=".csv" onChange={(e) => handleFile(e, 'cloud')} disabled={isHomolog} />
@@ -557,6 +551,9 @@ const App = () => {
     const [isHomolog, setIsHomolog] = useState(false);
     const [loading, setLoading] = useState(true);
     const isMobile = useIsMobile();
+    
+    // Identificação dinâmica do App ID
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'ocl-dashboard';
 
     // Menu Definition
     const MENU = [
@@ -575,6 +572,19 @@ const App = () => {
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // Inicialização de Auth mais robusta com TRY-CATCH para evitar tela branca
+        const initAuth = async () => {
+           if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+               try {
+                   await signInWithCustomToken(auth, __initial_auth_token);
+               } catch (error) {
+                   console.warn("Aviso: Token de autenticação automática expirado ou inválido. Prossiga com login manual.");
+                   // Falha silenciosa proposital: permite que o usuário veja a tela de login manual
+               }
+           }
+        };
+        initAuth();
+
         const unsub = onAuthStateChanged(auth, (u) => {
             if (u) {
                 setUser(u);
@@ -582,8 +592,8 @@ const App = () => {
                     setIsHomolog(true);
                     setLoading(false);
                 } else {
-                    // Load Data from Firestore (v2 path)
-                    onSnapshot(doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'v2_latest'), (snap) => {
+                    // Load Data from Firestore usando AppID dinâmico para garantir permissão
+                    onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'dashboards', 'v2_latest'), (snap) => {
                         if (snap.exists()) setData(snap.data());
                         setLoading(false);
                     });
@@ -608,12 +618,12 @@ const App = () => {
     const nextTab = currentIndex < MENU.length - 1 && MENU[currentIndex + 1].id !== 'gestao' ? MENU[currentIndex + 1] : null;
     const prevTab = currentIndex > 0 ? MENU[currentIndex - 1] : null;
 
-    if (loading) return <div className="h-screen flex items-center justify-center bg-[#F1F5F9]"><Loader2 size={40} className="text-[#003366] animate-spin"/></div>;
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#F1F5F9]"><Loader2 size={40} className="text-[#003366] animate-spin"/></div>;
     
     if (!user && !isHomolog) return <LoginScreen onLogin={() => {}} onHomolog={() => { setIsHomolog(true); setLoading(false); }} />;
 
     return (
-        <div className="flex h-screen bg-[#F1F5F9] font-sans text-slate-800 overflow-hidden">
+        <div className="flex flex-col md:flex-row min-h-screen bg-[#F1F5F9] font-sans text-slate-800 overflow-hidden">
              {/* Sidebar Desktop */}
             <aside className={`fixed inset-y-0 left-0 z-50 bg-gradient-to-b from-[#003366] to-[#001a33] text-white transition-all duration-300 shadow-2xl flex flex-col ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobile ? (isSidebarOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}>
                 <div className="p-6 flex items-center justify-center h-24 border-b border-white/10 relative">
@@ -644,7 +654,7 @@ const App = () => {
             </aside>
 
             {/* Main Content */}
-            <main className={`flex-1 flex flex-col transition-all duration-300 ${isMobile ? 'ml-0' : (isSidebarOpen ? 'ml-72' : 'ml-20')}`}>
+            <main className={`flex-1 flex flex-col transition-all duration-300 ${isMobile ? 'ml-0' : (isSidebarOpen ? 'ml-72' : 'ml-20')} min-h-screen`}>
                 {/* Header Mobile/Desktop */}
                 <header className="bg-white border-b border-slate-200 p-4 sticky top-0 z-40 flex justify-between items-center shadow-sm h-16">
                      <div className="flex items-center gap-4">
