@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, AreaChart, Area 
 } from 'recharts';
@@ -9,29 +9,18 @@ import {
   ChevronLeft, ChevronRight, Database, LogOut, DollarSign, PieChart, Activity, Minus, Settings, Trash2, CheckCircle
 } from 'lucide-react';
 
-// --- FIREBASE IMPORTS ---
-import { initializeApp } from "firebase/app";
-import { 
-  getFirestore, doc, setDoc, getDoc, onSnapshot, collection, writeBatch, getDocs, query, orderBy 
-} from "firebase/firestore";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "firebase/auth";
+// --- REMOVIDO IMPORT DIRETO PARA EVITAR ERRO DE BUILD NO CANVAS ---
+// import { createClient } from '@supabase/supabase-js';
 
-const SYSTEM_VERSION = "v3.1 - UI Refinement & Batch Logic";
+const SYSTEM_VERSION = "v4.1 - Supabase CDN Fix";
+
+// --- CONFIGURAÇÃO SUPABASE (PREENCHA COM SEUS DADOS) ---
+const SUPABASE_URL = "https://xyzcompany.supabase.co"; // <-- TROQUE PELA SUA URL DO SUPABASE
+const SUPABASE_ANON_KEY = "eyJh..."; // <-- TROQUE PELA SUA ANON KEY DO SUPABASE
 
 // --- CONFIGURAÇÃO DA LOGO ---
 const LOGO_LIGHT_URL = "/logo-white.png"; 
 const LOGO_DARK_URL = "/logo.png";        
-
-// --- CONFIGURAÇÃO FIREBASE ---
-const firebaseConfig = {
-  apiKey: "AIzaSyDnHNW0McIlgJCk28CcjvwxWobJ9AKjpvw",
-  authDomain: "ocl-dashboard.firebaseapp.com",
-  projectId: "ocl-dashboard",
-  storageBucket: "ocl-dashboard.firebasestorage.app",
-  messagingSenderId: "576393684422",
-  appId: "1:576393684422:web:6643b1500cf7355e6ffec7",
-  measurementId: "G-TRF59EY4H9"
-};
 
 // --- HOOK PARA DETECTAR MOBILE ---
 const useIsMobile = () => {
@@ -130,91 +119,6 @@ const parseStructuredCSV = (csvText, manualDU) => {
         currentDU: finalDU
     };
 };
-
-// --- FUNÇÕES DE SHARDING (FRAGMENTAÇÃO) DO FIRESTORE ---
-
-const uploadDataFragmented = async (db, appId, processedData, shouldClear = false) => {
-    const BATCH_SIZE = 2000; 
-    const rawData = processedData.rawData;
-    const totalRows = rawData.length;
-    const incomingChunks = Math.ceil(totalRows / BATCH_SIZE);
-
-    const metadataRef = doc(db, 'artifacts', appId, 'public', 'data', 'dashboards', 'v2_metadata');
-    const chunksCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'dashboards', 'v2_metadata', 'fragments');
-
-    let startIndex = 0;
-    let currentMetadata = { dates: [], totalRows: 0, totalChunks: 0 };
-
-    if (shouldClear) {
-        const existingDocs = await getDocs(chunksCollectionRef);
-        const deleteBatch = writeBatch(db);
-        existingDocs.forEach((doc) => {
-            deleteBatch.delete(doc.ref);
-        });
-        await deleteBatch.commit();
-    } else {
-        const metaSnap = await getDoc(metadataRef);
-        if (metaSnap.exists()) {
-            currentMetadata = metaSnap.data();
-            startIndex = currentMetadata.totalChunks || 0;
-        }
-    }
-
-    const mergedDates = [...new Set([...(currentMetadata.dates || []), ...processedData.dates])].sort();
-
-    const newTotalRows = (currentMetadata.totalRows || 0) + totalRows;
-    const newTotalChunks = startIndex + incomingChunks;
-
-    const metadataPayload = {
-        dates: mergedDates,
-        currentDU: processedData.currentDU, 
-        updatedAt: new Date().toISOString(),
-        totalRows: newTotalRows,
-        totalChunks: newTotalChunks,
-        version: "3.1"
-    };
-    
-    await setDoc(metadataRef, metadataPayload);
-
-    const uploadPromises = [];
-    
-    for (let i = 0; i < incomingChunks; i++) {
-        const start = i * BATCH_SIZE;
-        const end = Math.min(start + BATCH_SIZE, totalRows);
-        const chunkData = rawData.slice(start, end);
-        
-        const chunkIndex = startIndex + i;
-        const chunkRef = doc(chunksCollectionRef, `chunk_${chunkIndex}`);
-        uploadPromises.push(setDoc(chunkRef, { rows: chunkData, index: chunkIndex }));
-    }
-
-    await Promise.all(uploadPromises);
-    return true;
-};
-
-const loadDataFragmented = async (db, appId, metadata) => {
-    if (!metadata) return null;
-
-    const chunksCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'dashboards', 'v2_metadata', 'fragments');
-    const q = query(chunksCollectionRef, orderBy('index'));
-    const querySnapshot = await getDocs(q);
-
-    let fullRawData = [];
-    querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.rows) {
-            fullRawData = [...fullRawData, ...data.rows];
-        }
-    });
-
-    return {
-        rawData: fullRawData,
-        dates: metadata.dates,
-        currentDU: metadata.currentDU,
-        updatedAt: metadata.updatedAt
-    };
-};
-
 
 // --- CÁLCULO DE KPIS ---
 const calculateKPIs = (data, category) => {
@@ -454,112 +358,73 @@ const ProductDashboard = ({ category, data, isMobile, onNext, nextName }) => {
     );
 };
 
-// --- UPLOADER (GESTÃO) ---
-const FileUploader = ({ onDataSaved, isMobile, isHomolog }) => {
+// --- UPLOADER (GESTÃO) - SUPABASE VERSION ---
+const FileUploader = ({ supabase, onDataSaved, isMobile, isHomolog }) => {
     const [status, setStatus] = useState('idle');
     const [statusMsg, setStatusMsg] = useState('');
     const [manualDU, setManualDU] = useState('1'); 
-    const [selectedFiles, setSelectedFiles] = useState([]);
-    const [clearDB, setClearDB] = useState(false); // Checkbox state
-    const db = getFirestore();
-    const auth = getAuth();
     
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'ocl-dashboard';
+    const handleFile = async (e, mode) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-    const handleFileSelect = (e) => {
-        if(e.target.files) {
-            setSelectedFiles(Array.from(e.target.files));
-        }
-    };
-
-    const processFiles = async (mode) => {
         if (!manualDU || parseInt(manualDU) < 1) {
-            alert("Por favor, informe o Dia Útil atual (DU) antes de começar.");
+            alert("Por favor, informe o Dia Útil atual (DU) antes de carregar.");
+            e.target.value = null;
             return;
         }
-        if (selectedFiles.length === 0) {
-            alert("Selecione pelo menos um arquivo CSV.");
-            return;
-        }
-
+        
         setStatus('processing');
-        
-        try {
-            let localMergedData = [];
-            let localDates = [];
+        setStatusMsg("Lendo arquivo...");
 
-            // Se for nuvem, verificamos autenticação
-            if (mode === 'cloud' && !isHomolog) {
-                const user = auth.currentUser;
-                if (!user) { throw new Error("Sessão expirada. Faça login novamente."); }
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            const text = evt.target.result;
+            const processed = parseStructuredCSV(text, manualDU);
+            
+            if (!processed || processed.rawData.length === 0) {
+                alert("Erro: CSV vazio ou inválido.");
+                setStatus('idle');
+                return;
             }
 
-            // Loop sequencial para processar um arquivo de cada vez
-            for (let i = 0; i < selectedFiles.length; i++) {
-                const file = selectedFiles[i];
-                setStatusMsg(`Processando arquivo ${i+1} de ${selectedFiles.length}: ${file.name}...`);
-                
-                const text = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result);
-                    reader.onerror = (e) => reject(e);
-                    reader.readAsText(file, 'UTF-8');
-                });
-
-                const processed = parseStructuredCSV(text, manualDU);
-                
-                if (!processed || processed.rawData.length === 0) {
-                    console.warn(`Arquivo ${file.name} vazio ou inválido. Pulando.`);
-                    continue;
-                }
-
-                if (mode === 'cloud' && !isHomolog) {
-                    // Lógica de Nuvem:
-                    // Se for o PRIMEIRO arquivo e o usuário marcou limpar, passamos true.
-                    // Para os arquivos seguintes (ou se não marcou limpar), passamos false (append).
-                    const shouldClearNow = (i === 0 && clearDB);
-                    await uploadDataFragmented(db, appId, processed, shouldClearNow);
-                } else {
-                    // Lógica Local (Memória): Apenas acumulamos
-                    if (i === 0 && clearDB) {
-                        localMergedData = processed.rawData;
-                        localDates = processed.dates;
-                    } else {
-                        localMergedData = [...localMergedData, ...processed.rawData];
-                        localDates = [...new Set([...localDates, ...processed.dates])].sort();
-                    }
-                }
-            }
-
-            // Finalização
             if (mode === 'cloud' && !isHomolog) {
-                setStatus('success-cloud');
-                setStatusMsg("Todos os arquivos foram enviados e unificados na nuvem!");
-                // Recarregar dados para refletir na tela (opcional, o listener já faz isso)
+                if (!supabase) {
+                    alert("Supabase não inicializado. Verifique a configuração.");
+                    setStatus('idle');
+                    return;
+                }
+
+                setStatusMsg("Enviando dados para o Supabase...");
+                
+                try {
+                    // SUPABASE UPLOAD: Substitui ou cria o registro 'latest' na tabela 'dashboards'
+                    const { error } = await supabase
+                        .from('dashboards')
+                        .upsert({ 
+                            id: 'latest', 
+                            content: processed, // Salva todo o JSON processado na coluna 'content'
+                            updated_at: new Date().toISOString()
+                        });
+
+                    if (error) throw error;
+
+                    onDataSaved(processed);
+                    setStatus('success-cloud');
+                    setStatusMsg("Sucesso! Base de dados atualizada.");
+                } catch(err) {
+                    console.error("Erro Supabase:", err);
+                    alert("Erro ao salvar no Supabase: " + err.message);
+                    setStatus('idle');
+                }
             } else {
-                // Montar objeto final para exibição local
-                const finalData = {
-                    rawData: localMergedData,
-                    dates: localDates,
-                    currentDU: parseInt(manualDU),
-                    updatedAt: new Date().toISOString()
-                };
-                onDataSaved(finalData);
+                onDataSaved(processed);
                 setStatus('success-local');
-                setStatusMsg("Visualização local gerada com sucesso!");
+                setStatusMsg("Simulação local carregada.");
             }
-
-        } catch (err) {
-            console.error(err);
-            setStatus('idle');
-            setStatusMsg("");
-            alert("Erro no processo: " + err.message);
-        }
-        
-        setTimeout(() => { 
-            if(status !== 'idle') setStatus('idle'); 
-            setStatusMsg("");
-        }, 5000);
+            setTimeout(() => { setStatus('idle'); setStatusMsg(''); }, 3000);
+        };
+        reader.readAsText(file, 'UTF-8'); 
     };
 
     return (
@@ -568,103 +433,52 @@ const FileUploader = ({ onDataSaved, isMobile, isHomolog }) => {
                 <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
                     <CloudLightning size={40} className="text-[#003366]" />
                 </div>
-                <h2 className="text-2xl font-bold text-slate-800 mb-2">Gestão de Dados em Lote</h2>
-                <p className="text-slate-500 mb-8">Selecione as partes (arquivos CSV) para processamento unificado.</p>
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">Gestão de Dados (Supabase)</h2>
+                <p className="text-slate-500 mb-8">Importe o arquivo CSV completo para atualizar os indicadores.</p>
                 
-                {/* Configurações */}
-                <div className="flex flex-col gap-4 items-center mb-8">
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 w-full max-w-md">
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2 text-left">
-                            <Settings size={14} className="inline mr-1"/> Configurações de Carga
-                        </label>
-                        
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-sm text-slate-700 font-medium">Dia Útil (D.U.) Atual:</span>
-                            <input 
-                                type="number" 
-                                min="1" 
-                                max="31"
-                                value={manualDU}
-                                onChange={(e) => setManualDU(e.target.value)}
-                                className="p-2 w-20 border border-slate-300 rounded-lg text-center font-bold text-[#003366]"
-                            />
+                <div className="mb-8 p-4 bg-slate-50 rounded-xl border border-slate-200 inline-block text-left w-full md:w-auto">
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                        <Settings size={14} className="inline mr-1"/> Defina o Dia Útil (D.U.) Atual
+                    </label>
+                    <div className="flex gap-2">
+                        <input 
+                            type="number" 
+                            min="1" 
+                            max="31"
+                            value={manualDU}
+                            onChange={(e) => setManualDU(e.target.value)}
+                            className="p-3 w-24 border border-slate-300 rounded-lg text-center font-bold text-[#003366] focus:outline-none focus:border-[#003366]"
+                        />
+                        <div className="text-xs text-slate-400 max-w-[200px] flex items-center leading-tight">
+                            Este valor será usado para calcular os comparativos de todos os meses anteriores.
                         </div>
-
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-100">
-                            <input 
-                                type="checkbox" 
-                                id="clearDB"
-                                checked={clearDB}
-                                onChange={(e) => setClearDB(e.target.checked)}
-                                className="w-5 h-5 text-[#003366] rounded focus:ring-[#003366]"
-                            />
-                            <label htmlFor="clearDB" className="text-sm text-slate-600 text-left cursor-pointer">
-                                <strong>Limpar base existente antes?</strong>
-                                <p className="text-xs text-slate-400">Marque se este for um upload completo. Desmarque para apenas adicionar novos dados.</p>
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Seleção de Arquivos */}
-                    <div className="w-full max-w-md">
-                        <label className="block w-full cursor-pointer bg-white border-2 border-dashed border-slate-300 rounded-xl p-6 hover:border-[#003366] transition group">
-                            <input type="file" multiple accept=".csv" className="hidden" onChange={handleFileSelect} />
-                            <Upload size={32} className="mx-auto text-slate-400 group-hover:text-[#003366] mb-2"/>
-                            <p className="text-sm font-bold text-slate-600 group-hover:text-[#003366]">Clique para selecionar arquivos</p>
-                            <p className="text-xs text-slate-400 mt-1">Pode selecionar múltiplos arquivos (Part 1, Part 2...)</p>
-                        </label>
-                        
-                        {selectedFiles.length > 0 && (
-                            <div className="mt-4 text-left bg-slate-50 p-3 rounded-lg border border-slate-200 max-h-40 overflow-y-auto">
-                                <p className="text-xs font-bold text-slate-500 uppercase mb-2">{selectedFiles.length} Arquivos Selecionados:</p>
-                                <ul className="space-y-1">
-                                    {selectedFiles.map((f, i) => (
-                                        <li key={i} className="text-sm text-slate-700 flex items-center gap-2">
-                                            <FileText size={14} className="text-[#003366]"/> {f.name} <span className="text-slate-400 text-xs">({(f.size/1024).toFixed(0)}kb)</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
                     </div>
                 </div>
 
-                {/* Botões de Ação */}
                 <div className="flex flex-col md:flex-row gap-4 justify-center">
-                    <button 
-                        onClick={() => processFiles('cloud')}
-                        disabled={isHomolog || selectedFiles.length === 0 || status === 'processing'}
-                        className={`bg-[#003366] text-white px-6 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 ${isHomolog || selectedFiles.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#002244]'}`}
-                    >
-                        {status === 'processing' ? <Loader2 className="animate-spin"/> : <Cloud size={20} />}
-                        Publicar na Nuvem (Cloud)
-                    </button>
+                    <label className={`cursor-pointer bg-[#003366] text-white px-6 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 ${isHomolog ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#002244]'}`}>
+                        <Cloud size={20} />
+                        Publicar na Nuvem (Oficial)
+                        <input type="file" className="hidden" accept=".csv" onChange={(e) => handleFile(e, 'cloud')} disabled={isHomolog} />
+                    </label>
                     
-                    <button 
-                        onClick={() => processFiles('local')}
-                        disabled={selectedFiles.length === 0 || status === 'processing'}
-                        className="bg-white border-2 border-[#003366] text-[#003366] px-6 py-3 rounded-xl font-bold hover:bg-blue-50 transition flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                        {status === 'processing' ? <Loader2 className="animate-spin"/> : <Eye size={20} />}
+                    <label className="cursor-pointer bg-white border-2 border-[#003366] text-[#003366] px-6 py-3 rounded-xl font-bold hover:bg-blue-50 transition flex items-center justify-center gap-2">
+                        <Eye size={20} />
                         Simular Visualização (Local)
-                    </button>
+                        <input type="file" className="hidden" accept=".csv" onChange={(e) => handleFile(e, 'local')} />
+                    </label>
                 </div>
                 
-                {status === 'processing' && (
-                    <div className="mt-6 p-4 bg-blue-50 text-[#003366] rounded-xl animate-pulse">
-                        <p className="font-bold mb-1">Processando...</p>
-                        <p className="text-sm">{statusMsg}</p>
-                    </div>
-                )}
-                {status === 'success-cloud' && <p className="mt-4 text-green-600 font-bold flex items-center justify-center gap-2"><CheckCircle size={20}/> {statusMsg}</p>}
-                {status === 'success-local' && <p className="mt-4 text-[#003366] font-bold flex items-center justify-center gap-2"><CheckCircle size={20}/> {statusMsg}</p>}
+                {status === 'processing' && <p className="mt-4 text-blue-600 font-bold animate-pulse">{statusMsg}</p>}
+                {status === 'success-cloud' && <p className="mt-4 text-green-600 font-bold">{statusMsg}</p>}
+                {status === 'success-local' && <p className="mt-4 text-[#003366] font-bold">{statusMsg}</p>}
             </Card>
         </div>
     );
 };
 
 // --- LOGIN SCREEN ---
-const LoginScreen = ({ onLogin, onHomolog }) => {
+const LoginScreen = ({ supabase, onLogin, onHomolog }) => {
     const [email, setEmail] = useState('');
     const [pass, setPass] = useState('');
     const [loading, setLoading] = useState(false);
@@ -681,10 +495,18 @@ const LoginScreen = ({ onLogin, onHomolog }) => {
                 setLoading(false);
             }
         } else {
-            const auth = getAuth();
+            if (!supabase) {
+                alert("Supabase não carregado. Recarregue a página.");
+                setLoading(false);
+                return;
+            }
             try {
-                await signInWithEmailAndPassword(auth, email, pass);
-                onLogin();
+                const { error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: pass,
+                });
+                if (error) throw error;
+                // O listener no App cuidará do resto
             } catch (err) {
                 alert("Erro de login: " + err.message);
                 setLoading(false);
@@ -729,11 +551,9 @@ const App = () => {
     const [isSidebarOpen, setSidebarOpen] = useState(true);
     const [isHomolog, setIsHomolog] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [supabase, setSupabase] = useState(null);
     const isMobile = useIsMobile();
     
-    // Identificação dinâmica do App ID
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'ocl-dashboard';
-
     // Menu Definition
     const MENU = [
         { id: 'CONSOLIDADO', label: 'Visão Geral', icon: LayoutDashboard },
@@ -748,7 +568,6 @@ const App = () => {
 
     // INJEÇÃO AUTOMÁTICA DE ESTILOS (PARA AMBIENTES STANDALONE)
     useEffect(() => {
-        // Verifica se o Tailwind já está presente
         if (!document.getElementById('tailwind-script')) {
             const script = document.createElement('script');
             script.id = 'tailwind-script';
@@ -758,57 +577,65 @@ const App = () => {
         }
     }, []);
 
+    // INICIALIZAÇÃO ASSÍNCRONA DO SUPABASE (CDN)
     useEffect(() => {
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        const loadSupabase = async () => {
+            // Verifica se o Supabase já está no window (caso de reload)
+            if (window.supabase) {
+                const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                setSupabase(client);
+                return;
+            }
 
-        // Inicialização de Auth mais robusta com TRY-CATCH para evitar tela branca
-        const initAuth = async () => {
-           if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-               try {
-                   await signInWithCustomToken(auth, __initial_auth_token);
-               } catch (error) {
-                   console.warn("Aviso: Token de autenticação automática expirado ou inválido. Prossiga com login manual.");
-                   // Falha silenciosa proposital: permite que o usuário veja a tela de login manual
-               }
-           }
+            // Injeta o script
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+            script.onload = () => {
+                if (window.supabase) {
+                    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    setSupabase(client);
+                }
+            };
+            document.head.appendChild(script);
         };
-        initAuth();
+        loadSupabase();
+    }, []);
 
-        const unsub = onAuthStateChanged(auth, (u) => {
-            if (u) {
-                setUser(u);
-                if (u.isAnonymous) {
-                    setIsHomolog(true);
-                    setLoading(false);
-                } else {
-                    // NOVA LÓGICA DE LEITURA FRAGMENTADA (OUVE METADATA)
-                    const metadataRef = doc(db, 'artifacts', appId, 'public', 'data', 'dashboards', 'v2_metadata');
-                    onSnapshot(metadataRef, async (snap) => {
-                        if (snap.exists()) {
-                            // Se o metadado mudou, precisamos recarregar os fragmentos
-                            const metadata = snap.data();
-                            const fullData = await loadDataFragmented(db, appId, metadata);
-                            setData(fullData);
+    // LISTENER DE AUTH (Só roda quando 'supabase' estiver pronto)
+    useEffect(() => {
+        if (!supabase) return;
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                setUser(session.user);
+                setIsHomolog(false);
+                setLoading(true);
+                
+                // Carregar Dados do Supabase
+                supabase
+                    .from('dashboards')
+                    .select('content')
+                    .eq('id', 'latest')
+                    .single()
+                    .then(({ data: dbData, error }) => {
+                        if (dbData && dbData.content) {
+                            setData(dbData.content);
+                        } else {
+                            console.log("Nenhum dado encontrado no Supabase.");
                         }
                         setLoading(false);
-                    }, (err) => {
-                        console.error("Erro lendo metadados:", err);
-                        setLoading(false);
                     });
-                }
             } else {
                 setUser(null);
                 setLoading(false);
             }
         });
-        return () => unsub();
-    }, []);
 
-    const handleLogout = () => {
-        const auth = getAuth();
-        signOut(auth);
+        return () => subscription.unsubscribe();
+    }, [supabase]);
+
+    const handleLogout = async () => {
+        if (supabase) await supabase.auth.signOut();
         setIsHomolog(false);
         setData(null);
     };
@@ -820,7 +647,7 @@ const App = () => {
 
     if (loading) return <div className="flex items-center justify-center bg-[#F1F5F9]" style={{ minHeight: '100vh' }}><Loader2 size={40} className="text-[#003366] animate-spin"/></div>;
     
-    if (!user && !isHomolog) return <LoginScreen onLogin={() => {}} onHomolog={() => { setIsHomolog(true); setLoading(false); }} />;
+    if (!user && !isHomolog) return <LoginScreen supabase={supabase} onLogin={() => {}} onHomolog={() => { setIsHomolog(true); setLoading(false); }} />;
 
     return (
         <div className="flex flex-col md:flex-row bg-[#F1F5F9] font-sans text-slate-800 overflow-hidden" style={{ minHeight: '100vh' }}>
@@ -886,7 +713,7 @@ const App = () => {
                     {isMobile && isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setSidebarOpen(false)}></div>}
                     
                     {activeTab === 'gestao' ? (
-                        <FileUploader onDataSaved={setData} isMobile={isMobile} isHomolog={isHomolog} />
+                        <FileUploader supabase={supabase} onDataSaved={setData} isMobile={isMobile} isHomolog={isHomolog} />
                     ) : (
                         data ? (
                             <ProductDashboard 
