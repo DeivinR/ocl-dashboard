@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, Database, LogOut, DollarSign, PieChart, Activity, Minus, Settings, Trash2, CheckCircle, AlertTriangle
 } from 'lucide-react';
 
-const SYSTEM_VERSION = "v4.7 - Mobile Center & Table Clean";
+const SYSTEM_VERSION = "v4.8 - Fix Table Wrap & Mobile Logout";
 
 // --- CONFIGURAÇÃO DE AMBIENTE ---
 const GET_ENV = (key) => {
@@ -211,25 +211,25 @@ const AnalyticalTable = ({ history, currentDU, type }) => {
             <table className="w-full text-sm text-left">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/50 text-slate-500 text-xs uppercase tracking-wider">
-                  <th className="px-6 py-4 font-semibold">Referência</th>
-                  <th className="px-6 py-4 font-semibold text-right">Resultado (D.U. {currentDU})</th>
-                  <th className="px-6 py-4 font-semibold text-right">Fechamento Mês / Projeção</th>
-                  <th className="px-6 py-4 font-semibold text-center">Status</th>
+                  <th className="px-6 py-4 font-semibold whitespace-nowrap">Referência</th>
+                  <th className="px-6 py-4 font-semibold text-right whitespace-nowrap">Resultado (D.U. {currentDU})</th>
+                  <th className="px-6 py-4 font-semibold text-right whitespace-nowrap">Fechamento / Projeção</th>
+                  <th className="px-6 py-4 font-semibold text-center whitespace-nowrap">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {history.map((row, index) => (
                   <tr key={index} className={`hover:bg-slate-50 transition-colors ${row.isCurrent ? 'bg-blue-100' : ''}`}>
-                    <td className="px-6 py-4 font-medium text-slate-700 flex items-center gap-2">
+                    <td className="px-6 py-4 font-medium text-slate-700 whitespace-nowrap flex items-center gap-2">
                       <Calendar size={14} className="text-slate-400"/> {row.label}
                     </td>
-                    <td className="px-6 py-4 text-right font-bold text-[#003366]">{format(row.valueAtDU)}</td>
-                    <td className="px-6 py-4 text-right text-slate-500">
+                    <td className="px-6 py-4 text-right font-bold text-[#003366] whitespace-nowrap">{format(row.valueAtDU)}</td>
+                    <td className="px-6 py-4 text-right text-slate-500 whitespace-nowrap">
                       {row.isCurrent ? (
                           <span className="text-blue-600 font-bold" title="Projeção baseada na média diária">{format(row.value)}*</span>
                       ) : format(row.value)}
                     </td>
-                     <td className="px-6 py-4 text-center">
+                     <td className="px-6 py-4 text-center whitespace-nowrap">
                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${row.status === 'Projeção' ? 'bg-blue-100 text-blue-800 animate-pulse' : 'bg-gray-100 text-gray-800'}`}>
                              {row.status}
                          </span>
@@ -531,7 +531,14 @@ const App = () => {
                         <h2 className="font-bold text-[#003366] text-lg hidden md:block">{MENU.find(m => m.id === activeTab)?.label}</h2>
                      </div>
                      <div className="flex items-center gap-3">
-                         {isMobile && (<div className="flex gap-1"><button onClick={() => {if(prevTab) setActiveTab(prevTab.id)}} disabled={!prevTab} className="p-2 bg-slate-100 rounded-lg disabled:opacity-30"><ChevronLeft size={16}/></button><button onClick={() => {if(nextTab) setActiveTab(nextTab.id)}} disabled={!nextTab} className="p-2 bg-slate-100 rounded-lg disabled:opacity-30"><ChevronRight size={16}/></button></div>)}
+                         {isMobile && (
+                             <div className="flex gap-1">
+                                 {/* BOTÃO LOGOUT MOBILE - ADICIONADO AQUI */}
+                                 <button onClick={handleLogout} className="p-2 bg-red-50 text-red-600 rounded-lg mr-2" title="Sair"><LogOut size={16}/></button>
+                                 <button onClick={() => {if(prevTab) setActiveTab(prevTab.id)}} disabled={!prevTab} className="p-2 bg-slate-100 rounded-lg disabled:opacity-30"><ChevronLeft size={16}/></button>
+                                 <button onClick={() => {if(nextTab) setActiveTab(nextTab.id)}} disabled={!nextTab} className="p-2 bg-slate-100 rounded-lg disabled:opacity-30"><ChevronRight size={16}/></button>
+                             </div>
+                         )}
                          {data && (<div className="bg-blue-50 text-[#003366] px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 border border-blue-100"><Calendar size={14}/> {data.currentDU}º Dia Útil</div>)}
                      </div>
                 </header>
