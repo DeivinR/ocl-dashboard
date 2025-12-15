@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, Database, LogOut, DollarSign, PieChart, Activity, Minus, Settings, Trash2, CheckCircle, AlertTriangle
 } from 'lucide-react';
 
-const SYSTEM_VERSION = "v4.6 - Projection Hero & Renaming";
+const SYSTEM_VERSION = "v4.7 - Mobile Center & Table Clean";
 
 // --- CONFIGURAÇÃO DE AMBIENTE ---
 const GET_ENV = (key) => {
@@ -219,10 +219,9 @@ const AnalyticalTable = ({ history, currentDU, type }) => {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {history.map((row, index) => (
-                  <tr key={index} className={`hover:bg-slate-50 transition-colors ${row.isCurrent ? 'bg-blue-50/30' : ''}`}>
+                  <tr key={index} className={`hover:bg-slate-50 transition-colors ${row.isCurrent ? 'bg-blue-100' : ''}`}>
                     <td className="px-6 py-4 font-medium text-slate-700 flex items-center gap-2">
                       <Calendar size={14} className="text-slate-400"/> {row.label}
-                      {row.isCurrent && <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">ATUAL</span>}
                     </td>
                     <td className="px-6 py-4 text-right font-bold text-[#003366]">{format(row.valueAtDU)}</td>
                     <td className="px-6 py-4 text-right text-slate-500">
@@ -258,10 +257,10 @@ const ProductDashboard = ({ category, data, isMobile, onNext, nextName }) => {
     return (
         <div className="max-w-6xl mx-auto pb-20 md:pb-0">
             <div className="bg-gradient-to-r from-[#003366] to-[#004990] rounded-3xl p-6 md:p-10 text-white mb-8 shadow-xl relative overflow-hidden">
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-end gap-6">
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-center md:items-end gap-6 text-center md:text-left">
                     {/* LADO ESQUERDO: REALIZADO */}
-                    <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2 opacity-80">
+                    <div className="flex-1 w-full md:w-auto">
+                        <div className="flex items-center justify-center md:justify-start gap-2 mb-2 opacity-80">
                              {category === 'CASH' && <Wallet size={20}/>}
                              {category === 'RENEGOCIAÇÃO' && <Handshake size={20}/>}
                              {category === 'ENTREGA AMIGÁVEL' && <Car size={20}/>}
@@ -275,8 +274,8 @@ const ProductDashboard = ({ category, data, isMobile, onNext, nextName }) => {
                     </div>
 
                     {/* LADO DIREITO: PROJEÇÃO */}
-                    <div className="text-left md:text-right bg-white/5 p-4 rounded-xl backdrop-blur-sm border border-white/10 min-w-[200px]">
-                        <p className="text-xs font-bold text-white/70 uppercase tracking-widest mb-1 flex items-center justify-end gap-2">
+                    <div className="text-center md:text-right bg-white/5 p-4 rounded-xl backdrop-blur-sm border border-white/10 w-full md:w-auto md:min-w-[200px]">
+                        <p className="text-xs font-bold text-white/70 uppercase tracking-widest mb-1 flex items-center justify-center md:justify-end gap-2">
                             <TrendingUp size={14}/> Projeção (Est.)
                         </p>
                         <h2 className="text-3xl font-bold text-white">{type === 'currency' ? formatCurrency(projectionVal) : formatNumber(projectionVal)}</h2>
