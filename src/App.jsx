@@ -6,14 +6,30 @@ import {
   LayoutDashboard, Wallet, Handshake, Car, Gavel, Upload, FileText, TrendingUp, TrendingDown, 
   Calendar, Menu, Loader2, ShieldAlert, Table, Clock, Info, 
   Cloud, CloudLightning, X, Lock, Layers, RefreshCw, Eye, ArrowRight,
-  ChevronLeft, ChevronRight, Database, LogOut, DollarSign, PieChart, Activity, Minus, Settings, Trash2, CheckCircle
+  ChevronLeft, ChevronRight, Database, LogOut, DollarSign, PieChart, Activity, Minus, Settings, Trash2, CheckCircle, AlertTriangle
 } from 'lucide-react';
 
-const SYSTEM_VERSION = "v4.2 - Login Diagnostics";
+const SYSTEM_VERSION = "v4.3 - Vercel Env Support";
 
-// --- CONFIGURAÇÃO SUPABASE (PREENCHA COM SEUS DADOS) ---
-const SUPABASE_URL = "https://xyzcompany.supabase.co"; // <-- TROPUE PELA SUA URL
-const SUPABASE_ANON_KEY = "eyJh..."; // <-- TROPUE PELA SUA KEY
+// --- CONFIGURAÇÃO DE AMBIENTE (AUTO-DETECÇÃO VERCEL) ---
+// Tenta ler as variáveis do Vercel. Se não existirem, usa os placeholders.
+const GET_ENV = (key) => {
+    try {
+        if (typeof process !== 'undefined' && process.env && process.env[key]) {
+            return process.env[key];
+        }
+    } catch (e) {
+        // Ignora erro se process não existir
+    }
+    return null;
+};
+
+// PREENCHA AQUI MANUALMENTE APENAS SE NÃO ESTIVER USANDO A INTEGRAÇÃO DO VERCEL
+const MANUAL_URL = "https://xyzcompany.supabase.co"; 
+const MANUAL_KEY = "eyJh..."; 
+
+const SUPABASE_URL = GET_ENV('NEXT_PUBLIC_SUPABASE_URL') || MANUAL_URL;
+const SUPABASE_ANON_KEY = GET_ENV('NEXT_PUBLIC_SUPABASE_ANON_KEY') || MANUAL_KEY;
 
 // --- CONFIGURAÇÃO DA LOGO ---
 const LOGO_LIGHT_URL = "/logo-white.png"; 
@@ -475,7 +491,7 @@ const FileUploader = ({ supabase, onDataSaved, isMobile, isHomolog }) => {
 };
 
 // --- LOGIN SCREEN ---
-const LoginScreen = ({ supabase, onLogin, onHomolog }) => {
+const LoginScreen = ({ supabase, onLogin, onHomolog, configError }) => {
     const [email, setEmail] = useState('');
     const [pass, setPass] = useState('');
     const [loading, setLoading] = useState(false);
@@ -496,7 +512,7 @@ const LoginScreen = ({ supabase, onLogin, onHomolog }) => {
             }
         } else {
             if (!supabase) {
-                setErrorMsg("Erro crítico: Conexão com Supabase falhou. Recarregue a página.");
+                setErrorMsg("Erro crítico: Cliente Supabase não iniciado.");
                 setLoading(false);
                 return;
             }
@@ -507,7 +523,7 @@ const LoginScreen = ({ supabase, onLogin, onHomolog }) => {
                 });
                 
                 if (error) throw error;
-                // Sucesso - o listener cuidará do redirect
+                // Sucesso
             } catch (err) {
                 console.error("Login Error:", err);
                 let msg = "Erro desconhecido.";
@@ -528,6 +544,17 @@ const LoginScreen = ({ supabase, onLogin, onHomolog }) => {
                     <button onClick={() => setMode('prod')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${mode === 'prod' ? 'bg-white shadow text-[#003366]' : 'text-slate-400'}`}>Oficial</button>
                     <button onClick={() => setMode('homolog')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${mode === 'homolog' ? 'bg-white shadow text-amber-600' : 'text-slate-400'}`}>Teste</button>
                 </div>
+
+                {configError && mode === 'prod' && (
+                    <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl mb-6 text-left">
+                        <h4 className="text-amber-800 font-bold text-sm flex items-center gap-2 mb-2">
+                            <AlertTriangle size={16}/> Configuração Necessária
+                        </h4>
+                        <p className="text-amber-700 text-xs leading-relaxed">
+                            O sistema detectou chaves de exemplo. Se você estiver no Vercel, certifique-se de que a integração Supabase está ativa e as variáveis <code>NEXT_PUBLIC_SUPABASE_URL</code> e <code>ANON_KEY</code> foram criadas.
+                        </p>
+                    </div>
+                )}
 
                 <form onSubmit={handleLogin} className="space-y-4 text-left">
                     <div>
@@ -566,6 +593,9 @@ const App = () => {
     const [supabase, setSupabase] = useState(null);
     const isMobile = useIsMobile();
     
+    // Check config status
+    const isConfigured = !SUPABASE_URL.includes("xyzcompany");
+
     // Menu Definition
     const MENU = [
         { id: 'CONSOLIDADO', label: 'Visão Geral', icon: LayoutDashboard },
@@ -659,7 +689,7 @@ const App = () => {
 
     if (loading) return <div className="flex items-center justify-center bg-[#F1F5F9]" style={{ minHeight: '100vh' }}><Loader2 size={40} className="text-[#003366] animate-spin"/></div>;
     
-    if (!user && !isHomolog) return <LoginScreen supabase={supabase} onLogin={() => {}} onHomolog={() => { setIsHomolog(true); setLoading(false); }} />;
+    if (!user && !isHomolog) return <LoginScreen supabase={supabase} onLogin={() => {}} onHomolog={() => { setIsHomolog(true); setLoading(false); }} configError={!isConfigured} />;
 
     return (
         <div className="flex flex-col md:flex-row bg-[#F1F5F9] font-sans text-slate-800 overflow-hidden" style={{ minHeight: '100vh' }}>
