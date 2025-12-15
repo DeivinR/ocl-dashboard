@@ -14,7 +14,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "firebase/auth";
 
-const SYSTEM_VERSION = "v2.7 - Silent Auth Fallback";
+const SYSTEM_VERSION = "v2.8 - Standalone Style Fix";
 
 // --- CONFIGURAÇÃO DA LOGO ---
 const LOGO_LIGHT_URL = "/logo-white.png"; 
@@ -567,6 +567,18 @@ const App = () => {
         { id: 'gestao', label: 'Gestão de Dados', icon: Database, spacing: true },
     ];
 
+    // INJEÇÃO AUTOMÁTICA DE ESTILOS (PARA AMBIENTES STANDALONE)
+    useEffect(() => {
+        // Verifica se o Tailwind já está presente
+        if (!document.getElementById('tailwind-script')) {
+            const script = document.createElement('script');
+            script.id = 'tailwind-script';
+            script.src = "https://cdn.tailwindcss.com";
+            script.async = true;
+            document.head.appendChild(script);
+        }
+    }, []);
+
     useEffect(() => {
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -618,12 +630,12 @@ const App = () => {
     const nextTab = currentIndex < MENU.length - 1 && MENU[currentIndex + 1].id !== 'gestao' ? MENU[currentIndex + 1] : null;
     const prevTab = currentIndex > 0 ? MENU[currentIndex - 1] : null;
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#F1F5F9]"><Loader2 size={40} className="text-[#003366] animate-spin"/></div>;
+    if (loading) return <div className="flex items-center justify-center bg-[#F1F5F9]" style={{ minHeight: '100vh' }}><Loader2 size={40} className="text-[#003366] animate-spin"/></div>;
     
     if (!user && !isHomolog) return <LoginScreen onLogin={() => {}} onHomolog={() => { setIsHomolog(true); setLoading(false); }} />;
 
     return (
-        <div className="flex flex-col md:flex-row min-h-screen bg-[#F1F5F9] font-sans text-slate-800 overflow-hidden">
+        <div className="flex flex-col md:flex-row bg-[#F1F5F9] font-sans text-slate-800 overflow-hidden" style={{ minHeight: '100vh' }}>
              {/* Sidebar Desktop */}
             <aside className={`fixed inset-y-0 left-0 z-50 bg-gradient-to-b from-[#003366] to-[#001a33] text-white transition-all duration-300 shadow-2xl flex flex-col ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobile ? (isSidebarOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}>
                 <div className="p-6 flex items-center justify-center h-24 border-b border-white/10 relative">
@@ -654,7 +666,7 @@ const App = () => {
             </aside>
 
             {/* Main Content */}
-            <main className={`flex-1 flex flex-col transition-all duration-300 ${isMobile ? 'ml-0' : (isSidebarOpen ? 'ml-72' : 'ml-20')} min-h-screen`}>
+            <main className={`flex-1 flex flex-col transition-all duration-300 ${isMobile ? 'ml-0' : (isSidebarOpen ? 'ml-72' : 'ml-20')}`} style={{ minHeight: '100vh' }}>
                 {/* Header Mobile/Desktop */}
                 <header className="bg-white border-b border-slate-200 p-4 sticky top-0 z-40 flex justify-between items-center shadow-sm h-16">
                      <div className="flex items-center gap-4">
