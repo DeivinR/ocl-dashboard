@@ -9,14 +9,11 @@ import {
   ChevronLeft, ChevronRight, Database, LogOut, DollarSign, PieChart, Activity, Minus, Settings, Trash2, CheckCircle
 } from 'lucide-react';
 
-// --- REMOVIDO IMPORT DIRETO PARA EVITAR ERRO DE BUILD NO CANVAS ---
-// import { createClient } from '@supabase/supabase-js';
-
-const SYSTEM_VERSION = "v4.1 - Supabase CDN Fix";
+const SYSTEM_VERSION = "v4.2 - Login Diagnostics";
 
 // --- CONFIGURAÇÃO SUPABASE (PREENCHA COM SEUS DADOS) ---
-const SUPABASE_URL = "https://xyzcompany.supabase.co"; // <-- TROQUE PELA SUA URL DO SUPABASE
-const SUPABASE_ANON_KEY = "eyJh..."; // <-- TROQUE PELA SUA ANON KEY DO SUPABASE
+const SUPABASE_URL = "https://xyzcompany.supabase.co"; // <-- TROPUE PELA SUA URL
+const SUPABASE_ANON_KEY = "eyJh..."; // <-- TROPUE PELA SUA KEY
 
 // --- CONFIGURAÇÃO DA LOGO ---
 const LOGO_LIGHT_URL = "/logo-white.png"; 
@@ -482,33 +479,41 @@ const LoginScreen = ({ supabase, onLogin, onHomolog }) => {
     const [email, setEmail] = useState('');
     const [pass, setPass] = useState('');
     const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
     const [mode, setMode] = useState('prod');
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
+        setErrorMsg('');
+
         if (mode === 'homolog') {
             if (email === "admin@avocati.adv.br" && pass === "abc@123") {
                 onHomolog();
             } else {
-                alert("Credenciais inválidas");
+                setErrorMsg("Credenciais de homologação inválidas");
                 setLoading(false);
             }
         } else {
             if (!supabase) {
-                alert("Supabase não carregado. Recarregue a página.");
+                setErrorMsg("Erro crítico: Conexão com Supabase falhou. Recarregue a página.");
                 setLoading(false);
                 return;
             }
             try {
-                const { error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: pass,
                 });
+                
                 if (error) throw error;
-                // O listener no App cuidará do resto
+                // Sucesso - o listener cuidará do redirect
             } catch (err) {
-                alert("Erro de login: " + err.message);
+                console.error("Login Error:", err);
+                let msg = "Erro desconhecido.";
+                if (err.message.includes("Invalid login credentials")) msg = "E-mail ou senha incorretos.";
+                if (err.message.includes("Email not confirmed")) msg = "E-mail não confirmado. Verifique sua caixa de entrada.";
+                setErrorMsg(msg);
                 setLoading(false);
             }
         }
@@ -533,6 +538,13 @@ const LoginScreen = ({ supabase, onLogin, onHomolog }) => {
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Senha</label>
                         <input type="password" required value={pass} onChange={e => setPass(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#003366]" placeholder="••••••••" />
                     </div>
+                    
+                    {errorMsg && (
+                        <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg flex items-center gap-2">
+                            <ShieldAlert size={16} /> {errorMsg}
+                        </div>
+                    )}
+
                     <button type="submit" className={`w-full py-4 rounded-xl font-bold text-white transition-all transform hover:scale-[1.02] ${mode === 'homolog' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[#003366] hover:bg-[#002244]'}`}>
                         {loading ? <Loader2 className="animate-spin mx-auto"/> : (mode === 'homolog' ? 'Acessar Homologação' : 'Entrar')}
                     </button>
