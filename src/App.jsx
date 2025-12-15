@@ -16,7 +16,7 @@ import {
 } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "firebase/auth";
 
-const SYSTEM_VERSION = "v3.0 - Multi-File Append Upload";
+const SYSTEM_VERSION = "v3.1 - UI Refinement & Batch Logic";
 
 // --- CONFIGURAÇÃO DA LOGO ---
 const LOGO_LIGHT_URL = "/logo-white.png"; 
@@ -145,9 +145,7 @@ const uploadDataFragmented = async (db, appId, processedData, shouldClear = fals
     let startIndex = 0;
     let currentMetadata = { dates: [], totalRows: 0, totalChunks: 0 };
 
-    // 1. Limpeza ou Recuperação de Estado Atual
     if (shouldClear) {
-        // Apagar todos os fragmentos existentes
         const existingDocs = await getDocs(chunksCollectionRef);
         const deleteBatch = writeBatch(db);
         existingDocs.forEach((doc) => {
@@ -155,7 +153,6 @@ const uploadDataFragmented = async (db, appId, processedData, shouldClear = fals
         });
         await deleteBatch.commit();
     } else {
-        // Modo APPEND: Ler metadados atuais para saber onde continuar
         const metaSnap = await getDoc(metadataRef);
         if (metaSnap.exists()) {
             currentMetadata = metaSnap.data();
@@ -163,25 +160,22 @@ const uploadDataFragmented = async (db, appId, processedData, shouldClear = fals
         }
     }
 
-    // 2. Mesclar Datas (Set para evitar duplicatas)
     const mergedDates = [...new Set([...(currentMetadata.dates || []), ...processedData.dates])].sort();
 
-    // 3. Atualizar Metadados
     const newTotalRows = (currentMetadata.totalRows || 0) + totalRows;
     const newTotalChunks = startIndex + incomingChunks;
 
     const metadataPayload = {
         dates: mergedDates,
-        currentDU: processedData.currentDU, // Assume o DU do último arquivo enviado
+        currentDU: processedData.currentDU, 
         updatedAt: new Date().toISOString(),
         totalRows: newTotalRows,
         totalChunks: newTotalChunks,
-        version: "3.0"
+        version: "3.1"
     };
     
     await setDoc(metadataRef, metadataPayload);
 
-    // 4. Upload dos novos fragmentos (Começando do startIndex)
     const uploadPromises = [];
     
     for (let i = 0; i < incomingChunks; i++) {
@@ -189,7 +183,6 @@ const uploadDataFragmented = async (db, appId, processedData, shouldClear = fals
         const end = Math.min(start + BATCH_SIZE, totalRows);
         const chunkData = rawData.slice(start, end);
         
-        // ID sequencial garante ordem: chunk_0, chunk_1... chunk_10 (do novo arquivo)...
         const chunkIndex = startIndex + i;
         const chunkRef = doc(chunksCollectionRef, `chunk_${chunkIndex}`);
         uploadPromises.push(setDoc(chunkRef, { rows: chunkData, index: chunkIndex }));
@@ -294,7 +287,7 @@ const calculateKPIs = (data, category) => {
 // --- COMPONENTES UI ---
 
 const Card = ({ children, className = "" }) => (
-  <div className={`bg-white rounded-2xl shadow-[0_2px_10px_-3px_rgba(0,51,102,0.1)] border border-slate-100 transition-all duration-300 ${className}`}>
+  <div className={`bg-white rounded-2xl shadow-[0_2px_10px_-3px_rgba(0,51,102,0.1)] border border-slate-100 transition-all duration-300 flex flex-col justify-between ${className}`}>
     {children}
   </div>
 );
@@ -304,15 +297,23 @@ const MetricCard = ({ title, value, type = "currency", comparison, icon: Icon, s
     const format = type === 'currency' ? formatCurrency : formatNumber;
     
     return (
-        <Card className="p-6 relative overflow-hidden group hover:shadow-lg">
+        <Card className="p-6 relative overflow-hidden group hover:shadow-lg h-full">
              <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                 {Icon && <Icon size={80} color="#003366" />}
             </div>
-            <div className="flex justify-between items-start mb-4">
-                <div>
-                    <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
-                    <h3 className="text-2xl md:text-3xl font-bold text-[#003366]">{format(value)}</h3>
+            
+            {/* Conteúdo Principal */}
+            <div>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">{title}</p>
+                <h3 className="text-2xl md:text-3xl font-bold text-[#003366]">{format(value)}</h3>
+            </div>
+
+            {/* Rodapé do Card: Subtexto na esq, Badge na direita inferior */}
+            <div className="flex justify-between items-end mt-4 pt-2 border-t border-slate-50/50">
+                <div className="text-xs text-slate-400 max-w-[60%]">
+                    {subtext || "Comparativo no período"}
                 </div>
+                
                 <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${isPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                     {comparison !== null && (
                         <>
@@ -322,7 +323,6 @@ const MetricCard = ({ title, value, type = "currency", comparison, icon: Icon, s
                     )}
                 </div>
             </div>
-            {subtext && <p className="text-xs text-slate-400 border-t border-slate-100 pt-3 mt-2">{subtext}</p>}
         </Card>
     );
 };
