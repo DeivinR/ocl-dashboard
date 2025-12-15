@@ -25,8 +25,8 @@ const GET_ENV = (key) => {
 };
 
 // PREENCHA AQUI MANUALMENTE APENAS SE NÃO ESTIVER USANDO A INTEGRAÇÃO DO VERCEL
-const MANUAL_URL = "https://xyzcompany.supabase.co"; 
-const MANUAL_KEY = "eyJh..."; 
+const MANUAL_URL = "https://vjcgcoxujrixaznbyzvg.supabase.co"; 
+const MANUAL_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqY2djb3h1anJpeGF6bmJ5enZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3OTc1MDEsImV4cCI6MjA4MTM3MzUwMX0.JKi6ybypqqwZTeJH__QxB-ajA_gkAk67t-4NfmYcVmY"; 
 
 const SUPABASE_URL = GET_ENV('NEXT_PUBLIC_SUPABASE_URL') || MANUAL_URL;
 const SUPABASE_ANON_KEY = GET_ENV('NEXT_PUBLIC_SUPABASE_ANON_KEY') || MANUAL_KEY;
