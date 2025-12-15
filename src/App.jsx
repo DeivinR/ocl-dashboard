@@ -11,10 +11,12 @@ import {
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
+import { 
+  getFirestore, doc, setDoc, onSnapshot, collection, writeBatch, getDocs, query, orderBy, deleteDoc 
+} from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "firebase/auth";
 
-const SYSTEM_VERSION = "v2.8 - Standalone Style Fix";
+const SYSTEM_VERSION = "v2.9 - Firestore Sharding (Fragmentação)";
 
 // --- CONFIGURAÇÃO DA LOGO ---
 const LOGO_LIGHT_URL = "/logo-white.png"; 
@@ -68,11 +70,12 @@ const parseCurrency = (valStr) => {
     return parseFloat(clean) || 0;
 };
 
-const parseDate = (dateStr) => {
-    if (!dateStr) return null;
-    const parts = dateStr.split('-');
-    if (parts.length === 3) return dateStr; 
-    return dateStr;
+const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
+const formatNumber = (val) => new Intl.NumberFormat('pt-BR').format(Math.round(val));
+const formatMonth = (str) => { 
+    if (!str) return "-"; 
+    const [y, m] = str.split('-'); 
+    return new Date(y, m - 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase(); 
 };
 
 // NOVA LÓGICA DE LEITURA DO CSV (Estruturada & Higienizada)
@@ -100,7 +103,6 @@ const parseStructuredCSV = (csvText, manualDU) => {
 
         const du = parseInt(row[colMap.DU]) || 0;
 
-        // IMPORTANTE: O uso de "|| ''" previne o erro "Unsupported field value: undefined" do Firebase
         rawData.push({
             produto: row[colMap.PRODUTO]?.trim() || "Outros", 
             valor: parseCurrency(row[colMap.REPASSE]),
@@ -129,13 +131,86 @@ const parseStructuredCSV = (csvText, manualDU) => {
     };
 };
 
-const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
-const formatNumber = (val) => new Intl.NumberFormat('pt-BR').format(Math.round(val));
-const formatMonth = (str) => { 
-    if (!str) return "-"; 
-    const [y, m] = str.split('-'); 
-    return new Date(y, m - 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase(); 
+// --- FUNÇÕES DE SHARDING (FRAGMENTAÇÃO) DO FIRESTORE ---
+
+const uploadDataFragmented = async (db, appId, processedData) => {
+    const BATCH_SIZE = 2000; // Número de linhas por documento (seguro para ficar < 1MB)
+    const rawData = processedData.rawData;
+    const totalRows = rawData.length;
+    const totalChunks = Math.ceil(totalRows / BATCH_SIZE);
+
+    // 1. Salvar Documento Mestre (Metadados)
+    // Isso avisa o sistema que novos dados estão chegando e guarda as configs globais (DU, Datas)
+    const metadataRef = doc(db, 'artifacts', appId, 'public', 'data', 'dashboards', 'v2_metadata');
+    
+    // Limpamos o rawData do metadata para ele ficar leve
+    const metadataPayload = {
+        dates: processedData.dates,
+        currentDU: processedData.currentDU,
+        updatedAt: new Date().toISOString(),
+        totalRows: totalRows,
+        totalChunks: totalChunks,
+        version: "2.9"
+    };
+    
+    await setDoc(metadataRef, metadataPayload);
+
+    // 2. Fragmentar e Salvar os Chunks na Subcoleção
+    const chunksCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'dashboards', 'v2_metadata', 'fragments');
+    
+    // Opcional: Limpar fragmentos antigos seria ideal, mas para simplificar e ser rápido, 
+    // vamos sobrescrever usando IDs determinísticos (chunk_0, chunk_1...).
+    // Se o arquivo novo for menor que o antigo, podem sobrar chunks "fantasmas".
+    // Vamos fazer uma limpeza segura deletando tudo antes.
+    const existingDocs = await getDocs(chunksCollectionRef);
+    const deleteBatch = writeBatch(db);
+    existingDocs.forEach((doc) => {
+        deleteBatch.delete(doc.ref);
+    });
+    await deleteBatch.commit();
+
+    // 3. Upload dos novos fragmentos
+    // Firestore permite max 500 writes por batch. Se tivermos muitos chunks, fazemos promises.
+    const uploadPromises = [];
+    
+    for (let i = 0; i < totalChunks; i++) {
+        const start = i * BATCH_SIZE;
+        const end = Math.min(start + BATCH_SIZE, totalRows);
+        const chunkData = rawData.slice(start, end);
+        
+        const chunkRef = doc(chunksCollectionRef, `chunk_${i}`);
+        uploadPromises.push(setDoc(chunkRef, { rows: chunkData, index: i }));
+    }
+
+    await Promise.all(uploadPromises);
+    return true;
 };
+
+const loadDataFragmented = async (db, appId, metadata) => {
+    if (!metadata) return null;
+
+    // 1. Buscar todos os fragmentos
+    const chunksCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'dashboards', 'v2_metadata', 'fragments');
+    const q = query(chunksCollectionRef, orderBy('index'));
+    const querySnapshot = await getDocs(q);
+
+    let fullRawData = [];
+    querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.rows) {
+            fullRawData = [...fullRawData, ...data.rows];
+        }
+    });
+
+    // 2. Remontar o objeto de dados completo
+    return {
+        rawData: fullRawData,
+        dates: metadata.dates,
+        currentDU: metadata.currentDU,
+        updatedAt: metadata.updatedAt
+    };
+};
+
 
 // --- CÁLCULO DE KPIS ---
 const calculateKPIs = (data, category) => {
@@ -411,13 +486,8 @@ const FileUploader = ({ onDataSaved, isMobile, isHomolog }) => {
                 }
                 
                 try {
-                     // Caminho do documento usando o appId dinâmico para garantir permissão
-                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'dashboards', 'v2_latest');
-                     
-                     // Converte para string JSON e volta para remover quaisquer 'undefined' residuais
-                     const cleanData = JSON.parse(JSON.stringify({ ...processed, updatedAt: new Date().toISOString() }));
-                     
-                     await setDoc(docRef, cleanData);
+                     // NOVA LÓGICA: Envio Fragmentado (Sharding)
+                     await uploadDataFragmented(db, appId, processed);
                      onDataSaved(processed);
                      setStatus('success-cloud');
                 } catch(err) {
@@ -476,9 +546,9 @@ const FileUploader = ({ onDataSaved, isMobile, isHomolog }) => {
                     </label>
                 </div>
                 
-                {status === 'processing' && <p className="mt-4 text-blue-600 font-bold animate-pulse">Processando e Calculando...</p>}
-                {status === 'success-cloud' && <p className="mt-4 text-green-600 font-bold">Dados atualizados com o corte no D.U. {manualDU}!</p>}
-                {status === 'success-local' && <p className="mt-4 text-[#003366] font-bold">Simulação local: D.U. {manualDU} aplicado.</p>}
+                {status === 'processing' && <p className="mt-4 text-blue-600 font-bold animate-pulse">Fragmentando dados e Enviando...</p>}
+                {status === 'success-cloud' && <p className="mt-4 text-green-600 font-bold">Dados fragmentados e atualizados com sucesso!</p>}
+                {status === 'success-local' && <p className="mt-4 text-[#003366] font-bold">Simulação local carregada.</p>}
             </Card>
         </div>
     );
@@ -604,9 +674,18 @@ const App = () => {
                     setIsHomolog(true);
                     setLoading(false);
                 } else {
-                    // Load Data from Firestore usando AppID dinâmico para garantir permissão
-                    onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'dashboards', 'v2_latest'), (snap) => {
-                        if (snap.exists()) setData(snap.data());
+                    // NOVA LÓGICA DE LEITURA FRAGMENTADA (OUVE METADATA)
+                    const metadataRef = doc(db, 'artifacts', appId, 'public', 'data', 'dashboards', 'v2_metadata');
+                    onSnapshot(metadataRef, async (snap) => {
+                        if (snap.exists()) {
+                            // Se o metadado mudou, precisamos recarregar os fragmentos
+                            const metadata = snap.data();
+                            const fullData = await loadDataFragmented(db, appId, metadata);
+                            setData(fullData);
+                        }
+                        setLoading(false);
+                    }, (err) => {
+                        console.error("Erro lendo metadados:", err);
                         setLoading(false);
                     });
                 }
