@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, AreaChart, Area, Cell
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, AreaChart, Area 
 } from 'recharts';
 import { 
   LayoutDashboard, Wallet, Handshake, Car, Gavel, Upload, FileText, TrendingUp, TrendingDown, 
-  Calendar, Menu, HardDrive, Loader2, ShieldAlert, Building2, Target, Table, Clock, Info, 
-  Cloud, CloudLightning, CheckCircle2, X, Lock, User, Layers, RefreshCw, Eye, ArrowRight,
-  ChevronLeft, ChevronRight
+  Calendar, Menu, Loader2, ShieldAlert, Table, Clock, Info, 
+  Cloud, CloudLightning, X, Lock, Layers, RefreshCw, Eye, ArrowRight,
+  ChevronLeft, ChevronRight, Database, LogOut, DollarSign, PieChart, Activity, Minus, Settings
 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
@@ -14,7 +14,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
-const SYSTEM_VERSION = "v1.3 - Carregamento Instantâneo";
+const SYSTEM_VERSION = "v2.3 - Retomadas Logic Update";
 
 // --- CONFIGURAÇÃO DA LOGO ---
 const LOGO_LIGHT_URL = "/logo-white.png"; 
@@ -42,558 +42,662 @@ const useIsMobile = () => {
   return isMobile;
 };
 
-// --- ESTILOS GLOBAIS ---
-const getStyles = (isMobile, sidebarOpen) => ({
-  container: { fontFamily: 'system-ui, -apple-system, sans-serif', backgroundColor: '#f8fafc', minHeight: '100vh', display: 'flex', color: '#1e293b', overflowX: 'hidden' },
-  sidebar: { width: isMobile ? '280px' : (sidebarOpen ? '280px' : '80px'), backgroundColor: '#004990', color: 'white', display: 'flex', flexDirection: 'column', position: 'fixed', height: '100%', zIndex: 50, boxShadow: '4px 0 24px rgba(0,0,0,0.1)', transition: 'transform 0.3s ease, width 0.3s ease', transform: isMobile ? (sidebarOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none' },
-  overlay: { display: isMobile && sidebarOpen ? 'block' : 'none', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 40 },
-  main: { flex: 1, marginLeft: isMobile ? '0' : (sidebarOpen ? '280px' : '80px'), transition: 'margin-left 0.3s ease', display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' },
-  header: { padding: isMobile ? '12px 16px' : '24px 32px', backgroundColor: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 30, boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.08)' : 'none' },
-  content: { padding: isMobile ? '16px' : '32px', overflowY: 'auto', flex: 1, paddingBottom: isMobile ? '80px' : '32px' },
-  card: { backgroundColor: 'white', borderRadius: '16px', padding: isMobile ? '20px' : '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #f1f5f9' },
-  grid3: { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '24px', marginBottom: '32px' },
-  heroCard: { borderRadius: '16px', padding: isMobile ? '24px' : '32px', color: 'white', position: 'relative', overflow: 'hidden', textAlign: 'center', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '32px' },
-  flexCenter: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  flexBetween: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  navButton: { padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#004990', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '40px', height: '40px', transition: 'background-color 0.2s' },
-  navButtonDisabled: { opacity: 0.3, cursor: 'not-allowed', backgroundColor: '#f1f5f9' },
-  loginContainer: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9', padding: '20px' },
-  loginCard: { backgroundColor: 'white', padding: '40px', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', width: '100%', maxWidth: '400px', textAlign: 'center' },
-  input: { width: '100%', padding: '12px 16px', margin: '8px 0 24px 0', border: '1px solid #cbd5e1', borderRadius: '12px', fontSize: '16px', outline: 'none', boxSizing: 'border-box' },
-  button: { width: '100%', padding: '14px', backgroundColor: '#004990', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' },
-  tabButtonActive: { flex: 1, padding: '12px', borderBottom: '3px solid #004990', color: '#004990', fontWeight: 'bold', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
-  tabButtonInactive: { flex: 1, padding: '12px', borderBottom: '3px solid transparent', color: '#94a3b8', fontWeight: 'normal', background: 'none', borderTop: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer' },
-  logoContainer: { display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' },
-  logoImage: { maxWidth: '240px', maxHeight: '100px', objectFit: 'contain' }
-});
-
-// --- CORES ---
-const COLORS = {
-  primary: '#004990',
-  themes: {
-    'CONSOLIDADO': { main: '#1e293b', light: '#f1f5f9', icon: Layers },
-    'CASH': { main: '#004990', light: '#e0f2fe', icon: Wallet },
-    'RENEGOCIAÇÃO': { main: '#7c3aed', light: '#f3e8ff', icon: Handshake },
-    'ENTREGA AMIGÁVEL': { main: '#059669', light: '#d1fae5', icon: Car },
-    'APREENSÃO': { main: '#d97706', light: '#fef3c7', icon: Gavel },
-    'RETOMADAS': { main: '#dc2626', light: '#fee2e2', icon: FileText },
-    'CONTENÇÃO': { main: '#0891b2', light: '#cffafe', icon: ShieldAlert },
-    'gestao': { main: '#475569', light: '#f1f5f9', icon: Upload }
-  },
-  faixas: { 'ENTRANTES': '#22d3ee', 'ATÉ 90 DIAS': '#3b82f6', '91 A 180 DIAS': '#8b5cf6', 'OVER 180 DIAS': '#ef4444', 'PREJUÍZO': '#64748b' }
+// --- CORES & TEMA ---
+const THEME = {
+  primary: '#003366', // Azul OCL Institucional
+  secondary: '#004990',
+  accent: '#F59E0B',
+  bg: '#F1F5F9',
+  card: '#FFFFFF',
+  text: '#1E293B',
+  success: '#10B981',
+  danger: '#EF4444'
 };
 
-// --- DADOS INICIAIS ---
-const INITIAL_CSV_DATA = `Dias úteis trabalhados;6;;;;;;
-Dias úteis totais do mês;19;;;;;;
-FAIXA;2025-06-01;2025-07-01;2025-08-01;2025-09-01;2025-10-01;2025-11-01;2025-12-01
-ENTRANTES;5000.00;6000.00;5500.00;5200.00;5800.00;6100.00;2000.00
-ATÉ 90 DIAS;12000.00;11000.00;13000.00;12500.00;11800.00;12200.00;4000.00
-91 A 180 DIAS;8000.00;7500.00;8200.00;9000.00;8500.00;9500.00;3000.00
-OVER 180 DIAS;4000.00;4200.00;4100.00;4300.00;4400.00;4500.00;1500.00
-PREJUÍZO;1000.00;500.00;800.00;1200.00;900.00;1100.00;400.00`;
+// --- PARSERS & HELPERS ---
 
-// --- UTILITÁRIOS (Parse e Format) ---
-const parseNumber = (valStr) => {
+const parseCurrency = (valStr) => {
     if (!valStr) return 0;
     if (typeof valStr === 'number') return valStr;
-    let cleanStr = valStr.trim();
-    if (cleanStr.includes(',') && !cleanStr.includes('.')) cleanStr = cleanStr.replace(',', '.');
-    else if (cleanStr.includes('.') && cleanStr.includes(',')) {
-        const lastDot = cleanStr.lastIndexOf('.');
-        const lastComma = cleanStr.lastIndexOf(',');
-        if (lastComma > lastDot) cleanStr = cleanStr.replace(/\./g, '').replace(',', '.');
-        else cleanStr = cleanStr.replace(/,/g, '');
+    // Remove R$, espaços, troca ponto de milhar por nada e vírgula por ponto
+    let clean = valStr.toString().replace(/[R$\s]/g, '').trim();
+    if (clean.includes(',') && clean.includes('.')) {
+        clean = clean.replace(/\./g, '').replace(',', '.');
+    } else if (clean.includes(',')) {
+        clean = clean.replace(',', '.');
     }
-    return parseFloat(cleanStr) || 0;
+    return parseFloat(clean) || 0;
 };
 
-const parseCustomCSV = (csvText) => {
-  const lines = csvText.split(/\r?\n/);
-  const line0 = (lines[0] || "").split((lines[0] || "").includes(';') ? ';' : ',');
-  const line1 = (lines[1] || "").split((lines[1] || "").includes(';') ? ';' : ',');
-  const daysWorked = parseNumber(line0[1]) || 1;
-  const totalDays = parseNumber(line1[1]) || 1;
+const parseDate = (dateStr) => {
+    // Espera formato YYYY-MM-DD do CSV novo ou similar
+    if (!dateStr) return null;
+    const parts = dateStr.split('-');
+    if (parts.length === 3) return dateStr; // Já está ok
+    return dateStr;
+};
 
-  const processCombinedBlock = (valStart, valEnd, qtdStart, qtdEnd) => {
-    const separator = (lines[valStart - 1] || "").includes(';') ? ';' : ',';
-    let headerLine = (lines[valStart - 1] || "").split(separator);
-    if (!headerLine[1] && lines[valStart-2]) headerLine = lines[valStart-2].split(separator);
+// NOVA LÓGICA DE LEITURA DO CSV (Estruturada)
+const parseStructuredCSV = (csvText, manualDU) => {
+    const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
+    if (lines.length < 2) return null;
 
-    const blockDates = headerLine.slice(1).filter(d => d).map(d => d.split(' ')[0]);
-    const blockData = [];
+    // Identificar cabeçalhos (assumindo separador ;)
+    const headers = lines[0].split(';').map(h => h.trim().toUpperCase());
     
-    for (let i = valStart; i < valEnd; i++) { 
-       const row = (lines[i] || "").split(separator);
-       if (!row[0] || row[0] === 'Total Geral') continue; 
-       const faixa = row[0];
-       const valores = row.slice(1).map(v => parseNumber(v)); 
-       let qtdRow = [];
-       if (qtdStart && qtdEnd) {
-           const offset = i - valStart; 
-           const targetQtdLine = qtdStart + offset;
-           if (lines[targetQtdLine]) qtdRow = lines[targetQtdLine].split(separator).slice(1).map(v => parseNumber(v));
-       }
-       valores.forEach((val, index) => {
-           if (blockDates[index]) {
-               blockData.push({ faixa: faixa, data: blockDates[index], valor: val, qtd: qtdRow[index] || 0 });
-           }
-       });
+    // Mapear índices das colunas importantes
+    const colMap = {
+        PRODUTO: headers.indexOf('PRODUTO'),
+        REPASSE: headers.indexOf('REPASSE'), // Valor recuperado
+        HO: headers.indexOf('HO'), // Honorários
+        DU: headers.indexOf('DU'),
+        PERIODO: headers.indexOf('PERÍODO'),
+        TIPO: headers.indexOf('TIPO'),
+        RISCO: headers.indexOf('RISCO CONTENÇÃO')
+    };
+
+    const rawData = [];
+    
+    // Processar linhas
+    for (let i = 1; i < lines.length; i++) {
+        const row = lines[i].split(';');
+        if (row.length < headers.length) continue;
+
+        const du = parseInt(row[colMap.DU]) || 0;
+
+        rawData.push({
+            produto: row[colMap.PRODUTO]?.trim(),
+            valor: parseCurrency(row[colMap.REPASSE]),
+            ho: parseCurrency(row[colMap.HO]), // Capturando HO
+            du: du,
+            periodo: row[colMap.PERIODO], // YYYY-MM-DD
+            tipo: row[colMap.TIPO]?.trim(),
+            risco: row[colMap.RISCO]?.trim()
+        });
     }
-    return { data: blockData, dates: blockDates };
-  };
 
-  const cash = processCombinedBlock(4, 11, 49, 56);
-  const reneg = processCombinedBlock(12, 19, 57, 64);
-  const amigavel = processCombinedBlock(20, 27, 65, 72);
-  const apreensao = processCombinedBlock(28, 35, 73, 80);
-  const retomadas = processCombinedBlock(36, 43, 81, 88);
-  const contencao = processCombinedBlock(44, 48, null, null);
+    // Identificar data mais recente
+    const uniqueDates = [...new Set(rawData.map(d => d.periodo))].sort();
+    
+    // Calcular Max DU: Se o usuário digitou, usa o dele. Senão, tenta achar o máximo do CSV (fallback).
+    let finalDU = manualDU ? parseInt(manualDU) : 1; 
+    
+    // Fallback: Se não veio manual, pega o maior DU do último mês disponível
+    if (!manualDU) {
+        const latestDate = uniqueDates[uniqueDates.length - 1];
+        const currentMonthData = rawData.filter(d => d.periodo === latestDate);
+        finalDU = Math.max(...currentMonthData.map(d => d.du), 1);
+    }
 
-  const consolidadoData = [];
-  if (cash.data) {
-      cash.data.forEach((item, index) => {
-          const r = reneg.data[index] || { valor: 0, qtd: 0 };
-          const rt = retomadas.data[index] || { valor: 0, qtd: 0 };
-          consolidadoData.push({ faixa: item.faixa, data: item.data, valor: item.valor + r.valor + rt.valor, qtd: item.qtd + r.qtd + rt.qtd });
-      });
-  }
-
-  return { 
-      daysWorked, totalDays, 
-      products: { 'CONSOLIDADO': consolidadoData, 'CASH': cash.data, 'RENEGOCIAÇÃO': reneg.data, 'ENTREGA AMIGÁVEL': amigavel.data, 'APREENSÃO': apreensao.data, 'RETOMADAS': retomadas.data, 'CONTENÇÃO': contencao.data }, 
-      dates: [...new Set(cash.dates)] 
-  };
+    return {
+        rawData,
+        dates: uniqueDates,
+        currentDU: finalDU // Agora fixado pelo input do usuário
+    };
 };
 
 const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
 const formatNumber = (val) => new Intl.NumberFormat('pt-BR').format(Math.round(val));
-const formatMonth = (str) => { if (!str || !str.includes('-')) return "-"; const [y, m] = str.split('-'); return new Date(y, m - 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase(); };
+const formatMonth = (str) => { 
+    if (!str) return "-"; 
+    const [y, m] = str.split('-'); 
+    return new Date(y, m - 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase(); 
+};
 
-const calculateComparatives = (productName, data, dates) => {
-    if (!dates || dates.length === 0) return { current: 0, prev: 0, avg3: 0, avg6: 0, dates: { current: '', prev: '' } };
-    const productData = data.products[productName] || [];
+// --- CÁLCULO DE KPIS (Inteligência de Negócio) ---
+const calculateKPIs = (data, category) => {
+    if (!data || !data.rawData) return { current: 0, prev: 0, avg3: 0, avg6: 0, history: [] };
+
+    const { rawData, dates, currentDU } = data;
     const n = dates.length;
-    const currentMonth = dates[n - 1]; 
-    const prevMonth = dates[n - 2];    
-    const last3Months = dates.slice(Math.max(0, n - 4), n - 1); 
-    const last6Months = dates.slice(Math.max(0, n - 7), n - 1);
-    const getTotal = (d) => productData.filter(i => i.data === d).reduce((acc, curr) => acc + curr.valor, 0);
+    const currentDate = dates[n - 1];
+    const prevDate = dates[n - 2];
+    
+    // Filtro principal: Categorizar os dados brutos
+    const filterByCategory = (item) => {
+        // Lógica de mapeamento OCL
+        if (category === 'CONSOLIDADO') return true; // Soma tudo
+        if (category === 'CONTENÇÃO') return item.risco && item.risco.length > 2; // Tem algo escrito na coluna risco
+        
+        const prod = item.produto?.toUpperCase();
+        
+        if (category === 'CASH') return ['PARCIAL', 'ATUALIZAÇÃO', 'QUITAÇÃO', 'VAP'].some(p => prod?.includes(p));
+        if (category === 'RENEGOCIAÇÃO') return prod === 'RENEGOCIAÇÃO';
+        if (category === 'ENTREGA AMIGÁVEL') return prod === 'ENTREGA AMIGÁVEL';
+        if (category === 'APREENSÃO') return prod === 'APREENSÃO';
+        
+        // NOVA LÓGICA RETOMADAS: Junção de Entrega Amigável + Apreensão
+        if (category === 'RETOMADAS') return prod === 'ENTREGA AMIGÁVEL' || prod === 'APREENSÃO';
+        
+        return false;
+    };
+
+    // Função auxiliar para determinar QUAL valor somar (Repasse vs HO)
+    const getValueToSum = (item) => {
+        if (category === 'CONTENÇÃO') return 1; // Contagem de contratos
+        return item.ho; // AGORA PADRONIZADO: Todos os KPIs financeiros usam Honorários (HO)
+    };
+
+    // Função para somar valores até o DU de corte (comparação justa)
+    const sumUntilDU = (targetDate, limitDU) => {
+        return rawData
+            .filter(d => d.periodo === targetDate && d.du <= limitDU && filterByCategory(d))
+            .reduce((acc, curr) => acc + getValueToSum(curr), 0);
+    };
+
+    // Função para somar valor total do mês (para histórico fechado)
+    const sumTotalMonth = (targetDate) => {
+        return rawData
+            .filter(d => d.periodo === targetDate && filterByCategory(d))
+            .reduce((acc, curr) => acc + getValueToSum(curr), 0);
+    };
+
+    const currentVal = sumUntilDU(currentDate, currentDU);
+    const prevVal = sumUntilDU(prevDate, currentDU); // Compara com o mesmo momento do mês anterior
+
+    const last3 = dates.slice(Math.max(0, n - 4), n - 1);
+    const last6 = dates.slice(Math.max(0, n - 7), n - 1);
+
+    const avg3Val = last3.reduce((acc, d) => acc + sumUntilDU(d, currentDU), 0) / (last3.length || 1);
+    const avg6Val = last6.reduce((acc, d) => acc + sumUntilDU(d, currentDU), 0) / (last6.length || 1);
+
+    // Histórico para o gráfico/tabela
+    const history = dates.map(d => ({
+        date: d,
+        label: formatMonth(d),
+        value: sumTotalMonth(d), // Valor cheio do mês
+        valueAtDU: sumUntilDU(d, currentDU), // Valor no mesmo ponto
+        isCurrent: d === currentDate
+    })).reverse();
+
     return {
-        current: getTotal(currentMonth),
-        prev: getTotal(prevMonth),
-        avg3: last3Months.reduce((acc, d) => acc + getTotal(d), 0) / (last3Months.length || 1),
-        avg6: last6Months.reduce((acc, d) => acc + getTotal(d), 0) / (last6Months.length || 1),
-        dates: { current: currentMonth, prev: prevMonth }
+        current: currentVal,
+        prev: prevVal,
+        avg3: avg3Val,
+        avg6: avg6Val,
+        history,
+        currentDU
     };
 };
 
-// --- COMPONENTES VISUAIS ---
 
-const HeroCard = ({ value, title, subtext, type, theme, isMobile }) => (
-    <div style={{ ...getStyles(isMobile).heroCard, background: `linear-gradient(135deg, ${theme.main} 0%, ${theme.main}DD 100%)` }}>
-        <div style={{ position: 'absolute', top: '-40px', right: '-40px', opacity: 0.1, transform: 'rotate(15deg)' }}><theme.icon size={200} /></div>
-        <div style={{ position: 'relative', zIndex: 10 }}>
-            <p style={{ fontSize: isMobile ? '12px' : '14px', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '8px', color: '#e0f2fe' }}>{title}</p>
-            <h2 style={{ fontSize: isMobile ? '36px' : '48px', fontWeight: 'bold', margin: '0 0 16px 0' }}>{type === 'currency' ? formatCurrency(value) : formatNumber(value)}</h2>
-            {subtext && <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(255,255,255,0.2)', padding: '6px 16px', borderRadius: '999px', fontSize: isMobile ? '12px' : '14px' }}><Calendar size={14} />{subtext}</div>}
-        </div>
-    </div>
+// --- COMPONENTES UI ---
+
+const Card = ({ children, className = "" }) => (
+  <div className={`bg-white rounded-2xl shadow-[0_2px_10px_-3px_rgba(0,51,102,0.1)] border border-slate-100 transition-all duration-300 ${className}`}>
+    {children}
+  </div>
 );
 
-const ComparisonCard = ({ title, comparisonValue, currentValue, type, theme, daysWorked, isMobile }) => {
-    const isPositive = currentValue >= comparisonValue;
-    const diff = comparisonValue > 0 ? ((currentValue - comparisonValue) / comparisonValue) * 100 : 0;
-    return (
-        <div style={{ ...getStyles(isMobile).card, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', backgroundColor: theme.main }}></div>
-            <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <p style={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>{title}</p>
-                    <div title={`Comparativo Mesmo Período: Dados referentes ao Dia Útil ${daysWorked} de cada mês.`} style={{ cursor: 'help' }}><Info size={16} color="#60a5fa" /></div>
-                </div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#334155', marginTop: '4px' }}>{type === 'currency' ? formatCurrency(comparisonValue) : formatNumber(comparisonValue)}</div>
-                <span style={{ fontSize: '12px', color: '#94a3b8' }}>Referência Histórica</span>
-            </div>
-            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', color: isPositive ? '#16a34a' : '#ef4444' }}>
-                {isPositive ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
-                <span>{Math.abs(diff).toFixed(1)}%</span><span style={{ color: '#94a3b8', fontWeight: 'normal', fontSize: '12px' }}>vs atual</span>
-            </div>
-        </div>
-    );
-};
-
-const AnalyticalTable = ({ productName, data, dates, daysWorked, type, theme, isMobile }) => {
-    const productData = data.products[productName] || [];
-    const formatter = type === 'currency' ? formatCurrency : formatNumber;
-    const isContencao = productName === 'CONTENÇÃO';
+const MetricCard = ({ title, value, type = "currency", comparison, icon: Icon, subtext }) => {
+    const isPositive = comparison >= 0;
+    const format = type === 'currency' ? formatCurrency : formatNumber;
     
-    const tableData = dates.map(date => {
-        const items = productData.filter(d => d.data === date);
-        const totalVal = items.reduce((acc, curr) => acc + curr.valor, 0);
-        const tkm = daysWorked > 0 ? totalVal / daysWorked : 0;
-        return { date: formatMonth(date), totalVal, tkm, rawDate: date };
-    }).reverse();
-
     return (
-        <div style={{ ...getStyles(isMobile).card, padding: 0, marginTop: '32px', overflow: 'hidden' }}>
-            <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#334155', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Table size={16} style={{ color: theme.main }}/> Visão Analítica - Evolução Dia Útil {daysWorked}
-                </h3>
+        <Card className="p-6 relative overflow-hidden group hover:shadow-lg">
+             <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                {Icon && <Icon size={80} color="#003366" />}
             </div>
-            <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
-                    <thead>
-                        <tr style={{ backgroundColor: '#f8fafc', color: '#64748b', fontSize: '12px', textTransform: 'uppercase' }}>
-                            <th style={{ padding: '16px', fontWeight: '600' }}>Mês</th>
-                            <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600' }}>Resultado ({type === 'currency' ? 'R$' : 'Qtd'})</th>
-                            {!isContencao && <th style={{ padding: '16px', textAlign: 'right', fontWeight: '600', color: '#64748b' }}>TKM D.U. (R$)</th>}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {tableData.map((row, index) => (
-                            <tr key={row.rawDate} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: index === 0 ? '#eff6ff' : 'white' }}>
-                                <td style={{ padding: '16px', fontWeight: '500', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>{row.date} {index === 0 && <span style={{ backgroundColor: '#dbeafe', color: '#1d4ed8', fontSize: '10px', padding: '2px 8px', borderRadius: '999px', fontWeight: 'bold' }}>ATUAL</span>}</td>
-                                <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: index === 0 ? theme.main : '#334155' }}>{formatter(row.totalVal)}</td>
-                                {!isContencao && <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: '#64748b' }}>{formatCurrency(row.tkm)}</td>}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            <div className="flex justify-between items-start mb-4">
+                <div>
+                    <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
+                    <h3 className="text-2xl md:text-3xl font-bold text-[#003366]">{format(value)}</h3>
+                </div>
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${isPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                    {comparison !== null && (
+                        <>
+                            {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                            {Math.abs(comparison).toFixed(1)}%
+                        </>
+                    )}
+                </div>
             </div>
-        </div>
+            {subtext && <p className="text-xs text-slate-400 border-t border-slate-100 pt-3 mt-2">{subtext}</p>}
+        </Card>
     );
 };
 
-const ProductExecutiveView = ({ productName, data, dates, daysWorked, totalDays, theme, isMobile, onNextTab, nextTabName }) => {
-    const metricType = productName !== 'CONTENÇÃO' ? 'currency' : 'number';
-    const comps = calculateComparatives(productName, data, dates);
-    const styles = getStyles(isMobile);
+const AnalyticalTable = ({ history, currentDU, type }) => {
+    const format = type === 'currency' ? formatCurrency : formatNumber;
+    
+    return (
+      <div className="mt-8 animate-fade-in">
+        <div className="flex items-center gap-2 mb-4">
+          <Database size={20} className="text-[#003366]" />
+          <h3 className="text-lg font-bold text-slate-800">Visão Analítica - Evolução Dia Útil {currentDU}</h3>
+        </div>
+        
+        <Card className="overflow-hidden border-0 shadow-md">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/50 text-slate-500 text-xs uppercase tracking-wider">
+                  <th className="px-6 py-4 font-semibold">Referência</th>
+                  <th className="px-6 py-4 font-semibold text-right">Resultado (D.U. {currentDU})</th>
+                  <th className="px-6 py-4 font-semibold text-right">Fechamento Mês</th>
+                  <th className="px-6 py-4 font-semibold text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {history.map((row, index) => (
+                  <tr key={index} className={`hover:bg-slate-50 transition-colors ${row.isCurrent ? 'bg-blue-50/30' : ''}`}>
+                    <td className="px-6 py-4 font-medium text-slate-700 flex items-center gap-2">
+                      <Calendar size={14} className="text-slate-400"/>
+                      {row.label}
+                      {row.isCurrent && <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">ATUAL</span>}
+                    </td>
+                    <td className="px-6 py-4 text-right font-bold text-[#003366]">
+                      {format(row.valueAtDU)}
+                    </td>
+                    <td className="px-6 py-4 text-right text-slate-500">
+                      {row.isCurrent ? <span className="text-xs italic text-slate-400">Em andamento</span> : format(row.value)}
+                    </td>
+                     <td className="px-6 py-4 text-center">
+                         {row.isCurrent ? (
+                             <Activity size={16} className="mx-auto text-blue-500 animate-pulse" />
+                         ) : (
+                             <div className="w-2 h-2 rounded-full bg-slate-300 mx-auto"></div>
+                         )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+    );
+};
+
+// --- TELA PRINCIPAL DO PRODUTO ---
+const ProductDashboard = ({ category, data, isMobile, onNext, nextName }) => {
+    const kpis = useMemo(() => calculateKPIs(data, category), [data, category]);
+    const isContencao = category === 'CONTENÇÃO';
+    const type = isContencao ? 'number' : 'currency';
+    
+    // Cálculos de variação
+    const varPrev = kpis.prev > 0 ? ((kpis.current - kpis.prev) / kpis.prev) * 100 : 0;
+    const varAvg3 = kpis.avg3 > 0 ? ((kpis.current - kpis.avg3) / kpis.avg3) * 100 : 0;
 
     return (
-        <div style={{ maxWidth: '1024px', margin: '0 auto', animation: 'fadeIn 0.5s ease-in' }}>
-            <HeroCard title={`Realizado Mês Atual (Dia Útil ${daysWorked})`} value={comps.current} subtext={`Ref: ${formatMonth(comps.dates.current)}`} type={metricType} theme={theme} isMobile={isMobile} />
-            <div style={getStyles(isMobile).grid3}>
-                <ComparisonCard title="vs Mês Anterior" comparisonValue={comps.prev} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
-                <ComparisonCard title="vs Média 3 Meses" comparisonValue={comps.avg3} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
-                <ComparisonCard title="vs Média 6 Meses" comparisonValue={comps.avg6} currentValue={comps.current} type={metricType} theme={theme} daysWorked={daysWorked} isMobile={isMobile} />
+        <div className="max-w-6xl mx-auto pb-20 md:pb-0">
+            {/* Header Hero */}
+            <div className="bg-gradient-to-r from-[#003366] to-[#004990] rounded-3xl p-6 md:p-10 text-white mb-8 shadow-xl relative overflow-hidden">
+                <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-2 opacity-80">
+                         {category === 'CASH' && <Wallet size={20}/>}
+                         {category === 'RENEGOCIAÇÃO' && <Handshake size={20}/>}
+                         {category === 'ENTREGA AMIGÁVEL' && <Car size={20}/>}
+                         {category === 'CONSOLIDADO' && <Layers size={20}/>}
+                        <span className="text-sm font-semibold tracking-widest uppercase">{category}</span>
+                    </div>
+                    <h1 className="text-4xl md:text-5xl font-bold mb-2">{type === 'currency' ? formatCurrency(kpis.current) : formatNumber(kpis.current)}</h1>
+                    <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm">
+                        <Clock size={14} />
+                        <span>Acumulado até o {kpis.currentDU}º Dia Útil</span>
+                    </div>
+                </div>
+                {/* Decorative Pattern */}
+                <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-white/5 skew-x-12 transform translate-x-10"></div>
+                <div className="absolute -right-10 -bottom-20 opacity-10">
+                    <PieChart size={300} />
+                </div>
             </div>
-            <AnalyticalTable productName={productName} data={data} dates={dates} daysWorked={daysWorked} type={metricType} theme={theme} isMobile={isMobile} />
+
+            {/* Grid de KPIs */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <MetricCard 
+                    title="vs. Mês Anterior" 
+                    value={kpis.prev} 
+                    comparison={varPrev} 
+                    type={type}
+                    icon={Calendar}
+                    subtext="Comparativo no mesmo Dia Útil"
+                />
+                <MetricCard 
+                    title="Média Trimestral" 
+                    value={kpis.avg3} 
+                    comparison={varAvg3} 
+                    type={type}
+                    icon={Activity}
+                    subtext="Tendência curto prazo"
+                />
+                 <MetricCard 
+                    title="Média Semestral" 
+                    value={kpis.avg6} 
+                    comparison={((kpis.current - kpis.avg6)/kpis.avg6)*100} 
+                    type={type}
+                    icon={TrendingUp}
+                    subtext="Tendência longo prazo"
+                />
+            </div>
+
+            <AnalyticalTable history={kpis.history} currentDU={kpis.currentDU} type={type} />
             
-            {/* Navegação Mobile no final da página */}
-            {isMobile && nextTabName && (
-                <button onClick={onNextTab} style={getStyles(isMobile).navButton}>
-                    Próximo: {nextTabName} <ArrowRight size={16} />
+            {/* Nav Mobile Bottom */}
+            {isMobile && nextName && (
+                <button onClick={onNext} className="w-full mt-8 bg-white border border-slate-200 text-[#003366] p-4 rounded-xl font-bold flex items-center justify-between shadow-sm">
+                    <span>Próximo: {nextName}</span>
+                    <ArrowRight size={20} />
                 </button>
             )}
         </div>
     );
 };
 
-const FileUploader = ({ onDataSaved, isMobile, isPreviewMode, onEnterHomologMode }) => {
+// --- UPLOADER (GESTÃO) ---
+const FileUploader = ({ onDataSaved, isMobile, isHomolog }) => {
     const [status, setStatus] = useState('idle');
-    const fileRef = useRef(null);
-    const auth = getAuth();
+    const [manualDU, setManualDU] = useState('1'); // Estado para o input manual
     const db = getFirestore();
-    const styles = getStyles(isMobile);
+    const auth = getAuth();
 
-    const handleProcess = async (file, mode) => {
+    const handleFile = async (e, mode) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validar DU
+        if (!manualDU || parseInt(manualDU) < 1) {
+            alert("Por favor, informe o Dia Útil atual (DU) antes de carregar.");
+            e.target.value = null; // Reset input
+            return;
+        }
+        
         setStatus('processing');
-        try {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const processed = parseCustomCSV(e.target.result);
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            const text = evt.target.result;
+            // Passamos o manualDU para a função de processamento
+            const processed = parseStructuredCSV(text, manualDU);
+            
+            if (!processed || processed.rawData.length === 0) {
+                alert("Erro: CSV inválido ou vazio. Verifique se o separador é ponto-e-vírgula (;).");
+                setStatus('idle');
+                return;
+            }
+
+            if (mode === 'cloud' && !isHomolog) {
+                const user = auth.currentUser;
+                if (!user) { alert("Erro de autenticação"); return; }
                 
-                if (mode === 'cloud') {
-                    if (!auth.currentUser) await signInAnonymously(auth);
-                    const docRef = doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'latest');
-                    await setDoc(docRef, { ...processed, updatedAt: new Date().toISOString() });
-                    onDataSaved(processed);
-                    setStatus('success-cloud');
-                } else {
-                    onDataSaved(processed);
-                    setStatus('success-local');
+                try {
+                     const docRef = doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'v2_latest');
+                     await setDoc(docRef, { ...processed, updatedAt: new Date().toISOString() });
+                     onDataSaved(processed);
+                     setStatus('success-cloud');
+                } catch(err) {
+                    console.error(err);
+                    alert("Erro ao salvar no Firebase.");
+                    setStatus('idle');
                 }
-                
-                setTimeout(() => setStatus('idle'), 3000);
-            };
-            reader.readAsText(file, 'UTF-8');
-        } catch (e) { console.error(e); setStatus('idle'); alert('Erro ao processar'); }
+            } else {
+                onDataSaved(processed);
+                setStatus('success-local');
+            }
+            setTimeout(() => setStatus('idle'), 3000);
+        };
+        reader.readAsText(file, 'UTF-8'); 
     };
 
     return (
-        <div style={{ ...styles.card, textAlign: 'center', maxWidth: '600px', margin: '40px auto' }}>
-            <div style={{ width: '80px', height: '80px', backgroundColor: isPreviewMode ? '#f0fdf4' : '#eff6ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px auto' }}>
-                {isPreviewMode ? <RefreshCw size={40} color="#16a34a" /> : <CloudLightning size={40} color="#004990" />}
-            </div>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>
-                {isPreviewMode ? 'Simulador Local (Homolog)' : 'Central de Dados'}
-            </h2>
-            <p style={{ color: '#64748b', marginBottom: '32px' }}>
-                {isPreviewMode ? 'Carregue um arquivo para testar visualmente nesta sessão.' : 'Gerencie a atualização dos indicadores.'}
-            </p>
-            <input type="file" ref={fileRef} onChange={(e) => handleProcess(e.target.files[0], 'cloud')} accept=".csv,.txt" style={{ display: 'none' }} />
-            
-            <input type="file" id="localUpload" onChange={(e) => handleProcess(e.target.files[0], 'local')} accept=".csv,.txt" style={{ display: 'none' }} />
-
-            <div style={{ display: 'flex', gap: '16px', flexDirection: isMobile ? 'column' : 'row' }}>
-                <button 
-                    onClick={() => document.getElementById('localUpload').click()}
-                    style={{ ...styles.button, backgroundColor: 'white', color: '#004990', border: '2px solid #004990', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                >
-                    <Eye size={20} /> Simular Visualização (Local)
-                </button>
+        <div className="max-w-2xl mx-auto pt-10 text-center">
+            <Card className="p-10">
+                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <CloudLightning size={40} className="text-[#003366]" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">Central de Dados OCL</h2>
+                <p className="text-slate-500 mb-8">Importe o arquivo CSV e defina o dia útil de referência.</p>
                 
-                <button 
-                    onClick={() => fileRef.current.click()}
-                    disabled={isPreviewMode}
-                    style={{ ...styles.button, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: isPreviewMode ? 0.5 : 1, cursor: isPreviewMode ? 'not-allowed' : 'pointer' }}
-                >
-                    <Cloud size={20} /> Publicar na Nuvem (Cloud)
-                </button>
-            </div>
+                {/* SETOR DE CONFIGURAÇÃO DO DIA ÚTIL */}
+                <div className="mb-8 p-4 bg-slate-50 rounded-xl border border-slate-200 inline-block text-left w-full md:w-auto">
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                        <Settings size={14} className="inline mr-1"/> Defina o Dia Útil (D.U.) Atual
+                    </label>
+                    <div className="flex gap-2">
+                        <input 
+                            type="number" 
+                            min="1" 
+                            max="31"
+                            value={manualDU}
+                            onChange={(e) => setManualDU(e.target.value)}
+                            className="p-3 w-24 border border-slate-300 rounded-lg text-center font-bold text-[#003366] focus:outline-none focus:border-[#003366]"
+                        />
+                        <div className="text-xs text-slate-400 max-w-[200px] flex items-center leading-tight">
+                            Este valor será usado para calcular os comparativos de todos os meses anteriores.
+                        </div>
+                    </div>
+                </div>
 
-            {status === 'processing' && <p style={{ marginTop: '16px', color: '#2563eb', fontWeight: 'bold' }}>Processando...</p>}
-            {status === 'success-cloud' && <p style={{ marginTop: '16px', color: '#16a34a', fontWeight: 'bold' }}>Sucesso! Dados publicados na nuvem.</p>}
-            {status === 'success-local' && <p style={{ marginTop: '16px', color: '#004990', fontWeight: 'bold' }}>Sucesso! Visualização local carregada.</p>}
-            {isPreviewMode && <p style={{ marginTop: '16px', fontSize: '12px', color: '#f59e0b' }}>* Publicação na nuvem indisponível no modo teste.</p>}
+                <div className="flex flex-col md:flex-row gap-4 justify-center">
+                    <label className="cursor-pointer bg-[#003366] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#002244] transition flex items-center justify-center gap-2">
+                        <Cloud size={20} />
+                        Publicar na Nuvem (Oficial)
+                        <input type="file" className="hidden" accept=".csv" onChange={(e) => handleFile(e, 'cloud')} disabled={isHomolog} />
+                    </label>
+                    
+                    <label className="cursor-pointer bg-white border-2 border-[#003366] text-[#003366] px-6 py-3 rounded-xl font-bold hover:bg-blue-50 transition flex items-center justify-center gap-2">
+                        <Eye size={20} />
+                        Simular Visualização (Local)
+                        <input type="file" className="hidden" accept=".csv" onChange={(e) => handleFile(e, 'local')} />
+                    </label>
+                </div>
+                
+                {status === 'processing' && <p className="mt-4 text-blue-600 font-bold animate-pulse">Processando e Calculando...</p>}
+                {status === 'success-cloud' && <p className="mt-4 text-green-600 font-bold">Dados atualizados com o corte no D.U. {manualDU}!</p>}
+                {status === 'success-local' && <p className="mt-4 text-[#003366] font-bold">Simulação local: D.U. {manualDU} aplicado.</p>}
+            </Card>
         </div>
     );
 };
 
-// --- COMPONENTE DE LOGIN ---
-const LoginScreen = ({ onLoginSuccess, onEnterHomologMode, isMobile }) => {
-  const [activeTab, setActiveTab] = useState('prod'); 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const styles = getStyles(isMobile);
+// --- LOGIN SCREEN ---
+const LoginScreen = ({ onLogin, onHomolog }) => {
+    const [email, setEmail] = useState('');
+    const [pass, setPass] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [mode, setMode] = useState('prod');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    if (activeTab === 'homolog') {
-        if (email === "admin@avocati.adv.br" && password === "abc@123") {
-            try {
-                const auth = getAuth();
-                await signInAnonymously(auth).catch(() => {}); 
-                onEnterHomologMode();
-            } catch (err) {
-                onEnterHomologMode();
+    const handleLogin = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        if (mode === 'homolog') {
+            if (email === "admin@avocati.adv.br" && pass === "abc@123") {
+                onHomolog();
+            } else {
+                alert("Credenciais inválidas");
+                setLoading(false);
             }
         } else {
-            setError('Credenciais de Homologação inválidas.');
-            setLoading(false);
+            const auth = getAuth();
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+                onLogin();
+            } catch (err) {
+                alert("Erro de login: " + err.message);
+                setLoading(false);
+            }
         }
-        return;
-    }
+    };
 
-    try {
-      const auth = getAuth();
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (err) {
-      console.error(err);
-      setError('Acesso negado. Verifique suas credenciais.');
-      setLoading(false);
-    }
-  };
+    return (
+        <div className="min-h-screen bg-[#F1F5F9] flex items-center justify-center p-4">
+            <div className="bg-white p-8 md:p-12 rounded-3xl shadow-2xl w-full max-w-md text-center">
+                <img src={LOGO_DARK_URL} alt="OCL" className="h-16 mx-auto mb-8 object-contain" />
+                
+                <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
+                    <button onClick={() => setMode('prod')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${mode === 'prod' ? 'bg-white shadow text-[#003366]' : 'text-slate-400'}`}>Oficial</button>
+                    <button onClick={() => setMode('homolog')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${mode === 'homolog' ? 'bg-white shadow text-amber-600' : 'text-slate-400'}`}>Teste</button>
+                </div>
 
-  return (
-    <div style={styles.loginContainer}>
-      <div style={styles.loginCard}>
-        <div style={styles.logoContainer}>
-            <img src={LOGO_DARK_URL} alt="OCL" style={styles.logoImage} />
+                <form onSubmit={handleLogin} className="space-y-4 text-left">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">E-mail</label>
+                        <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#003366]" placeholder="usuario@ocl.adv.br" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Senha</label>
+                        <input type="password" required value={pass} onChange={e => setPass(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#003366]" placeholder="••••••••" />
+                    </div>
+                    <button type="submit" className={`w-full py-4 rounded-xl font-bold text-white transition-all transform hover:scale-[1.02] ${mode === 'homolog' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[#003366] hover:bg-[#002244]'}`}>
+                        {loading ? <Loader2 className="animate-spin mx-auto"/> : (mode === 'homolog' ? 'Acessar Homologação' : 'Entrar')}
+                    </button>
+                </form>
+                <p className="mt-8 text-xs text-slate-400">© 2025 OCL Advogados Associados</p>
+            </div>
         </div>
-        
-        <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '24px' }}>
-            <button onClick={() => setActiveTab('prod')} style={activeTab === 'prod' ? styles.tabButtonActive : styles.tabButtonInactive}>Área Oficial</button>
-            <button onClick={() => setActiveTab('homolog')} style={activeTab === 'homolog' ? styles.tabButtonActive : styles.tabButtonInactive}>Área de Testes</button>
-        </div>
-
-        <p style={{ color: '#64748b', marginBottom: '24px', fontSize: '14px' }}>
-            {activeTab === 'prod' ? 'Acesso restrito a Gestão.' : 'Ambiente de Homologação e Testes.'}
-        </p>
-        
-        <form onSubmit={handleSubmit}>
-          <div style={{ textAlign: 'left', marginBottom: '16px' }}>
-            <label style={{ fontSize: '14px', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '4px' }}>E-mail</label>
-            <input type="email" required style={styles.input} placeholder="seu.email@dominio.com.br" value={email} onChange={(e) => setEmail(e.target.value)}/>
-          </div>
-          <div style={{ textAlign: 'left', marginBottom: '24px' }}>
-            <label style={{ fontSize: '14px', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '4px' }}>Senha</label>
-            <input type="password" required style={styles.input} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}/>
-          </div>
-          {error && <p style={{ color: '#ef4444', fontSize: '14px', marginBottom: '16px' }}>{error}</p>}
-          <button type="submit" style={{ ...styles.button, backgroundColor: activeTab === 'homolog' ? '#f59e0b' : '#004990' }} disabled={loading}>
-            {loading ? <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto' }} /> : (activeTab === 'homolog' ? 'Acessar Homologação' : 'Entrar no Sistema')}
-          </button>
-        </form>
-        <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '24px' }}>© 1996 OCL Advogados Associados</p>
-      </div>
-    </div>
-  );
+    );
 };
 
+// --- APP MAIN ---
 const App = () => {
-  const [user, setUser] = useState(null);
-  const [authChecking, setAuthChecking] = useState(true);
-  const [activeTab, setActiveTab] = useState('CONSOLIDADO');
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const isMobile = useIsMobile();
-  const styles = getStyles(isMobile, sidebarOpen);
-  const currentTheme = COLORS.themes[activeTab] || COLORS.themes['CASH'];
-  const [isHomologMode, setIsHomologMode] = useState(false); 
+    const [user, setUser] = useState(null);
+    const [data, setData] = useState(null);
+    const [activeTab, setActiveTab] = useState('CONSOLIDADO');
+    const [isSidebarOpen, setSidebarOpen] = useState(true);
+    const [isHomolog, setIsHomolog] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const isMobile = useIsMobile();
 
-  useEffect(() => {
-    // IMPORTANTE: Esta inicialização com MOCK DATA é o que previne a TELA BRANCA no login.
-    // O sistema "nasce" com dados, mesmo que zerados, e atualiza assim que o Firebase conecta.
-    const mockDataFallback = parseCustomCSV(INITIAL_CSV_DATA);
-    setData(mockDataFallback); 
-    
-    const initApp = async () => {
-      try {
+    // Menu Definition
+    const MENU = [
+        { id: 'CONSOLIDADO', label: 'Visão Geral', icon: LayoutDashboard },
+        { id: 'CASH', label: 'Cash (Recuperação)', icon: Wallet },
+        { id: 'RENEGOCIAÇÃO', label: 'Renegociação', icon: Handshake },
+        { id: 'ENTREGA AMIGÁVEL', label: 'Entrega Amigável', icon: Car },
+        { id: 'APREENSÃO', label: 'Apreensão', icon: Gavel },
+        { id: 'RETOMADAS', label: 'Retomadas', icon: FileText },
+        { id: 'CONTENÇÃO', label: 'Contenção de Risco', icon: ShieldAlert, spacing: true },
+        { id: 'gestao', label: 'Gestão de Dados', icon: Database, spacing: true },
+    ];
+
+    useEffect(() => {
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-          setUser(currentUser);
-          setAuthChecking(false);
-          
-          if (currentUser) {
-            if (currentUser.isAnonymous) {
-                setIsHomologMode(true);
-                setData(mockDataFallback); 
-                setLoading(false);
-            } else {
-                setIsHomologMode(false);
-                const db = getFirestore(app);
-                const docRef = doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'latest');
-                onSnapshot(docRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        setData(docSnap.data());
-                    } else {
-                        setData(mockDataFallback);
-                    }
+        const db = getFirestore(app);
+
+        const unsub = onAuthStateChanged(auth, (u) => {
+            if (u) {
+                setUser(u);
+                if (u.isAnonymous) {
+                    setIsHomolog(true);
                     setLoading(false);
-                }, (error) => { 
-                    console.error("Erro dados:", error);
-                    // Em caso de erro, mantém o mock data que já foi setado, evitando tela branca
-                    setLoading(false); 
-                });
+                } else {
+                    // Load Data from Firestore (v2 path)
+                    onSnapshot(doc(db, 'artifacts', 'ocl-dashboard', 'public', 'data', 'dashboards', 'v2_latest'), (snap) => {
+                        if (snap.exists()) setData(snap.data());
+                        setLoading(false);
+                    });
+                }
+            } else {
+                setUser(null);
+                setLoading(false);
             }
-          } else {
-             setLoading(false);
-          }
         });
-        return () => unsubscribeAuth();
-      } catch (e) { 
-          console.error("Erro init:", e); 
-          setLoading(false);
-          setAuthChecking(false); 
-      }
+        return () => unsub();
+    }, []);
+
+    const handleLogout = () => {
+        const auth = getAuth();
+        signOut(auth);
+        setIsHomolog(false);
+        setData(null);
     };
-    initApp();
-  }, []);
 
-  const handleLogout = async () => { 
-      const auth = getAuth(); 
-      await signOut(auth); 
-      setIsHomologMode(false);
-      // Não limpamos setData aqui para evitar flash de tela branca na saída, se quiser
-  };
+    // Navigation Helpers
+    const currentIndex = MENU.findIndex(m => m.id === activeTab);
+    const nextTab = currentIndex < MENU.length - 1 && MENU[currentIndex + 1].id !== 'gestao' ? MENU[currentIndex + 1] : null;
+    const prevTab = currentIndex > 0 ? MENU[currentIndex - 1] : null;
 
-  const menu = [
-    { id: 'CONSOLIDADO', label: 'Resultados Consolidados', icon: Layers, spacing: true },
-    { id: 'CASH', label: 'Cash (Recuperação)', icon: Wallet },
-    { id: 'RENEGOCIAÇÃO', label: 'Renegociação', icon: Handshake },
-    { id: 'ENTREGA AMIGÁVEL', label: 'Entrega Amigável', icon: Car },
-    { id: 'APREENSÃO', label: 'Apreensão', icon: Gavel },
-    { id: 'RETOMADAS', label: 'Retomadas', icon: FileText },
-    { id: 'CONTENÇÃO', label: 'Contenção de Rolagem', icon: ShieldAlert, spacing: true },
-    { id: 'gestao', label: 'Gestão de Dados', icon: Upload, spacing: true },
-  ];
+    if (loading) return <div className="h-screen flex items-center justify-center bg-[#F1F5F9]"><Loader2 size={40} className="text-[#003366] animate-spin"/></div>;
+    
+    if (!user && !isHomolog) return <LoginScreen onLogin={() => {}} onHomolog={() => { setIsHomolog(true); setLoading(false); }} />;
 
-  const handleNextTab = () => {
-      const currentIndex = menu.findIndex(item => item.id === activeTab);
-      if (currentIndex < menu.length - 2) { 
-          const nextTab = menu[currentIndex + 1];
-          setActiveTab(nextTab.id);
-          window.scrollTo(0,0);
-      }
-  };
-  const currentMenuIndex = menu.findIndex(item => item.id === activeTab);
-  const nextTabName = (currentMenuIndex < menu.length - 2) ? menu[currentMenuIndex + 1].label : null;
-
-  const handlePrevTab = () => {
-      const currentIndex = menu.findIndex(item => item.id === activeTab);
-      if (currentIndex > 0) {
-          const prevTab = menu[currentIndex - 1];
-          setActiveTab(prevTab.id);
-          window.scrollTo(0,0);
-      }
-  };
-  const prevTabName = (currentMenuIndex > 0) ? menu[currentMenuIndex - 1].label : null;
-
-  if (authChecking) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9' }}><Loader2 size={40} color="#004990" className="animate-spin" /></div>;
-  
-  if (!user && !isHomologMode) return <LoginScreen isMobile={isMobile} onEnterHomologMode={() => { setIsHomologMode(true); setData(parseCustomCSV(INITIAL_CSV_DATA)); }} />;
-
-  // Loading removido visualmente se já tiver dados (mesmo que mock), para evitar tela branca
-  if (loading && !data) return <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#004990' }}><Loader2 size={40} className="animate-spin" /><p style={{ marginTop: '16px' }}>Carregando dados...</p></div>;
-
-  return (
-    <div style={styles.container}>
-      <div style={styles.overlay} onClick={() => setSidebarOpen(false)} />
-      <aside style={styles.sidebar}>
-        <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', position: 'relative' }}>
-            {sidebarOpen ? <div style={styles.flexCenter}><img src={LOGO_LIGHT_URL} alt="OCL" style={styles.logoImage} /></div> : <img src={LOGO_LIGHT_URL} alt="OCL" style={{ maxWidth: '40px', maxHeight: '40px' }} />}
-            {isMobile && sidebarOpen && <button onClick={() => setSidebarOpen(false)} style={{ position: 'absolute', right: '10px', top: '10px', background: 'none', border: 'none', color: 'white' }}><X size={24} /></button>}
-        </div>
-        <nav style={{ flex: 1, padding: '16px', overflowY: 'auto' }}>
-            {menu.map((item) => (
-                <button key={item.id} onClick={() => { setActiveTab(item.id); if(isMobile) setSidebarOpen(false); }} style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '14px 16px', borderRadius: '12px', border: 'none', background: activeTab === item.id ? 'white' : 'transparent', color: activeTab === item.id ? '#004990' : '#bfdbfe', cursor: 'pointer', marginBottom: '8px', transition: 'all 0.2s', marginTop: item.spacing ? '24px' : '0' }}>
-                    <item.icon size={20} style={{ minWidth: '20px' }} />
-                    {sidebarOpen && <span style={{ marginLeft: '12px', fontWeight: '500' }}>{item.label}</span>}
-                </button>
-            ))}
-        </nav>
-        <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-            <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '12px', borderRadius: '8px', border: 'none', backgroundColor: 'rgba(0,0,0,0.2)', color: '#bfdbfe', cursor: 'pointer', fontSize: '14px' }}>
-                <Lock size={16} />
-                {sidebarOpen && <span style={{ marginLeft: '12px' }}>Sair do Sistema</span>}
-            </button>
-            {isHomologMode && sidebarOpen && <div style={{ fontSize: '10px', color: '#fbbf24', textAlign: 'center', marginTop: '8px' }}>Modo Homologação</div>}
-        </div>
-      </aside>
-      <main style={styles.main}>
-        <header style={styles.header}>
-            <div style={styles.flexCenter}>
-                <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ padding: '8px', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', cursor: 'pointer', marginRight: '16px' }}><Menu size={20} color="#475569" /></button>
-                {!isMobile && <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTheme.main, marginRight: '12px' }}><currentTheme.icon size={24} /></div>}
-                <h1 style={{ fontSize: isMobile ? '18px' : '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{menu.find(i => i.id === activeTab)?.label}</h1>
-            </div>
-            
-            {/* Navegação Mobile */}
-            {isMobile && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <button onClick={handlePrevTab} disabled={!prevTabName} style={{ ...getStyles(isMobile).navButton, opacity: !prevTabName ? 0.3 : 1 }}><ChevronLeft size={20} /></button>
-                    <button onClick={handleNextTab} disabled={!nextTabName} style={{ ...getStyles(isMobile).navButton, opacity: !nextTabName ? 0.3 : 1 }}><ChevronRight size={20} /></button>
+    return (
+        <div className="flex h-screen bg-[#F1F5F9] font-sans text-slate-800 overflow-hidden">
+             {/* Sidebar Desktop */}
+            <aside className={`fixed inset-y-0 left-0 z-50 bg-gradient-to-b from-[#003366] to-[#001a33] text-white transition-all duration-300 shadow-2xl flex flex-col ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobile ? (isSidebarOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}>
+                <div className="p-6 flex items-center justify-center h-24 border-b border-white/10 relative">
+                    {isSidebarOpen ? <img src={LOGO_LIGHT_URL} alt="OCL" className="h-10 object-contain"/> : <img src={LOGO_LIGHT_URL} className="h-8"/>}
+                    {isMobile && <button onClick={() => setSidebarOpen(false)} className="absolute right-4 top-8 text-white/50"><X/></button>}
                 </div>
-            )}
 
-            {data && !isMobile && <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: '#64748b' }}><span style={styles.flexCenter}><Calendar size={14} style={{ marginRight: '4px' }}/> {data.dates && data.dates.length > 0 ? formatMonth(data.dates[data.dates.length -1]) : '-'}</span><span style={{ ...styles.flexCenter, backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', color: '#334155' }}><Clock size={14} style={{ marginRight: '4px' }}/> {data.daysWorked}/{data.totalDays}</span></div>}
-        </header>
-        <div style={styles.content}>
-            {activeTab === 'gestao' ? <FileUploader onDataSaved={setData} isMobile={isMobile} isPreviewMode={isHomologMode} onEnterHomologMode={() => { /* Apenas para garantir que o upload local funcione */ }} /> : <ProductExecutiveView productName={activeTab} data={data} dates={data.dates} daysWorked={data.daysWorked} totalDays={data.totalDays} theme={currentTheme} isMobile={isMobile} onNextTab={handleNextTab} nextTabName={nextTabName} />}
+                <nav className="flex-1 p-4 overflow-y-auto space-y-1">
+                    {MENU.map(item => (
+                        <button 
+                            key={item.id}
+                            onClick={() => { setActiveTab(item.id); if (isMobile) setSidebarOpen(false); }}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium ${item.spacing ? 'mt-8' : ''} ${activeTab === item.id ? 'bg-white text-[#003366] shadow-lg translate-x-1 font-bold' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
+                        >
+                            <item.icon size={20} />
+                            {isSidebarOpen && <span>{item.label}</span>}
+                        </button>
+                    ))}
+                </nav>
+
+                <div className="p-4 border-t border-white/10">
+                    <button onClick={handleLogout} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-colors ${!isSidebarOpen && 'justify-center'}`}>
+                        <LogOut size={20} />
+                        {isSidebarOpen && <span className="text-sm">Sair do Sistema</span>}
+                    </button>
+                    {isSidebarOpen && isHomolog && <div className="text-center text-[10px] text-amber-400 mt-2 font-mono">AMBIENTE DE TESTE</div>}
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className={`flex-1 flex flex-col transition-all duration-300 ${isMobile ? 'ml-0' : (isSidebarOpen ? 'ml-72' : 'ml-20')}`}>
+                {/* Header Mobile/Desktop */}
+                <header className="bg-white border-b border-slate-200 p-4 sticky top-0 z-40 flex justify-between items-center shadow-sm h-16">
+                     <div className="flex items-center gap-4">
+                        <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-600">
+                            <Menu size={20} />
+                        </button>
+                        <h2 className="font-bold text-[#003366] text-lg hidden md:block">{MENU.find(m => m.id === activeTab)?.label}</h2>
+                     </div>
+                     
+                     {/* Data Info */}
+                     <div className="flex items-center gap-3">
+                         {isMobile && (
+                             <div className="flex gap-1">
+                                 <button onClick={() => {if(prevTab) setActiveTab(prevTab.id)}} disabled={!prevTab} className="p-2 bg-slate-100 rounded-lg disabled:opacity-30"><ChevronLeft size={16}/></button>
+                                 <button onClick={() => {if(nextTab) setActiveTab(nextTab.id)}} disabled={!nextTab} className="p-2 bg-slate-100 rounded-lg disabled:opacity-30"><ChevronRight size={16}/></button>
+                             </div>
+                         )}
+                         {data && (
+                             <div className="bg-blue-50 text-[#003366] px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 border border-blue-100">
+                                 <Calendar size={14}/>
+                                 {data.currentDU}º Dia Útil
+                             </div>
+                         )}
+                     </div>
+                </header>
+
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 relative">
+                    {/* Overlay Mobile */}
+                    {isMobile && isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setSidebarOpen(false)}></div>}
+                    
+                    {activeTab === 'gestao' ? (
+                        <FileUploader onDataSaved={setData} isMobile={isMobile} isHomolog={isHomolog} />
+                    ) : (
+                        data ? (
+                            <ProductDashboard 
+                                category={activeTab} 
+                                data={data} 
+                                isMobile={isMobile} 
+                                onNext={() => { if(nextTab) { setActiveTab(nextTab.id); window.scrollTo(0,0); }}} 
+                                nextName={nextTab?.label}
+                            />
+                        ) : (
+                             <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                                 <Database size={64} className="mb-4 opacity-20"/>
+                                 <p>Nenhum dado carregado.</p>
+                                 <button onClick={() => setActiveTab('gestao')} className="mt-4 text-[#003366] font-bold hover:underline">Ir para Gestão de Dados</button>
+                             </div>
+                        )
+                    )}
+                </div>
+            </main>
         </div>
-      </main>
-    </div>
-  );
+    );
 };
 
 export default App;
