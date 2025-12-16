@@ -6,10 +6,10 @@ import {
   LayoutDashboard, Wallet, Handshake, Car, Gavel, Upload, FileText, TrendingUp, TrendingDown, 
   Calendar, Menu, Loader2, ShieldAlert, Table, Clock, Info, 
   Cloud, CloudLightning, X, Lock, Layers, RefreshCw, Eye, ArrowRight,
-  ChevronLeft, ChevronRight, Database, LogOut, DollarSign, PieChart, Activity, Minus, Settings, Trash2, CheckCircle, AlertTriangle
+  ChevronLeft, ChevronRight, Database, LogOut, DollarSign, PieChart, Activity, Minus, Settings, Trash2, CheckCircle, AlertTriangle, Users
 } from 'lucide-react';
 
-const SYSTEM_VERSION = "v5.0 - Session Security & Auto Logout";
+const SYSTEM_VERSION = "v5.3 - Agreement Column in Table";
 
 // --- CONFIGURAÇÃO DE AMBIENTE ---
 const GET_ENV = (key) => {
@@ -86,7 +86,7 @@ const parseStructuredCSV = (csvText, manualDU, totalDays) => {
 
     const uniqueDates = [...new Set(rawData.map(d => d.periodo))].sort();
     let finalDU = manualDU ? parseInt(manualDU) : 1; 
-    let finalTotalDays = totalDays ? parseInt(totalDays) : 22; // Default 22 se não informado
+    let finalTotalDays = totalDays ? parseInt(totalDays) : 22; 
 
     if (!manualDU) {
         const latestDate = uniqueDates[uniqueDates.length - 1];
@@ -97,9 +97,9 @@ const parseStructuredCSV = (csvText, manualDU, totalDays) => {
     return { rawData, dates: uniqueDates, currentDU: finalDU, totalBusinessDays: finalTotalDays };
 };
 
-// --- KPI CALCULATION (COM PROJEÇÃO) ---
+// --- KPI CALCULATION ---
 const calculateKPIs = (data, category) => {
-    if (!data || !data.rawData) return { current: 0, prev: 0, avg3: 0, avg6: 0, history: [] };
+    if (!data || !data.rawData) return { current: 0, count: 0, prev: 0, prevCount: 0, avg3: 0, avg3Count: 0, avg6: 0, avg6Count: 0, history: [] };
 
     const { rawData, dates, currentDU, totalBusinessDays } = data;
     const n = dates.length;
@@ -123,6 +123,10 @@ const calculateKPIs = (data, category) => {
         return item.ho; 
     };
 
+    const countUntilDU = (targetDate, limitDU) => {
+        return rawData.filter(d => d.periodo === targetDate && d.du <= limitDU && filterByCategory(d)).length;
+    };
+
     const sumUntilDU = (targetDate, limitDU) => {
         return rawData
             .filter(d => d.periodo === targetDate && d.du <= limitDU && filterByCategory(d))
@@ -135,14 +139,23 @@ const calculateKPIs = (data, category) => {
             .reduce((acc, curr) => acc + getValueToSum(curr), 0);
     };
 
+    // VALORES ATUAIS E ANTERIORES
     const currentVal = sumUntilDU(currentDate, currentDU);
+    const currentCount = countUntilDU(currentDate, currentDU);
+    
     const prevVal = sumUntilDU(prevDate, currentDU);
+    const prevCount = countUntilDU(prevDate, currentDU);
+
+    // MÉDIAS (VALOR E CONTAGEM)
     const last3 = dates.slice(Math.max(0, n - 4), n - 1);
     const last6 = dates.slice(Math.max(0, n - 7), n - 1);
-    const avg3Val = last3.reduce((acc, d) => acc + sumUntilDU(d, currentDU), 0) / (last3.length || 1);
-    const avg6Val = last6.reduce((acc, d) => acc + sumUntilDU(d, currentDU), 0) / (last6.length || 1);
 
-    // CÁLCULO DA PROJEÇÃO
+    const avg3Val = last3.reduce((acc, d) => acc + sumUntilDU(d, currentDU), 0) / (last3.length || 1);
+    const avg3Count = last3.reduce((acc, d) => acc + countUntilDU(d, currentDU), 0) / (last3.length || 1);
+
+    const avg6Val = last6.reduce((acc, d) => acc + sumUntilDU(d, currentDU), 0) / (last6.length || 1);
+    const avg6Count = last6.reduce((acc, d) => acc + countUntilDU(d, currentDU), 0) / (last6.length || 1);
+
     const calculateProjection = (accumulated, currentDay, totalDays) => {
         if (currentDay === 0) return 0;
         return (accumulated / currentDay) * totalDays;
@@ -151,22 +164,31 @@ const calculateKPIs = (data, category) => {
     const history = dates.map(d => {
         const isCurrent = d === currentDate;
         const totalMonthVal = sumTotalMonth(d);
-        
-        // Se for mês atual, usa projeção. Se for passado, usa valor real fechado.
-        const closingValue = isCurrent 
-            ? calculateProjection(currentVal, currentDU, totalBusinessDays || 22) 
-            : totalMonthVal;
+        const closingValue = isCurrent ? calculateProjection(currentVal, currentDU, totalBusinessDays || 22) : totalMonthVal;
 
         return {
             date: d,
             label: formatMonth(d),
             value: closingValue, 
             valueAtDU: sumUntilDU(d, currentDU),
+            countAtDU: countUntilDU(d, currentDU), // CONTAGEM HISTÓRICA NO MESMO DU
             isCurrent: isCurrent
         };
     }).reverse();
 
-    return { current: currentVal, prev: prevVal, avg3: avg3Val, avg6: avg6Val, history, currentDU, totalBusinessDays };
+    return { 
+        current: currentVal, 
+        count: currentCount, 
+        prev: prevVal, 
+        prevCount: prevCount,
+        avg3: avg3Val, 
+        avg3Count: avg3Count,
+        avg6: avg6Val, 
+        avg6Count: avg6Count,
+        history, 
+        currentDU, 
+        totalBusinessDays 
+    };
 };
 
 // --- COMPONENTES UI ---
@@ -188,7 +210,9 @@ const MetricCard = ({ title, value, type = "currency", comparison, icon: Icon, s
                 <h3 className="text-2xl md:text-3xl font-bold text-[#003366]">{format(value)}</h3>
             </div>
             <div className="flex justify-between items-end mt-4 pt-2 border-t border-slate-50/50">
-                <div className="text-xs text-slate-400 max-w-[60%]">{subtext || "Comparativo no período"}</div>
+                <div className="text-xs text-slate-400 font-medium max-w-[60%] flex items-center gap-1">
+                    <Users size={12} className="text-slate-300"/> {subtext}
+                </div>
                 <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${isPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                     {comparison !== null && (<>{isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />} {Math.abs(comparison).toFixed(1)}%</>)}
                 </div>
@@ -197,7 +221,7 @@ const MetricCard = ({ title, value, type = "currency", comparison, icon: Icon, s
     );
 };
 
-const AnalyticalTable = ({ history, currentDU, type }) => {
+const AnalyticalTable = ({ history, currentDU, type, category }) => {
     const format = type === 'currency' ? formatCurrency : formatNumber;
     return (
       <div className="mt-8 animate-fade-in">
@@ -211,7 +235,12 @@ const AnalyticalTable = ({ history, currentDU, type }) => {
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/50 text-slate-500 text-xs uppercase tracking-wider">
                   <th className="px-6 py-4 font-semibold whitespace-nowrap">Referência</th>
+                  {/* COLUNA EXTRA DE ACORDOS - EXCETO CONTENÇÃO */}
+                  {category !== 'CONTENÇÃO' && (
+                      <th className="px-6 py-4 font-semibold text-right whitespace-nowrap">Acordos (Qtd)</th>
+                  )}
                   <th className="px-6 py-4 font-semibold text-right whitespace-nowrap">Resultado (D.U. {currentDU})</th>
+                  <th className="px-6 py-4 font-semibold text-right whitespace-nowrap text-blue-600">Média Diária (Ticket)</th>
                   <th className="px-6 py-4 font-bold text-right whitespace-nowrap bg-slate-50/80">FECHAMENTO / PROJEÇÃO</th>
                 </tr>
               </thead>
@@ -221,7 +250,20 @@ const AnalyticalTable = ({ history, currentDU, type }) => {
                     <td className="px-6 py-4 font-medium text-slate-700 whitespace-nowrap flex items-center gap-2">
                       <Calendar size={14} className="text-slate-400"/> {row.label}
                     </td>
+                    
+                    {/* DADO EXTRA DE ACORDOS */}
+                    {category !== 'CONTENÇÃO' && (
+                        <td className="px-6 py-4 text-right text-slate-600 font-medium whitespace-nowrap">
+                            {row.countAtDU}
+                        </td>
+                    )}
+
                     <td className="px-6 py-4 text-right font-bold text-[#003366] whitespace-nowrap">{format(row.valueAtDU)}</td>
+                    
+                    <td className="px-6 py-4 text-right text-slate-600 whitespace-nowrap font-medium">
+                        {format(row.valueAtDU / currentDU)}
+                    </td>
+
                     <td className="px-6 py-4 text-right font-bold text-slate-700 whitespace-nowrap bg-slate-50/30">
                       {row.isCurrent ? (
                           <div className="flex flex-col items-end">
@@ -247,14 +289,12 @@ const ProductDashboard = ({ category, data, isMobile, onNext, nextName }) => {
     const varPrev = kpis.prev > 0 ? ((kpis.current - kpis.prev) / kpis.prev) * 100 : 0;
     const varAvg3 = kpis.avg3 > 0 ? ((kpis.current - kpis.avg3) / kpis.avg3) * 100 : 0;
 
-    // Cálculo da Projeção para o Header
     const projectionVal = (kpis.current / (kpis.currentDU || 1)) * (kpis.totalBusinessDays || 22);
 
     return (
         <div className="max-w-6xl mx-auto pb-20 md:pb-0">
             <div className="bg-gradient-to-r from-[#003366] to-[#004990] rounded-3xl p-6 md:p-10 text-white mb-8 shadow-xl relative overflow-hidden">
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-center md:items-end gap-6 text-center md:text-left">
-                    {/* LADO ESQUERDO: REALIZADO */}
                     <div className="flex-1 w-full md:w-auto">
                         <div className="flex items-center justify-center md:justify-start gap-2 mb-2 opacity-80">
                              {category === 'CASH' && <Wallet size={20}/>}
@@ -264,12 +304,17 @@ const ProductDashboard = ({ category, data, isMobile, onNext, nextName }) => {
                             <span className="text-sm font-semibold tracking-widest uppercase">{category}</span>
                         </div>
                         <h1 className="text-4xl md:text-5xl font-bold mb-2">{type === 'currency' ? formatCurrency(kpis.current) : formatNumber(kpis.current)}</h1>
-                        <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm">
-                            <Clock size={14} /> <span>Acumulado até o {kpis.currentDU}º Dia Útil</span>
+                        
+                        <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+                            <div className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm">
+                                <Clock size={14} /> <span>Acumulado até o {kpis.currentDU}º Dia Útil</span>
+                            </div>
+                            <div className="inline-flex items-center justify-center gap-2 bg-black/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-xs font-medium text-white/90">
+                                <Users size={12} /> <span>{kpis.count} acordos</span>
+                            </div>
                         </div>
                     </div>
 
-                    {/* LADO DIREITO: PROJEÇÃO */}
                     <div className="text-center md:text-right bg-white/5 p-4 rounded-xl backdrop-blur-sm border border-white/10 w-full md:w-auto md:min-w-[200px]">
                         <p className="text-xs font-bold text-white/70 uppercase tracking-widest mb-1 flex items-center justify-center md:justify-end gap-2">
                             <TrendingUp size={14}/> Projeção (Est.)
@@ -282,11 +327,32 @@ const ProductDashboard = ({ category, data, isMobile, onNext, nextName }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <MetricCard title="vs. Mês Anterior" value={kpis.prev} comparison={varPrev} type={type} icon={Calendar} subtext="Comparativo no mesmo Dia Útil"/>
-                <MetricCard title="VS. MÉDIA TRIMESTRAL" value={kpis.avg3} comparison={varAvg3} type={type} icon={Activity} subtext="Tendência curto prazo"/>
-                 <MetricCard title="VS. MÉDIA SEMESTRAL" value={kpis.avg6} comparison={((kpis.current - kpis.avg6)/kpis.avg6)*100} type={type} icon={TrendingUp} subtext="Tendência longo prazo"/>
+                <MetricCard 
+                    title="vs. Mês Anterior" 
+                    value={kpis.prev} 
+                    comparison={varPrev} 
+                    type={type} 
+                    icon={Calendar} 
+                    subtext={`${Math.round(kpis.prevCount)} acordos`}
+                />
+                <MetricCard 
+                    title="VS. MÉDIA TRIMESTRAL" 
+                    value={kpis.avg3} 
+                    comparison={varAvg3} 
+                    type={type} 
+                    icon={Activity} 
+                    subtext={`Média: ${Math.round(kpis.avg3Count)} acordos`}
+                />
+                 <MetricCard 
+                    title="VS. MÉDIA SEMESTRAL" 
+                    value={kpis.avg6} 
+                    comparison={((kpis.current - kpis.avg6)/kpis.avg6)*100} 
+                    type={type} 
+                    icon={TrendingUp} 
+                    subtext={`Média: ${Math.round(kpis.avg6Count)} acordos`}
+                />
             </div>
-            <AnalyticalTable history={kpis.history} currentDU={kpis.currentDU} type={type} />
+            <AnalyticalTable history={kpis.history} currentDU={kpis.currentDU} type={type} category={category} />
             {isMobile && nextName && (
                 <button onClick={onNext} className="w-full mt-8 bg-white border border-slate-200 text-[#003366] p-4 rounded-xl font-bold flex items-center justify-between shadow-sm">
                     <span>Próximo: {nextName}</span> <ArrowRight size={20} />
@@ -471,7 +537,6 @@ const App = () => {
     useEffect(() => {
         const loadSupabase = async () => {
             if (window.supabase) { 
-                // Configurando storage como sessionStorage para forçar login ao fechar aba
                 setSupabase(window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
                     auth: { storage: window.sessionStorage }
                 })); 
@@ -481,7 +546,6 @@ const App = () => {
             script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
             script.onload = () => { 
                 if (window.supabase) {
-                    // Configurando storage como sessionStorage para forçar login ao fechar aba
                     setSupabase(window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
                         auth: { storage: window.sessionStorage }
                     }));
@@ -492,36 +556,17 @@ const App = () => {
         loadSupabase();
     }, []);
 
-    // AUTO-LOGOUT INACTIVITY TIMER
     useEffect(() => {
         if (!user || !supabase) return;
-
-        const INACTIVITY_LIMIT = 10 * 60 * 1000; // 10 minutos
+        const INACTIVITY_LIMIT = 10 * 60 * 1000;
         let timeout;
-
-        const handleLogoutTimer = () => {
-            // Se o timer estourar, desloga
-            console.log("Inatividade detectada. Deslogando...");
-            handleLogout();
-        };
-
-        const resetTimer = () => {
-            clearTimeout(timeout);
-            timeout = setTimeout(handleLogoutTimer, INACTIVITY_LIMIT);
-        };
-
-        // Eventos que resetam o timer
+        const handleLogoutTimer = () => { handleLogout(); };
+        const resetTimer = () => { clearTimeout(timeout); timeout = setTimeout(handleLogoutTimer, INACTIVITY_LIMIT); };
         const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
         events.forEach(event => document.addEventListener(event, resetTimer));
-
-        // Inicia o timer
         resetTimer();
-
-        return () => {
-            clearTimeout(timeout);
-            events.forEach(event => document.removeEventListener(event, resetTimer));
-        };
-    }, [user, supabase]); // Recria o listener se o usuário mudar
+        return () => { clearTimeout(timeout); events.forEach(event => document.removeEventListener(event, resetTimer)); };
+    }, [user, supabase]);
 
     useEffect(() => {
         if (!supabase) return;
@@ -537,13 +582,7 @@ const App = () => {
         return () => subscription.unsubscribe();
     }, [supabase]);
 
-    const handleLogout = async () => { 
-        if (supabase) await supabase.auth.signOut(); 
-        setIsHomolog(false); 
-        setData(null); 
-        setUser(null); // Força limpeza imediata do estado
-    };
-    
+    const handleLogout = async () => { if (supabase) await supabase.auth.signOut(); setIsHomolog(false); setData(null); setUser(null); };
     const currentIndex = MENU.findIndex(m => m.id === activeTab);
     const nextTab = currentIndex < MENU.length - 1 && MENU[currentIndex + 1].id !== 'gestao' ? MENU[currentIndex + 1] : null;
     const prevTab = currentIndex > 0 ? MENU[currentIndex - 1] : null;
