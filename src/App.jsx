@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, AreaChart, Area 
 } from 'recharts';
@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, Database, LogOut, DollarSign, PieChart, Activity, Minus, Settings, Trash2, CheckCircle, AlertTriangle
 } from 'lucide-react';
 
-const SYSTEM_VERSION = "v4.9 - Projection Table Fix & VS Labels";
+const SYSTEM_VERSION = "v5.0 - Session Security & Auto Logout";
 
 // --- CONFIGURAÇÃO DE AMBIENTE ---
 const GET_ENV = (key) => {
@@ -470,14 +470,58 @@ const App = () => {
 
     useEffect(() => {
         const loadSupabase = async () => {
-            if (window.supabase) { setSupabase(window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)); return; }
+            if (window.supabase) { 
+                // Configurando storage como sessionStorage para forçar login ao fechar aba
+                setSupabase(window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                    auth: { storage: window.sessionStorage }
+                })); 
+                return; 
+            }
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-            script.onload = () => { if (window.supabase) setSupabase(window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)); };
+            script.onload = () => { 
+                if (window.supabase) {
+                    // Configurando storage como sessionStorage para forçar login ao fechar aba
+                    setSupabase(window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                        auth: { storage: window.sessionStorage }
+                    }));
+                }
+            };
             document.head.appendChild(script);
         };
         loadSupabase();
     }, []);
+
+    // AUTO-LOGOUT INACTIVITY TIMER
+    useEffect(() => {
+        if (!user || !supabase) return;
+
+        const INACTIVITY_LIMIT = 10 * 60 * 1000; // 10 minutos
+        let timeout;
+
+        const handleLogoutTimer = () => {
+            // Se o timer estourar, desloga
+            console.log("Inatividade detectada. Deslogando...");
+            handleLogout();
+        };
+
+        const resetTimer = () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(handleLogoutTimer, INACTIVITY_LIMIT);
+        };
+
+        // Eventos que resetam o timer
+        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+        events.forEach(event => document.addEventListener(event, resetTimer));
+
+        // Inicia o timer
+        resetTimer();
+
+        return () => {
+            clearTimeout(timeout);
+            events.forEach(event => document.removeEventListener(event, resetTimer));
+        };
+    }, [user, supabase]); // Recria o listener se o usuário mudar
 
     useEffect(() => {
         if (!supabase) return;
@@ -493,7 +537,13 @@ const App = () => {
         return () => subscription.unsubscribe();
     }, [supabase]);
 
-    const handleLogout = async () => { if (supabase) await supabase.auth.signOut(); setIsHomolog(false); setData(null); };
+    const handleLogout = async () => { 
+        if (supabase) await supabase.auth.signOut(); 
+        setIsHomolog(false); 
+        setData(null); 
+        setUser(null); // Força limpeza imediata do estado
+    };
+    
     const currentIndex = MENU.findIndex(m => m.id === activeTab);
     const nextTab = currentIndex < MENU.length - 1 && MENU[currentIndex + 1].id !== 'gestao' ? MENU[currentIndex + 1] : null;
     const prevTab = currentIndex > 0 ? MENU[currentIndex - 1] : null;
