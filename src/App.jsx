@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, Database, LogOut, DollarSign, PieChart, Activity, Minus, Settings, Trash2, CheckCircle, AlertTriangle
 } from 'lucide-react';
 
-const SYSTEM_VERSION = "v4.8 - Fix Table Wrap & Mobile Logout";
+const SYSTEM_VERSION = "v4.9 - Projection Table Fix & VS Labels";
 
 // --- CONFIGURAÇÃO DE AMBIENTE ---
 const GET_ENV = (key) => {
@@ -160,10 +160,9 @@ const calculateKPIs = (data, category) => {
         return {
             date: d,
             label: formatMonth(d),
-            value: closingValue, // Agora reflete Projeção ou Fechado
+            value: closingValue, 
             valueAtDU: sumUntilDU(d, currentDU),
-            isCurrent: isCurrent,
-            status: isCurrent ? 'Projeção' : 'Fechado'
+            isCurrent: isCurrent
         };
     }).reverse();
 
@@ -213,8 +212,7 @@ const AnalyticalTable = ({ history, currentDU, type }) => {
                 <tr className="border-b border-slate-100 bg-slate-50/50 text-slate-500 text-xs uppercase tracking-wider">
                   <th className="px-6 py-4 font-semibold whitespace-nowrap">Referência</th>
                   <th className="px-6 py-4 font-semibold text-right whitespace-nowrap">Resultado (D.U. {currentDU})</th>
-                  <th className="px-6 py-4 font-semibold text-right whitespace-nowrap">Fechamento / Projeção</th>
-                  <th className="px-6 py-4 font-semibold text-center whitespace-nowrap">Status</th>
+                  <th className="px-6 py-4 font-bold text-right whitespace-nowrap bg-slate-50/80">FECHAMENTO / PROJEÇÃO</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -224,15 +222,13 @@ const AnalyticalTable = ({ history, currentDU, type }) => {
                       <Calendar size={14} className="text-slate-400"/> {row.label}
                     </td>
                     <td className="px-6 py-4 text-right font-bold text-[#003366] whitespace-nowrap">{format(row.valueAtDU)}</td>
-                    <td className="px-6 py-4 text-right text-slate-500 whitespace-nowrap">
+                    <td className="px-6 py-4 text-right font-bold text-slate-700 whitespace-nowrap bg-slate-50/30">
                       {row.isCurrent ? (
-                          <span className="text-blue-600 font-bold" title="Projeção baseada na média diária">{format(row.value)}*</span>
+                          <div className="flex flex-col items-end">
+                              <span className="text-[#003366] text-lg">{format(row.value)}</span>
+                              <span className="text-[10px] uppercase tracking-widest text-[#003366]/70 font-bold">PROJEÇÃO</span>
+                          </div>
                       ) : format(row.value)}
-                    </td>
-                     <td className="px-6 py-4 text-center whitespace-nowrap">
-                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${row.status === 'Projeção' ? 'bg-blue-100 text-blue-800 animate-pulse' : 'bg-gray-100 text-gray-800'}`}>
-                             {row.status}
-                         </span>
                     </td>
                   </tr>
                 ))}
@@ -287,8 +283,8 @@ const ProductDashboard = ({ category, data, isMobile, onNext, nextName }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <MetricCard title="vs. Mês Anterior" value={kpis.prev} comparison={varPrev} type={type} icon={Calendar} subtext="Comparativo no mesmo Dia Útil"/>
-                <MetricCard title="Média Trimestral" value={kpis.avg3} comparison={varAvg3} type={type} icon={Activity} subtext="Tendência curto prazo"/>
-                 <MetricCard title="Média Semestral" value={kpis.avg6} comparison={((kpis.current - kpis.avg6)/kpis.avg6)*100} type={type} icon={TrendingUp} subtext="Tendência longo prazo"/>
+                <MetricCard title="VS. MÉDIA TRIMESTRAL" value={kpis.avg3} comparison={varAvg3} type={type} icon={Activity} subtext="Tendência curto prazo"/>
+                 <MetricCard title="VS. MÉDIA SEMESTRAL" value={kpis.avg6} comparison={((kpis.current - kpis.avg6)/kpis.avg6)*100} type={type} icon={TrendingUp} subtext="Tendência longo prazo"/>
             </div>
             <AnalyticalTable history={kpis.history} currentDU={kpis.currentDU} type={type} />
             {isMobile && nextName && (
@@ -533,7 +529,7 @@ const App = () => {
                      <div className="flex items-center gap-3">
                          {isMobile && (
                              <div className="flex gap-1">
-                                 {/* BOTÃO LOGOUT MOBILE - ADICIONADO AQUI */}
+                                 {/* BOTÃO LOGOUT MOBILE */}
                                  <button onClick={handleLogout} className="p-2 bg-red-50 text-red-600 rounded-lg mr-2" title="Sair"><LogOut size={16}/></button>
                                  <button onClick={() => {if(prevTab) setActiveTab(prevTab.id)}} disabled={!prevTab} className="p-2 bg-slate-100 rounded-lg disabled:opacity-30"><ChevronLeft size={16}/></button>
                                  <button onClick={() => {if(nextTab) setActiveTab(nextTab.id)}} disabled={!nextTab} className="p-2 bg-slate-100 rounded-lg disabled:opacity-30"><ChevronRight size={16}/></button>
