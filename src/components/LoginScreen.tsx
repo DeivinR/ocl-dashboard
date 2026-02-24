@@ -89,7 +89,7 @@ export const LoginScreen = ({ supabase, onHomolog, configError }: Readonly<Login
         <form onSubmit={handleLogin} className="space-y-4 text-left">
           <div>
             <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-              E-mail
+              <span>E-mail</span>
               <input
                 type="email"
                 required
@@ -102,7 +102,7 @@ export const LoginScreen = ({ supabase, onHomolog, configError }: Readonly<Login
           </div>
           <div>
             <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-              Senha
+              <span>Senha</span>
               <input
                 type="password"
                 required
