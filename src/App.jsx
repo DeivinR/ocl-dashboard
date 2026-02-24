@@ -1,31 +1,21 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, AreaChart, Area 
-} from 'recharts';
-import { 
-  LayoutDashboard, Wallet, Handshake, Car, Gavel, Upload, FileText, TrendingUp, TrendingDown, 
-  Calendar, Menu, Loader2, ShieldAlert, Table, Clock, Info, 
-  Cloud, CloudLightning, X, Lock, Layers, RefreshCw, Eye, ArrowRight,
-  ChevronLeft, ChevronRight, Database, LogOut, DollarSign, PieChart, Activity, Minus, Settings, Trash2, CheckCircle, AlertTriangle, Users
+  LayoutDashboard, Wallet, Handshake, Car, Gavel, FileText, TrendingUp, TrendingDown, 
+  Calendar, Menu, Loader2, ShieldAlert, Clock, 
+  Cloud, CloudLightning, X, Layers, Eye, ArrowRight,
+  ChevronLeft, ChevronRight, Database, LogOut, Activity, Settings, AlertTriangle, Users
 } from 'lucide-react';
-
-const SYSTEM_VERSION = "v5.6 - Vertical Align Fix";
 
 // --- CONFIGURAÇÃO DE AMBIENTE ---
 const GET_ENV = (key) => {
-    try {
-        if (typeof process !== 'undefined' && process.env && process.env[key]) {
-            return process.env[key];
-        }
-    } catch (e) { }
+    if (typeof process !== 'undefined' && process.env?.[key]) {
+        return process.env[key];
+    }
     return null;
 };
 
-const MANUAL_URL = "https://vjcgcoxujrixaznbyzvg.supabase.co"; 
-const MANUAL_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqY2djb3h1anJpeGF6bmJ5enZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3OTc1MDEsImV4cCI6MjA4MTM3MzUwMX0.JKi6ybypqqwZTeJH__QxB-ajA_gkAk67t-4NfmYcVmY";
-
-const SUPABASE_URL = GET_ENV('NEXT_PUBLIC_SUPABASE_URL') || MANUAL_URL;
-const SUPABASE_ANON_KEY = GET_ENV('NEXT_PUBLIC_SUPABASE_ANON_KEY') || MANUAL_KEY;
+const SUPABASE_URL = GET_ENV('NEXT_PUBLIC_SUPABASE_URL') || '';
+const SUPABASE_ANON_KEY = GET_ENV('NEXT_PUBLIC_SUPABASE_ANON_KEY') || '';
 
 const LOGO_LIGHT_URL = "/logo-white.png"; 
 const LOGO_DARK_URL = "/logo.png";        
@@ -47,10 +37,10 @@ const THEME = { primary: '#003366', secondary: '#004990', accent: '#F59E0B', bg:
 const parseCurrency = (valStr) => {
     if (!valStr) return 0;
     if (typeof valStr === 'number') return valStr;
-    let clean = valStr.toString().replace(/[R$\s]/g, '').trim();
-    if (clean.includes(',') && clean.includes('.')) { clean = clean.replace(/\./g, '').replace(',', '.'); } 
-    else if (clean.includes(',')) { clean = clean.replace(',', '.'); }
-    return parseFloat(clean) || 0;
+    let clean = valStr.toString().replaceAll(/[R$\s]/g, '').trim();
+    if (clean.includes(',') && clean.includes('.')) { clean = clean.replaceAll('.', '').replaceAll(',', '.'); } 
+    else if (clean.includes(',')) { clean = clean.replaceAll(',', '.'); }
+    return Number.parseFloat(clean) || 0;
 };
 
 const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
@@ -76,7 +66,7 @@ const parseStructuredCSV = (csvText, manualDU, totalDays) => {
     for (let i = 1; i < lines.length; i++) {
         const row = lines[i].split(';');
         if (row.length < headers.length) continue;
-        const du = parseInt(row[colMap.DU]) || 0;
+        const du = Number.parseInt(row[colMap.DU]) || 0;
         rawData.push({
             produto: row[colMap.PRODUTO]?.trim() || "Outros", 
             valor: parseCurrency(row[colMap.REPASSE]), ho: parseCurrency(row[colMap.HO]),
@@ -84,12 +74,12 @@ const parseStructuredCSV = (csvText, manualDU, totalDays) => {
         });
     }
 
-    const uniqueDates = [...new Set(rawData.map(d => d.periodo))].sort();
-    let finalDU = manualDU ? parseInt(manualDU) : 1; 
-    let finalTotalDays = totalDays ? parseInt(totalDays) : 22; 
+    const uniqueDates = [...new Set(rawData.map(d => d.periodo))].sort((a, b) => a.localeCompare(b));
+    let finalDU = manualDU ? Number.parseInt(manualDU) : 1; 
+    let finalTotalDays = totalDays ? Number.parseInt(totalDays) : 22; 
 
     if (!manualDU) {
-        const latestDate = uniqueDates[uniqueDates.length - 1];
+        const latestDate = uniqueDates.at(-1);
         const currentMonthData = rawData.filter(d => d.periodo === latestDate);
         finalDU = Math.max(...currentMonthData.map(d => d.du), 1);
     }
@@ -99,7 +89,7 @@ const parseStructuredCSV = (csvText, manualDU, totalDays) => {
 
 // --- KPI CALCULATION ---
 const calculateKPIs = (data, category) => {
-    if (!data || !data.rawData) return { current: 0, count: 0, prev: 0, prevCount: 0, avg3: 0, avg3Count: 0, avg6: 0, avg6Count: 0, history: [] };
+    if (!data?.rawData) return { current: 0, count: 0, prev: 0, prevCount: 0, avg3: 0, avg3Count: 0, avg6: 0, avg6Count: 0, history: [] };
 
     const { rawData, dates, currentDU, totalBusinessDays } = data;
     const n = dates.length;
@@ -374,11 +364,11 @@ const FileUploader = ({ supabase, onDataSaved, isMobile, isHomolog }) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        if (!manualDU || parseInt(manualDU) < 1) {
+        if (!manualDU || Number.parseInt(manualDU) < 1) {
             alert("Por favor, informe o Dia Útil atual (DU).");
             e.target.value = null; return;
         }
-        if (!totalDays || parseInt(totalDays) < manualDU) {
+        if (!totalDays || Number.parseInt(totalDays) < Number.parseInt(manualDU)) {
             alert("Dias Úteis Totais inválido.");
             e.target.value = null; return;
         }
@@ -493,8 +483,8 @@ const LoginScreen = ({ supabase, onLogin, onHomolog, configError }) => {
                 </div>
                 {configError && mode === 'prod' && <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl mb-6 text-left"><h4 className="text-amber-800 font-bold text-sm flex items-center gap-2 mb-2"><AlertTriangle size={16}/> Configuração</h4><p className="text-amber-700 text-xs">Verifique variáveis de ambiente no Vercel.</p></div>}
                 <form onSubmit={handleLogin} className="space-y-4 text-left">
-                    <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">E-mail</label><input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#003366]" placeholder="usuario@ocl.adv.br" /></div>
-                    <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Senha</label><input type="password" required value={pass} onChange={e => setPass(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#003366]" placeholder="••••••••" /></div>
+                    <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">E-mail<input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#003366]" placeholder="usuario@ocl.adv.br" /></label></div>
+                    <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Senha<input type="password" required value={pass} onChange={e => setPass(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-[#003366]" placeholder="••••••••" /></label></div>
                     {errorMsg && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg flex items-center gap-2"><ShieldAlert size={16} /> {errorMsg}</div>}
                     <button type="submit" className={`w-full py-4 rounded-xl font-bold text-white transition-all transform hover:scale-[1.02] ${mode === 'homolog' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[#003366] hover:bg-[#002244]'}`}>{loading ? <Loader2 className="animate-spin mx-auto"/> : (mode === 'homolog' ? 'Acessar Homologação' : 'Entrar')}</button>
                 </form>
@@ -538,18 +528,18 @@ const App = () => {
 
     useEffect(() => {
         const loadSupabase = async () => {
-            if (window.supabase) { 
-                setSupabase(window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-                    auth: { storage: window.sessionStorage }
+            if (globalThis.supabase) { 
+                setSupabase(globalThis.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                    auth: { storage: globalThis.sessionStorage }
                 })); 
                 return; 
             }
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
             script.onload = () => { 
-                if (window.supabase) {
-                    setSupabase(window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-                        auth: { storage: window.sessionStorage }
+                if (globalThis.supabase) {
+                    setSupabase(globalThis.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                        auth: { storage: globalThis.sessionStorage }
                     }));
                 }
             };
@@ -576,7 +566,7 @@ const App = () => {
             if (session) {
                 setUser(session.user); setIsHomolog(false); setLoading(true);
                 supabase.from('dashboards').select('content').eq('id', 'latest').single().then(({ data: dbData }) => {
-                        if (dbData && dbData.content) setData(dbData.content);
+                        if (dbData?.content) setData(dbData.content);
                         setLoading(false);
                     });
             } else { setUser(null); setLoading(false); }
@@ -584,7 +574,7 @@ const App = () => {
         return () => subscription.unsubscribe();
     }, [supabase]);
 
-    const handleLogout = async () => { if (supabase) await supabase.auth.signOut(); setIsHomolog(false); setData(null); setUser(null); };
+    const handleLogout = async () => { if (supabase) { await supabase.auth.signOut(); } setIsHomolog(false); setData(null); setUser(null); };
     const currentIndex = MENU.findIndex(m => m.id === activeTab);
     const nextTab = currentIndex < MENU.length - 1 && MENU[currentIndex + 1].id !== 'gestao' ? MENU[currentIndex + 1] : null;
     const prevTab = currentIndex > 0 ? MENU[currentIndex - 1] : null;
@@ -630,7 +620,7 @@ const App = () => {
                      </div>
                 </header>
                 <div className="flex-1 overflow-y-auto p-4 md:p-8 relative">
-                    {isMobile && isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setSidebarOpen(false)}></div>}
+                    {isMobile && isSidebarOpen && <button type="button" className="fixed inset-0 bg-black/50 z-40 w-full h-full cursor-default border-none p-0 m-0 appearance-none" aria-label="Fechar menu" onClick={() => setSidebarOpen(false)}></button>}
                     {activeTab === 'gestao' ? (<FileUploader supabase={supabase} onDataSaved={setData} isMobile={isMobile} isHomolog={isHomolog} />) : (data ? (<ProductDashboard category={activeTab} data={data} isMobile={isMobile} onNext={() => { if(nextTab) { setActiveTab(nextTab.id); window.scrollTo(0,0); }}} nextName={nextTab?.label} />) : (<div className="flex flex-col items-center justify-center h-full text-slate-400"><Database size={64} className="mb-4 opacity-20"/><p>Nenhum dado carregado.</p><button onClick={() => setActiveTab('gestao')} className="mt-4 text-[#003366] font-bold hover:underline">Ir para Gestão de Dados</button></div>))}
                 </div>
             </main>
