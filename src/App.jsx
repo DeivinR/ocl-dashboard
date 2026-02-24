@@ -334,7 +334,7 @@ const ProductDashboard = ({ category, data, isMobile, onNext, nextName }) => {
                     value={kpis.prev} 
                     comparison={varPrev} 
                     type={type} 
-                    icon={Calendar} 
+                    icon={Activity} 
                     subtext={`${Math.round(kpis.prevCount)} qtd.`}
                 />
                 <MetricCard 
@@ -350,7 +350,7 @@ const ProductDashboard = ({ category, data, isMobile, onNext, nextName }) => {
                     value={kpis.avg6} 
                     comparison={((kpis.current - kpis.avg6)/kpis.avg6)*100} 
                     type={type} 
-                    icon={TrendingUp} 
+                    icon={Activity} 
                     subtext={`Média: ${Math.round(kpis.avg6Count)} qtd.`}
                 />
             </div>
