@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Wallet, Handshake, Car, Layers, TrendingUp, Clock, Users, Calendar, Activity, ArrowRight } from 'lucide-react';
+import { Wallet, Handshake, Car, Layers, TrendingUp, Clock, Users, Activity, ArrowRight } from 'lucide-react';
 import { formatCurrency, formatNumber } from '../lib/utils';
 import { calculateKPIs } from '../lib/data';
 import type { DashboardData } from '../lib/data';
@@ -68,7 +68,7 @@ export const ProductDashboard = ({ category, data, isMobile, onNext, nextName }:
           value={kpis.prev}
           comparison={varPrev}
           type={type}
-          icon={Calendar}
+          icon={Activity}
           subtext={`${Math.round(kpis.prevCount)} qtd.`}
         />
         <MetricCard
@@ -84,7 +84,7 @@ export const ProductDashboard = ({ category, data, isMobile, onNext, nextName }:
           value={kpis.avg6}
           comparison={((kpis.current - kpis.avg6) / kpis.avg6) * 100}
           type={type}
-          icon={TrendingUp}
+          icon={Activity}
           subtext={`Média: ${Math.round(kpis.avg6Count)} qtd.`}
         />
       </div>
