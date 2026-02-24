@@ -1,118 +1,140 @@
 import { parseCurrency, formatMonth } from './utils';
 
 export const parseStructuredCSV = (csvText, manualDU, totalDays) => {
-    const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
-    if (lines.length < 2) return null;
+  const lines = csvText.split(/\r?\n/).filter((line) => line.trim() !== '');
+  if (lines.length < 2) return null;
 
-    const headers = lines[0].split(';').map(h => h.trim().toUpperCase());
-    const colMap = {
-        PRODUTO: headers.indexOf('PRODUTO'), REPASSE: headers.indexOf('REPASSE'), HO: headers.indexOf('HO'),
-        DU: headers.indexOf('DU'), PERIODO: headers.indexOf('PERÍODO'), TIPO: headers.indexOf('TIPO'), RISCO: headers.indexOf('RISCO CONTENÇÃO')
-    };
+  const headers = lines[0].split(';').map((h) => h.trim().toUpperCase());
+  const colMap = {
+    PRODUTO: headers.indexOf('PRODUTO'),
+    REPASSE: headers.indexOf('REPASSE'),
+    HO: headers.indexOf('HO'),
+    DU: headers.indexOf('DU'),
+    PERIODO: headers.indexOf('PERÍODO'),
+    TIPO: headers.indexOf('TIPO'),
+    RISCO: headers.indexOf('RISCO CONTENÇÃO'),
+  };
 
-    const rawData = [];
-    for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].split(';');
-        if (row.length < headers.length) continue;
-        const du = Number.parseInt(row[colMap.DU]) || 0;
-        rawData.push({
-            produto: row[colMap.PRODUTO]?.trim() || "Outros", 
-            valor: parseCurrency(row[colMap.REPASSE]), ho: parseCurrency(row[colMap.HO]),
-            du: du, periodo: row[colMap.PERIODO] || "", tipo: row[colMap.TIPO]?.trim() || "", risco: row[colMap.RISCO]?.trim() || ""
-        });
-    }
+  const rawData = [];
+  for (let i = 1; i < lines.length; i++) {
+    const row = lines[i].split(';');
+    if (row.length < headers.length) continue;
+    const du = Number.parseInt(row[colMap.DU]) || 0;
+    rawData.push({
+      produto: row[colMap.PRODUTO]?.trim() || 'Outros',
+      valor: parseCurrency(row[colMap.REPASSE]),
+      ho: parseCurrency(row[colMap.HO]),
+      du: du,
+      periodo: row[colMap.PERIODO] || '',
+      tipo: row[colMap.TIPO]?.trim() || '',
+      risco: row[colMap.RISCO]?.trim() || '',
+    });
+  }
 
-    const uniqueDates = [...new Set(rawData.map(d => d.periodo))].sort((a, b) => a.localeCompare(b));
-    let finalDU = manualDU ? Number.parseInt(manualDU) : 1; 
-    let finalTotalDays = totalDays ? Number.parseInt(totalDays) : 22; 
+  const uniqueDates = [...new Set(rawData.map((d) => d.periodo))].sort((a, b) => a.localeCompare(b));
+  let finalDU = manualDU ? Number.parseInt(manualDU) : 1;
+  let finalTotalDays = totalDays ? Number.parseInt(totalDays) : 22;
 
-    if (!manualDU) {
-        const latestDate = uniqueDates.at(-1);
-        const currentMonthData = rawData.filter(d => d.periodo === latestDate);
-        finalDU = Math.max(...currentMonthData.map(d => d.du), 1);
-    }
+  if (!manualDU) {
+    const latestDate = uniqueDates.at(-1);
+    const currentMonthData = rawData.filter((d) => d.periodo === latestDate);
+    finalDU = Math.max(...currentMonthData.map((d) => d.du), 1);
+  }
 
-    return { rawData, dates: uniqueDates, currentDU: finalDU, totalBusinessDays: finalTotalDays };
+  return { rawData, dates: uniqueDates, currentDU: finalDU, totalBusinessDays: finalTotalDays };
 };
 
 export const calculateKPIs = (data, category) => {
-    if (!data?.rawData) return { current: 0, count: 0, prev: 0, prevCount: 0, avg3: 0, avg3Count: 0, avg6: 0, avg6Count: 0, history: [] };
+  if (!data?.rawData)
+    return { current: 0, count: 0, prev: 0, prevCount: 0, avg3: 0, avg3Count: 0, avg6: 0, avg6Count: 0, history: [] };
 
-    const { rawData, dates, currentDU, totalBusinessDays } = data;
-    const n = dates.length;
-    const currentDate = dates[n - 1];
-    const prevDate = dates[n - 2];
-    
-    const filterByCategory = (item) => {
-        if (category === 'CONSOLIDADO') return true; 
-        if (category === 'CONTENÇÃO') return item.risco && item.risco.length > 2; 
-        const prod = item.produto?.toUpperCase();
-        if (category === 'CASH') return ['PARCIAL', 'ATUALIZAÇÃO', 'QUITAÇÃO', 'VAP'].some(p => prod?.includes(p));
-        if (category === 'RENEGOCIAÇÃO') return prod === 'RENEGOCIAÇÃO';
-        if (category === 'ENTREGA AMIGÁVEL') return prod === 'ENTREGA AMIGÁVEL';
-        if (category === 'APREENSÃO') return prod === 'APREENSÃO';
-        if (category === 'RETOMADAS') return prod === 'ENTREGA AMIGÁVEL' || prod === 'APREENSÃO';
-        return false;
-    };
+  const { rawData, dates, currentDU, totalBusinessDays } = data;
+  const n = dates.length;
+  const currentDate = dates[n - 1];
+  const prevDate = dates[n - 2];
 
-    const getValueToSum = (item) => {
-        if (category === 'CONTENÇÃO') return 1; 
-        return item.ho; 
-    };
+  const filterByCategory = (item) => {
+    if (category === 'CONSOLIDADO') return true;
+    if (category === 'CONTENÇÃO') return item.risco && item.risco.length > 2;
+    const prod = item.produto?.toUpperCase();
+    if (category === 'CASH') return ['PARCIAL', 'ATUALIZAÇÃO', 'QUITAÇÃO', 'VAP'].some((p) => prod?.includes(p));
+    if (category === 'RENEGOCIAÇÃO') return prod === 'RENEGOCIAÇÃO';
+    if (category === 'ENTREGA AMIGÁVEL') return prod === 'ENTREGA AMIGÁVEL';
+    if (category === 'APREENSÃO') return prod === 'APREENSÃO';
+    if (category === 'RETOMADAS') return prod === 'ENTREGA AMIGÁVEL' || prod === 'APREENSÃO';
+    return false;
+  };
 
-    const countUntilDU = (targetDate, limitDU) => {
-        return rawData.filter(d => d.periodo === targetDate && d.du <= limitDU && filterByCategory(d)).length;
-    };
+  const getValueToSum = (item) => {
+    if (category === 'CONTENÇÃO') return 1;
+    return item.ho;
+  };
 
-    const sumUntilDU = (targetDate, limitDU) => {
-        return rawData
-            .filter(d => d.periodo === targetDate && d.du <= limitDU && filterByCategory(d))
-            .reduce((acc, curr) => acc + getValueToSum(curr), 0);
-    };
+  const countUntilDU = (targetDate, limitDU) => {
+    return rawData.filter((d) => d.periodo === targetDate && d.du <= limitDU && filterByCategory(d)).length;
+  };
 
-    const sumTotalMonth = (targetDate) => {
-        return rawData
-            .filter(d => d.periodo === targetDate && filterByCategory(d))
-            .reduce((acc, curr) => acc + getValueToSum(curr), 0);
-    };
+  const sumUntilDU = (targetDate, limitDU) => {
+    return rawData
+      .filter((d) => d.periodo === targetDate && d.du <= limitDU && filterByCategory(d))
+      .reduce((acc, curr) => acc + getValueToSum(curr), 0);
+  };
 
-    const currentVal = sumUntilDU(currentDate, currentDU);
-    const currentCount = countUntilDU(currentDate, currentDU);
-    const prevVal = sumUntilDU(prevDate, currentDU);
-    const prevCount = countUntilDU(prevDate, currentDU);
+  const sumTotalMonth = (targetDate) => {
+    return rawData
+      .filter((d) => d.periodo === targetDate && filterByCategory(d))
+      .reduce((acc, curr) => acc + getValueToSum(curr), 0);
+  };
 
-    const last3 = dates.slice(Math.max(0, n - 4), n - 1);
-    const last6 = dates.slice(Math.max(0, n - 7), n - 1);
+  const currentVal = sumUntilDU(currentDate, currentDU);
+  const currentCount = countUntilDU(currentDate, currentDU);
+  const prevVal = sumUntilDU(prevDate, currentDU);
+  const prevCount = countUntilDU(prevDate, currentDU);
 
-    const avg3Val = last3.reduce((acc, d) => acc + sumUntilDU(d, currentDU), 0) / (last3.length || 1);
-    const avg3Count = last3.reduce((acc, d) => acc + countUntilDU(d, currentDU), 0) / (last3.length || 1);
+  const last3 = dates.slice(Math.max(0, n - 4), n - 1);
+  const last6 = dates.slice(Math.max(0, n - 7), n - 1);
 
-    const avg6Val = last6.reduce((acc, d) => acc + sumUntilDU(d, currentDU), 0) / (last6.length || 1);
-    const avg6Count = last6.reduce((acc, d) => acc + countUntilDU(d, currentDU), 0) / (last6.length || 1);
+  const avg3Val = last3.reduce((acc, d) => acc + sumUntilDU(d, currentDU), 0) / (last3.length || 1);
+  const avg3Count = last3.reduce((acc, d) => acc + countUntilDU(d, currentDU), 0) / (last3.length || 1);
 
-    const calculateProjection = (accumulated, currentDay, totalDays) => {
-        if (currentDay === 0) return 0;
-        return (accumulated / currentDay) * totalDays;
-    };
+  const avg6Val = last6.reduce((acc, d) => acc + sumUntilDU(d, currentDU), 0) / (last6.length || 1);
+  const avg6Count = last6.reduce((acc, d) => acc + countUntilDU(d, currentDU), 0) / (last6.length || 1);
 
-    const history = dates.map(d => {
-        const isCurrent = d === currentDate;
-        const totalMonthVal = sumTotalMonth(d);
-        const closingValue = isCurrent ? calculateProjection(currentVal, currentDU, totalBusinessDays || 22) : totalMonthVal;
+  const calculateProjection = (accumulated, currentDay, totalDays) => {
+    if (currentDay === 0) return 0;
+    return (accumulated / currentDay) * totalDays;
+  };
 
-        return {
-            date: d,
-            label: formatMonth(d),
-            value: closingValue, 
-            valueAtDU: sumUntilDU(d, currentDU),
-            countAtDU: countUntilDU(d, currentDU), 
-            isCurrent: isCurrent
-        };
-    }).reverse();
+  const history = dates
+    .map((d) => {
+      const isCurrent = d === currentDate;
+      const totalMonthVal = sumTotalMonth(d);
+      const closingValue = isCurrent
+        ? calculateProjection(currentVal, currentDU, totalBusinessDays || 22)
+        : totalMonthVal;
 
-    return { 
-        current: currentVal, count: currentCount, prev: prevVal, prevCount: prevCount,
-        avg3: avg3Val, avg3Count: avg3Count, avg6: avg6Val, avg6Count: avg6Count,
-        history, currentDU, totalBusinessDays 
-    };
+      return {
+        date: d,
+        label: formatMonth(d),
+        value: closingValue,
+        valueAtDU: sumUntilDU(d, currentDU),
+        countAtDU: countUntilDU(d, currentDU),
+        isCurrent: isCurrent,
+      };
+    })
+    .reverse();
+
+  return {
+    current: currentVal,
+    count: currentCount,
+    prev: prevVal,
+    prevCount: prevCount,
+    avg3: avg3Val,
+    avg3Count: avg3Count,
+    avg6: avg6Val,
+    avg6Count: avg6Count,
+    history,
+    currentDU,
+    totalBusinessDays,
+  };
 };
