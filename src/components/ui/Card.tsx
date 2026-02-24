@@ -1,7 +1,14 @@
+import type { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { TrendingUp, TrendingDown, Users } from 'lucide-react';
 import { formatCurrency, formatNumber } from '../../lib/utils';
 
-export const Card = ({ children, className = '' }) => (
+interface CardProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export const Card = ({ children, className = '' }: Readonly<CardProps>) => (
   <div
     className={`flex flex-col justify-between rounded-2xl border border-slate-100 bg-white shadow-[0_2px_10px_-3px_rgba(0,51,102,0.1)] transition-all duration-300 ${className}`}
   >
@@ -9,8 +16,24 @@ export const Card = ({ children, className = '' }) => (
   </div>
 );
 
-export const MetricCard = ({ title, value, type = 'currency', comparison, icon: Icon, subtext }) => {
-  const isPositive = comparison >= 0;
+interface MetricCardProps {
+  title: string;
+  value: number;
+  type?: 'currency' | 'number';
+  comparison: number | null;
+  icon?: LucideIcon;
+  subtext: string;
+}
+
+export const MetricCard = ({
+  title,
+  value,
+  type = 'currency',
+  comparison,
+  icon: Icon,
+  subtext,
+}: Readonly<MetricCardProps>) => {
+  const isPositive = (comparison ?? 0) >= 0;
   const format = type === 'currency' ? formatCurrency : formatNumber;
   return (
     <Card className="group relative h-full overflow-hidden p-6 hover:shadow-lg">
@@ -19,7 +42,7 @@ export const MetricCard = ({ title, value, type = 'currency', comparison, icon: 
       </div>
       <div>
         <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">{title}</p>
-        <h3 className="text-2xl font-bold text-[#003366] md:text-3xl">{format(value)}</h3>
+        <h3 className="text-ocl-primary text-2xl font-bold md:text-3xl">{format(value)}</h3>
       </div>
       <div className="mt-4 flex items-end justify-between border-t border-slate-50/50 pt-2">
         <div className="flex max-w-[60%] items-center gap-1 text-xs font-medium text-slate-400">

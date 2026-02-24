@@ -2,10 +2,19 @@ import { useMemo } from 'react';
 import { Wallet, Handshake, Car, Layers, TrendingUp, Clock, Users, Calendar, Activity, ArrowRight } from 'lucide-react';
 import { formatCurrency, formatNumber } from '../lib/utils';
 import { calculateKPIs } from '../lib/data';
+import type { DashboardData } from '../lib/data';
 import { MetricCard } from './ui/Card';
 import { AnalyticalTable } from './AnalyticalTable';
 
-export const ProductDashboard = ({ category, data, isMobile, onNext, nextName }) => {
+interface ProductDashboardProps {
+  category: string;
+  data: DashboardData;
+  isMobile: boolean;
+  onNext: () => void;
+  nextName?: string;
+}
+
+export const ProductDashboard = ({ category, data, isMobile, onNext, nextName }: Readonly<ProductDashboardProps>) => {
   const kpis = useMemo(() => calculateKPIs(data, category), [data, category]);
   const isContencao = category === 'CONTENÇÃO';
   const type = isContencao ? 'number' : 'currency';
@@ -16,7 +25,7 @@ export const ProductDashboard = ({ category, data, isMobile, onNext, nextName })
 
   return (
     <div className="mx-auto max-w-6xl pb-20 md:pb-0">
-      <div className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-r from-[#003366] to-[#004990] p-6 text-white shadow-xl md:p-10">
+      <div className="from-ocl-primary to-ocl-secondary relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-r p-6 text-white shadow-xl md:p-10">
         <div className="relative z-10 flex flex-col items-center justify-between gap-6 text-center md:flex-row md:items-end md:text-left">
           <div className="w-full flex-1 md:w-auto">
             <div className="mb-2 flex items-center justify-center gap-2 opacity-80 md:justify-start">
@@ -79,11 +88,11 @@ export const ProductDashboard = ({ category, data, isMobile, onNext, nextName })
           subtext={`Média: ${Math.round(kpis.avg6Count)} qtd.`}
         />
       </div>
-      <AnalyticalTable history={kpis.history} currentDU={kpis.currentDU} type={type} category={category} />
+      <AnalyticalTable history={kpis.history} currentDU={kpis.currentDU!} type={type} category={category} />
       {isMobile && nextName && (
         <button
           onClick={onNext}
-          className="mt-8 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white p-4 font-bold text-[#003366] shadow-sm"
+          className="text-ocl-primary mt-8 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white p-4 font-bold shadow-sm"
         >
           <span>Próximo: {nextName}</span> <ArrowRight size={20} />
         </button>

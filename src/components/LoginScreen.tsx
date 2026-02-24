@@ -3,14 +3,27 @@ import { Loader2, ShieldAlert, AlertTriangle } from 'lucide-react';
 
 const LOGO_DARK_URL = '/logo.png';
 
-export const LoginScreen = ({ supabase, onLogin, onHomolog, configError }) => {
+interface SupabaseAuthClient {
+  auth: {
+    signInWithPassword: (credentials: { email: string; password: string }) => Promise<{ error: Error | null }>;
+  };
+}
+
+interface LoginScreenProps {
+  supabase: SupabaseAuthClient | null;
+  onLogin: () => void;
+  onHomolog: () => void;
+  configError: boolean;
+}
+
+export const LoginScreen = ({ supabase, onHomolog, configError }: Readonly<LoginScreenProps>) => {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [mode, setMode] = useState('prod');
+  const [mode, setMode] = useState<'prod' | 'homolog'>('prod');
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg('');
@@ -32,21 +45,29 @@ export const LoginScreen = ({ supabase, onLogin, onHomolog, configError }) => {
         if (error) throw error;
       } catch (err) {
         let msg = 'Erro desconhecido.';
-        if (err.message.includes('Invalid login')) msg = 'E-mail ou senha incorretos.';
+        if ((err as Error).message.includes('Invalid login')) msg = 'E-mail ou senha incorretos.';
         setErrorMsg(msg);
         setLoading(false);
       }
     }
   };
 
+  const buttonLabel = loading ? (
+    <Loader2 className="mx-auto animate-spin" />
+  ) : mode === 'homolog' ? (
+    'Acessar Homologação'
+  ) : (
+    'Entrar'
+  );
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F1F5F9] p-4">
+    <div className="bg-brand-bg flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl md:p-12">
         <img src={LOGO_DARK_URL} alt="OCL" className="mx-auto mb-8 h-16 object-contain" />
         <div className="mb-6 flex rounded-xl bg-slate-100 p-1">
           <button
             onClick={() => setMode('prod')}
-            className={`flex-1 rounded-lg py-2 text-sm font-bold transition-all ${mode === 'prod' ? 'bg-white text-[#003366] shadow' : 'text-slate-400'}`}
+            className={`flex-1 rounded-lg py-2 text-sm font-bold transition-all ${mode === 'prod' ? 'text-ocl-primary bg-white shadow' : 'text-slate-400'}`}
           >
             Oficial
           </button>
@@ -74,7 +95,7 @@ export const LoginScreen = ({ supabase, onLogin, onHomolog, configError }) => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 focus:border-[#003366] focus:outline-none"
+                className="focus:border-ocl-primary w-full rounded-xl border border-slate-200 bg-slate-50 p-3 focus:outline-none"
                 placeholder="usuario@ocl.adv.br"
               />
             </label>
@@ -87,7 +108,7 @@ export const LoginScreen = ({ supabase, onLogin, onHomolog, configError }) => {
                 required
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 focus:border-[#003366] focus:outline-none"
+                className="focus:border-ocl-primary w-full rounded-xl border border-slate-200 bg-slate-50 p-3 focus:outline-none"
                 placeholder="••••••••"
               />
             </label>
@@ -99,15 +120,9 @@ export const LoginScreen = ({ supabase, onLogin, onHomolog, configError }) => {
           )}
           <button
             type="submit"
-            className={`w-full transform rounded-xl py-4 font-bold text-white transition-all hover:scale-[1.02] ${mode === 'homolog' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[#003366] hover:bg-[#002244]'}`}
+            className={`w-full transform rounded-xl py-4 font-bold text-white transition-all hover:scale-[1.02] ${mode === 'homolog' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-ocl-primary hover:bg-ocl-hover'}`}
           >
-            {loading ? (
-              <Loader2 className="mx-auto animate-spin" />
-            ) : mode === 'homolog' ? (
-              'Acessar Homologação'
-            ) : (
-              'Entrar'
-            )}
+            {buttonLabel}
           </button>
         </form>
         <p className="mt-8 text-xs text-slate-400">© 2025 OCL Advogados Associados</p>

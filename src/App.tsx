@@ -16,14 +16,16 @@ import {
   Database,
   LogOut,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useIsMobile } from './hooks/useIsMobile';
+import type { DashboardData } from './lib/data';
 import { ProductDashboard } from './components/ProductDashboard';
 import { FileUploader } from './components/FileUploader';
 import { LoginScreen } from './components/LoginScreen';
 
-const GET_ENV = (key) => {
+const GET_ENV = (key: string): string | null => {
   if (typeof process !== 'undefined' && process.env?.[key]) {
-    return process.env[key];
+    return process.env[key] ?? null;
   }
   return null;
 };
@@ -33,18 +35,28 @@ const SUPABASE_ANON_KEY = GET_ENV('NEXT_PUBLIC_SUPABASE_ANON_KEY') || '';
 
 const LOGO_LIGHT_URL = '/logo-white.png';
 
+interface MenuItem {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  spacing?: boolean;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseClient = any;
+
 const App = () => {
-  const [user, setUser] = useState(null);
-  const [data, setData] = useState(null);
+  const [user, setUser] = useState<unknown>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [activeTab, setActiveTab] = useState('CONSOLIDADO');
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isHomolog, setIsHomolog] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [supabase, setSupabase] = useState(null);
+  const [supabase, setSupabase] = useState<SupabaseClient>(null);
   const isMobile = useIsMobile();
   const isConfigured = !SUPABASE_URL.includes('xyzcompany');
 
-  const MENU = [
+  const MENU: MenuItem[] = [
     { id: 'CONSOLIDADO', label: 'Visão Geral', icon: LayoutDashboard },
     { id: 'CASH', label: 'Cash (Recuperação)', icon: Wallet },
     { id: 'RENEGOCIAÇÃO', label: 'Renegociação', icon: Handshake },
@@ -57,9 +69,10 @@ const App = () => {
 
   useEffect(() => {
     const loadSupabase = async () => {
-      if (globalThis.supabase) {
+      if ((globalThis as Record<string, unknown>).supabase) {
+        const sb = globalThis as Record<string, any>;
         setSupabase(
-          globalThis.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          sb.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: { storage: globalThis.sessionStorage },
           }),
         );
@@ -68,9 +81,10 @@ const App = () => {
       const script = document.createElement('script');
       script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
       script.onload = () => {
-        if (globalThis.supabase) {
+        const sb = globalThis as Record<string, any>;
+        if (sb.supabase) {
           setSupabase(
-            globalThis.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            sb.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
               auth: { storage: globalThis.sessionStorage },
             }),
           );
@@ -81,10 +95,19 @@ const App = () => {
     loadSupabase();
   }, []);
 
+  const handleLogout = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+    setIsHomolog(false);
+    setData(null);
+    setUser(null);
+  };
+
   useEffect(() => {
     if (!user || !supabase) return;
     const INACTIVITY_LIMIT = 10 * 60 * 1000;
-    let timeout;
+    let timeout: ReturnType<typeof setTimeout>;
     const handleLogoutTimer = () => {
       handleLogout();
     };
@@ -105,7 +128,7 @@ const App = () => {
     if (!supabase) return;
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
       if (session) {
         setUser(session.user);
         setIsHomolog(false);
@@ -115,7 +138,7 @@ const App = () => {
           .select('content')
           .eq('id', 'latest')
           .single()
-          .then(({ data: dbData }) => {
+          .then(({ data: dbData }: { data: { content: DashboardData } | null }) => {
             if (dbData?.content) setData(dbData.content);
             setLoading(false);
           });
@@ -127,23 +150,15 @@ const App = () => {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  const handleLogout = async () => {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
-    setIsHomolog(false);
-    setData(null);
-    setUser(null);
-  };
   const currentIndex = MENU.findIndex((m) => m.id === activeTab);
   const nextTab =
-    currentIndex < MENU.length - 1 && MENU[currentIndex + 1].id !== 'gestao' ? MENU[currentIndex + 1] : null;
+    currentIndex < MENU.length - 1 && MENU[currentIndex + 1]?.id !== 'gestao' ? MENU[currentIndex + 1] : null;
   const prevTab = currentIndex > 0 ? MENU[currentIndex - 1] : null;
 
   if (loading)
     return (
-      <div className="flex items-center justify-center bg-[#F1F5F9]" style={{ minHeight: '100vh' }}>
-        <Loader2 size={40} className="animate-spin text-[#003366]" />
+      <div className="bg-brand-bg flex items-center justify-center" style={{ minHeight: '100vh' }}>
+        <Loader2 size={40} className="text-ocl-primary animate-spin" />
       </div>
     );
   if (!user && !isHomolog)
@@ -161,17 +176,17 @@ const App = () => {
 
   return (
     <div
-      className="flex flex-col overflow-hidden bg-[#F1F5F9] font-sans text-slate-800 md:flex-row"
+      className="bg-brand-bg flex flex-col overflow-hidden font-sans text-slate-800 md:flex-row"
       style={{ minHeight: '100vh' }}
     >
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-gradient-to-b from-[#003366] to-[#001a33] text-white shadow-2xl transition-all duration-300 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobile ? (isSidebarOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}
+        className={`from-ocl-primary to-ocl-dark fixed inset-y-0 left-0 z-50 flex flex-col bg-gradient-to-b text-white shadow-2xl transition-all duration-300 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobile ? (isSidebarOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}
       >
         <div className="relative flex h-24 items-center justify-center border-b border-white/10 p-6">
           {isSidebarOpen ? (
             <img src={LOGO_LIGHT_URL} alt="OCL" className="h-10 object-contain" />
           ) : (
-            <img src={LOGO_LIGHT_URL} className="h-8" />
+            <img src={LOGO_LIGHT_URL} className="h-8" alt="OCL" />
           )}
           {isMobile && (
             <button onClick={() => setSidebarOpen(false)} className="absolute right-4 top-8 text-white/50">
@@ -187,7 +202,7 @@ const App = () => {
                 setActiveTab(item.id);
                 if (isMobile) setSidebarOpen(false);
               }}
-              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${item.spacing ? 'mt-8' : ''} ${activeTab === item.id ? 'translate-x-1 bg-white font-bold text-[#003366] shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
+              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${item.spacing ? 'mt-8' : ''} ${activeTab === item.id ? 'text-ocl-primary translate-x-1 bg-white font-bold shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
             >
               <item.icon size={20} /> {isSidebarOpen && <span>{item.label}</span>}
             </button>
@@ -218,14 +233,13 @@ const App = () => {
             >
               <Menu size={20} />
             </button>
-            <h2 className="hidden text-lg font-bold text-[#003366] md:block">
+            <h2 className="text-ocl-primary hidden text-lg font-bold md:block">
               {MENU.find((m) => m.id === activeTab)?.label}
             </h2>
           </div>
           <div className="flex items-center gap-3">
             {isMobile && (
               <div className="flex gap-1">
-                {/* BOTÃO LOGOUT MOBILE */}
                 <button onClick={handleLogout} className="mr-2 rounded-lg bg-red-50 p-2 text-red-600" title="Sair">
                   <LogOut size={16} />
                 </button>
@@ -250,7 +264,7 @@ const App = () => {
               </div>
             )}
             {data && (
-              <div className="flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#003366]">
+              <div className="text-ocl-primary flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-bold">
                 <Calendar size={14} /> {data.currentDU}º Dia Útil
               </div>
             )}
@@ -284,7 +298,10 @@ const App = () => {
             <div className="flex h-full flex-col items-center justify-center text-slate-400">
               <Database size={64} className="mb-4 opacity-20" />
               <p>Nenhum dado carregado.</p>
-              <button onClick={() => setActiveTab('gestao')} className="mt-4 font-bold text-[#003366] hover:underline">
+              <button
+                onClick={() => setActiveTab('gestao')}
+                className="text-ocl-primary mt-4 font-bold hover:underline"
+              >
                 Ir para Gestão de Dados
               </button>
             </div>

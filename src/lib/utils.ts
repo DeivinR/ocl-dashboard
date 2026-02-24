@@ -1,15 +1,6 @@
-export const THEME = {
-  primary: '#003366',
-  secondary: '#004990',
-  accent: '#F59E0B',
-  bg: '#F1F5F9',
-  card: '#FFFFFF',
-  text: '#1E293B',
-  success: '#10B981',
-  danger: '#EF4444',
-};
+export { colors as THEME } from './colors';
 
-export const parseCurrency = (valStr) => {
+export const parseCurrency = (valStr: string | number | null | undefined): number => {
   if (!valStr) return 0;
   if (typeof valStr === 'number') return valStr;
   let clean = valStr
@@ -24,11 +15,13 @@ export const parseCurrency = (valStr) => {
   return Number.parseFloat(clean) || 0;
 };
 
-export const formatCurrency = (val) =>
+export const formatCurrency = (val: number): string =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
-export const formatNumber = (val) => new Intl.NumberFormat('pt-BR').format(Math.round(val));
-export const formatMonth = (str) => {
+
+export const formatNumber = (val: number): string => new Intl.NumberFormat('pt-BR').format(Math.round(val));
+
+export const formatMonth = (str: string | undefined | null): string => {
   if (!str) return '-';
   const [y, m] = str.split('-');
-  return new Date(y, m - 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase();
+  return new Date(Number(y), Number(m) - 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase();
 };
