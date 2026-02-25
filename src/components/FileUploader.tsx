@@ -1,17 +1,13 @@
 import { useState, type ChangeEvent } from 'react';
 import { CloudLightning, Cloud, Eye, Settings } from 'lucide-react';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { parseStructuredCSV } from '../lib/data';
 import type { DashboardData } from '../lib/data';
+import type { Database } from '../lib/database.types';
 import { Card } from './ui/Card';
 
-interface SupabaseClient {
-  from: (table: string) => {
-    upsert: (data: Record<string, unknown>) => Promise<{ error: Error | null }>;
-  };
-}
-
 interface FileUploaderProps {
-  supabase: SupabaseClient | null;
+  supabase: SupabaseClient<Database> | null;
   onDataSaved: (data: DashboardData) => void;
   isMobile: boolean;
   isHomolog: boolean;
@@ -95,7 +91,7 @@ export const FileUploader = ({ supabase, onDataSaved, isHomolog }: Readonly<File
         <p className="mb-8 text-slate-500">Importe o arquivo CSV completo para atualizar os indicadores.</p>
 
         <div className="mb-8 inline-block w-full rounded-xl border border-slate-200 bg-slate-50 p-6 text-left md:w-auto">
-          <div className="text-ocl-primary mb-4 flex items-center gap-2 border-b border-slate-200 pb-2 font-bold">
+          <div className="mb-4 flex items-center gap-2 border-b border-slate-200 pb-2 font-bold text-ocl-primary">
             <Settings size={18} /> Parâmetros do Mês Atual
           </div>
 
@@ -111,7 +107,7 @@ export const FileUploader = ({ supabase, onDataSaved, isHomolog }: Readonly<File
                 max="31"
                 value={manualDU}
                 onChange={(e) => setManualDU(e.target.value)}
-                className="text-ocl-primary focus:border-ocl-primary w-full rounded-lg border border-slate-300 p-3 text-center font-bold focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 p-3 text-center font-bold text-ocl-primary focus:border-ocl-primary focus:outline-none"
               />
             </div>
             <div>
@@ -125,7 +121,7 @@ export const FileUploader = ({ supabase, onDataSaved, isHomolog }: Readonly<File
                 max="31"
                 value={totalDays}
                 onChange={(e) => setTotalDays(e.target.value)}
-                className="text-ocl-primary focus:border-ocl-primary w-full rounded-lg border border-slate-300 p-3 text-center font-bold focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 p-3 text-center font-bold text-ocl-primary focus:border-ocl-primary focus:outline-none"
               />
             </div>
           </div>
@@ -134,7 +130,7 @@ export const FileUploader = ({ supabase, onDataSaved, isHomolog }: Readonly<File
 
         <div className="flex flex-col justify-center gap-4 md:flex-row">
           <label
-            className={`bg-ocl-primary flex cursor-pointer items-center justify-center gap-2 rounded-xl px-6 py-3 font-bold text-white transition ${isHomolog ? 'cursor-not-allowed opacity-50' : 'hover:bg-ocl-hover'}`}
+            className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-ocl-primary px-6 py-3 font-bold text-white transition ${isHomolog ? 'cursor-not-allowed opacity-50' : 'hover:bg-ocl-hover'}`}
           >
             <Cloud size={20} /> Publicar na Nuvem (Oficial)
             <input
@@ -145,7 +141,7 @@ export const FileUploader = ({ supabase, onDataSaved, isHomolog }: Readonly<File
               disabled={isHomolog}
             />
           </label>
-          <label className="border-ocl-primary text-ocl-primary flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 bg-white px-6 py-3 font-bold transition hover:bg-blue-50">
+          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-ocl-primary bg-white px-6 py-3 font-bold text-ocl-primary transition hover:bg-blue-50">
             <Eye size={20} /> Simular Visualização (Local)
             <input type="file" className="hidden" accept=".csv" onChange={(e) => handleFile(e, 'local')} />
           </label>

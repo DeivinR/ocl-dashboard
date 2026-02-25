@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from './lib/database.types';
 import {
   LayoutDashboard,
   Wallet,
@@ -13,7 +15,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Database,
+  Database as DatabaseIcon,
   LogOut,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -23,15 +25,8 @@ import { ProductDashboard } from './components/ProductDashboard';
 import { FileUploader } from './components/FileUploader';
 import { LoginScreen } from './components/LoginScreen';
 
-const GET_ENV = (key: string): string | null => {
-  if (typeof process !== 'undefined' && process.env?.[key]) {
-    return process.env[key] ?? null;
-  }
-  return null;
-};
-
-const SUPABASE_URL = GET_ENV('NEXT_PUBLIC_SUPABASE_URL') || '';
-const SUPABASE_ANON_KEY = GET_ENV('NEXT_PUBLIC_SUPABASE_ANON_KEY') || '';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 const LOGO_LIGHT_URL = '/logo-white.png';
 
@@ -42,9 +37,6 @@ interface MenuItem {
   spacing?: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SupabaseClient = any;
-
 const App = () => {
   const [user, setUser] = useState<unknown>(null);
   const [data, setData] = useState<DashboardData | null>(null);
@@ -52,9 +44,15 @@ const App = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isHomolog, setIsHomolog] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [supabase, setSupabase] = useState<SupabaseClient>(null);
   const isMobile = useIsMobile();
-  const isConfigured = !SUPABASE_URL.includes('xyzcompany');
+  const isConfigured = SUPABASE_URL.length > 0 && SUPABASE_ANON_KEY.length > 0;
+
+  const supabase = useMemo(() => {
+    if (!isConfigured) return null;
+    return createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { storage: globalThis.sessionStorage },
+    });
+  }, []);
 
   const MENU: MenuItem[] = [
     { id: 'CONSOLIDADO', label: 'Visão Geral', icon: LayoutDashboard },
@@ -64,36 +62,8 @@ const App = () => {
     { id: 'APREENSÃO', label: 'Apreensão', icon: Gavel },
     { id: 'RETOMADAS', label: 'Retomadas', icon: FileText },
     { id: 'CONTENÇÃO', label: 'Contenção de Rolagem', icon: ShieldAlert, spacing: true },
-    { id: 'gestao', label: 'Gestão de Dados', icon: Database, spacing: true },
+    { id: 'gestao', label: 'Gestão de Dados', icon: DatabaseIcon, spacing: true },
   ];
-
-  useEffect(() => {
-    const loadSupabase = async () => {
-      if ((globalThis as Record<string, unknown>).supabase) {
-        const sb = globalThis as Record<string, any>;
-        setSupabase(
-          sb.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: { storage: globalThis.sessionStorage },
-          }),
-        );
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-      script.onload = () => {
-        const sb = globalThis as Record<string, any>;
-        if (sb.supabase) {
-          setSupabase(
-            sb.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-              auth: { storage: globalThis.sessionStorage },
-            }),
-          );
-        }
-      };
-      document.head.appendChild(script);
-    };
-    loadSupabase();
-  }, []);
 
   const handleLogout = async () => {
     if (supabase) {
@@ -125,7 +95,10 @@ const App = () => {
   }, [user, supabase]);
 
   useEffect(() => {
-    if (!supabase) return;
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
@@ -138,7 +111,7 @@ const App = () => {
           .select('content')
           .eq('id', 'latest')
           .single()
-          .then(({ data: dbData }: { data: { content: DashboardData } | null }) => {
+          .then(({ data: dbData }) => {
             if (dbData?.content) setData(dbData.content);
             setLoading(false);
           });
@@ -157,8 +130,8 @@ const App = () => {
 
   if (loading)
     return (
-      <div className="bg-brand-bg flex items-center justify-center" style={{ minHeight: '100vh' }}>
-        <Loader2 size={40} className="text-ocl-primary animate-spin" />
+      <div className="flex items-center justify-center bg-brand-bg" style={{ minHeight: '100vh' }}>
+        <Loader2 size={40} className="animate-spin text-ocl-primary" />
       </div>
     );
   if (!user && !isHomolog)
@@ -176,11 +149,11 @@ const App = () => {
 
   return (
     <div
-      className="bg-brand-bg flex flex-col overflow-hidden font-sans text-slate-800 md:flex-row"
+      className="flex flex-col overflow-hidden bg-brand-bg font-sans text-slate-800 md:flex-row"
       style={{ minHeight: '100vh' }}
     >
       <aside
-        className={`from-ocl-primary to-ocl-dark fixed inset-y-0 left-0 z-50 flex flex-col bg-gradient-to-b text-white shadow-2xl transition-all duration-300 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobile ? (isSidebarOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-gradient-to-b from-ocl-primary to-ocl-dark text-white shadow-2xl transition-all duration-300 ${isSidebarOpen ? 'w-72' : 'w-20'} ${isMobile ? (isSidebarOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}`}
       >
         <div className="relative flex h-24 items-center justify-center border-b border-white/10 p-6">
           {isSidebarOpen ? (
@@ -202,7 +175,7 @@ const App = () => {
                 setActiveTab(item.id);
                 if (isMobile) setSidebarOpen(false);
               }}
-              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${item.spacing ? 'mt-8' : ''} ${activeTab === item.id ? 'text-ocl-primary translate-x-1 bg-white font-bold shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
+              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${item.spacing ? 'mt-8' : ''} ${activeTab === item.id ? 'translate-x-1 bg-white font-bold text-ocl-primary shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
             >
               <item.icon size={20} /> {isSidebarOpen && <span>{item.label}</span>}
             </button>
@@ -233,7 +206,7 @@ const App = () => {
             >
               <Menu size={20} />
             </button>
-            <h2 className="text-ocl-primary hidden text-lg font-bold md:block">
+            <h2 className="hidden text-lg font-bold text-ocl-primary md:block">
               {MENU.find((m) => m.id === activeTab)?.label}
             </h2>
           </div>
@@ -264,7 +237,7 @@ const App = () => {
               </div>
             )}
             {data && (
-              <div className="text-ocl-primary flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-bold">
+              <div className="flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-bold text-ocl-primary">
                 <Calendar size={14} /> {data.currentDU}º Dia Útil
               </div>
             )}
@@ -296,11 +269,11 @@ const App = () => {
             />
           ) : (
             <div className="flex h-full flex-col items-center justify-center text-slate-400">
-              <Database size={64} className="mb-4 opacity-20" />
+              <DatabaseIcon size={64} className="mb-4 opacity-20" />
               <p>Nenhum dado carregado.</p>
               <button
                 onClick={() => setActiveTab('gestao')}
-                className="text-ocl-primary mt-4 font-bold hover:underline"
+                className="mt-4 font-bold text-ocl-primary hover:underline"
               >
                 Ir para Gestão de Dados
               </button>
