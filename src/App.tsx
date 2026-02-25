@@ -6,6 +6,7 @@ import { useAuth } from './contexts/AuthContext';
 import { useNavigation } from './hooks/useNavigation';
 import { AppShell } from './components/shell/AppShell';
 import { LoginScreen } from './components/LoginScreen';
+import { LandingPage } from './components/LandingPage';
 
 const ProductDashboard = lazy(() =>
   import('./components/ProductDashboard').then((m) => ({ default: m.ProductDashboard })),
@@ -16,6 +17,7 @@ const App = () => {
   const { user, data, setData, loading, isHomolog, isConfigured, supabase, logout, enterHomolog } = useAuth();
   const { menu, activeTab, setActiveTab, prevTab, nextTab, goToNext } = useNavigation();
   const [isSidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
+  const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   if (loading)
@@ -26,6 +28,8 @@ const App = () => {
     );
   if (!user && !isHomolog)
     return <LoginScreen supabase={supabase} onHomolog={enterHomolog} configError={!isConfigured} />;
+
+  if (!selectedSection) return <LandingPage onSectionSelect={setSelectedSection} />;
 
   const dataContent = data ? (
     <ProductDashboard
@@ -59,6 +63,7 @@ const App = () => {
       onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
       onCloseSidebar={() => setSidebarOpen(false)}
       onLogout={logout}
+      onBackToSections={() => setSelectedSection(null)}
     >
       <Suspense fallback={<DashboardSkeleton />}>
         {activeTab === 'gestao' ? (

@@ -16,6 +16,7 @@ interface AppShellProps {
   onToggleSidebar: () => void;
   onCloseSidebar: () => void;
   onLogout: () => void;
+  onBackToSections?: () => void;
   children: ReactNode;
 }
 
@@ -32,6 +33,7 @@ export const AppShell = ({
   onToggleSidebar,
   onCloseSidebar,
   onLogout,
+  onBackToSections,
   children,
 }: Readonly<AppShellProps>) => {
   let mainMargin = 'ml-20';
@@ -55,6 +57,7 @@ export const AppShell = ({
         }}
         onClose={onCloseSidebar}
         onLogout={onLogout}
+        onBackToSections={onBackToSections}
       />
       <main className={`flex flex-1 flex-col transition-all duration-300 ${mainMargin}`} style={{ minHeight: '100vh' }}>
         <Header
