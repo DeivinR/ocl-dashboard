@@ -29,7 +29,7 @@ const App = () => {
   if (!user && !isHomolog)
     return <LoginScreen supabase={supabase} onHomolog={enterHomolog} configError={!isConfigured} />;
 
-  if (!selectedSection) return <LandingPage onSectionSelect={setSelectedSection} />;
+  if (!selectedSection) return <LandingPage onSectionSelect={setSelectedSection} onLogout={logout} />;
 
   const dataContent = data ? (
     <ProductDashboard
