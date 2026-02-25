@@ -83,23 +83,25 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
       if (typedSession) {
         setUser(typedSession.user);
         setIsHomolog(false);
-        setLoading(true);
-        supabase
-          .from('dashboards')
-          .select('content')
-          .eq('id', 'latest')
-          .single()
-          .then(({ data: dbData }) => {
-            if (dbData?.content) setData(dbData.content);
-            setLoading(false);
-          });
+        if (!data) {
+          setLoading(true);
+          supabase
+            .from('dashboards')
+            .select('content')
+            .eq('id', 'latest')
+            .single()
+            .then(({ data: dbData }) => {
+              if (dbData?.content) setData(dbData.content);
+              setLoading(false);
+            });
+        }
       } else {
         setUser(null);
         setLoading(false);
       }
     });
     return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, [supabase, data]);
 
   const value = useMemo(
     () => ({
