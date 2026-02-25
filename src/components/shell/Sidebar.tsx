@@ -37,7 +37,7 @@ export const Sidebar = ({
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-gradient-to-b from-ocl-primary to-ocl-dark text-white shadow-2xl transition-all duration-300 ${isOpen ? 'w-72' : 'w-20'} ${translateClass}`}
+      className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col bg-gradient-to-b from-ocl-primary to-ocl-dark text-white shadow-2xl transition-all duration-300 supports-[height:100dvh]:h-[100dvh] ${isOpen ? 'w-72' : 'w-20'} ${translateClass}`}
     >
       <div className="relative flex h-24 items-center justify-center border-b border-white/10 p-6">
         {isOpen ? (
