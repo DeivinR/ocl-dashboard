@@ -52,22 +52,17 @@ export const LoginScreen = ({ supabase, onHomolog, configError }: Readonly<Login
     }
   };
 
-  const buttonLabel = loading ? (
-    <Loader2 className="mx-auto animate-spin" />
-  ) : mode === 'homolog' ? (
-    'Acessar Homologação'
-  ) : (
-    'Entrar'
-  );
+  const modeLabel = mode === 'homolog' ? 'Acessar Homologação' : 'Entrar';
+  const buttonLabel = loading ? <Loader2 className="mx-auto animate-spin" /> : modeLabel;
 
   return (
-    <div className="bg-brand-bg flex min-h-screen items-center justify-center p-4">
+    <div className="flex min-h-screen items-center justify-center bg-brand-bg p-4">
       <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl md:p-12">
         <img src={LOGO_DARK_URL} alt="OCL" className="mx-auto mb-8 h-16 object-contain" />
         <div className="mb-6 flex rounded-xl bg-slate-100 p-1">
           <button
             onClick={() => setMode('prod')}
-            className={`flex-1 rounded-lg py-2 text-sm font-bold transition-all ${mode === 'prod' ? 'text-ocl-primary bg-white shadow' : 'text-slate-400'}`}
+            className={`flex-1 rounded-lg py-2 text-sm font-bold transition-all ${mode === 'prod' ? 'bg-white text-ocl-primary shadow' : 'text-slate-400'}`}
           >
             Oficial
           </button>
@@ -95,7 +90,7 @@ export const LoginScreen = ({ supabase, onHomolog, configError }: Readonly<Login
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="focus:border-ocl-primary w-full rounded-xl border border-slate-200 bg-slate-50 p-3 focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 focus:border-ocl-primary focus:outline-none"
                 placeholder="usuario@ocl.adv.br"
               />
             </label>
@@ -108,7 +103,7 @@ export const LoginScreen = ({ supabase, onHomolog, configError }: Readonly<Login
                 required
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
-                className="focus:border-ocl-primary w-full rounded-xl border border-slate-200 bg-slate-50 p-3 focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 focus:border-ocl-primary focus:outline-none"
                 placeholder="••••••••"
               />
             </label>
