@@ -7,11 +7,11 @@ import { useNavigation } from './hooks/useNavigation';
 import { AppShell } from './components/shell/AppShell';
 import { LoginScreen } from './components/LoginScreen';
 import { LandingPage } from './components/LandingPage';
+import { DataUploadPage } from './components/DataUploadPage';
 
 const ProductDashboard = lazy(() =>
   import('./components/ProductDashboard').then((m) => ({ default: m.ProductDashboard })),
 );
-const FileUploader = lazy(() => import('./components/FileUploader').then((m) => ({ default: m.FileUploader })));
 
 const App = () => {
   const { user, data, setData, loading, isHomolog, isConfigured, supabase, logout, enterHomolog } = useAuth();
@@ -29,7 +29,26 @@ const App = () => {
   if (!user && !isHomolog)
     return <LoginScreen supabase={supabase} onHomolog={enterHomolog} configError={!isConfigured} />;
 
-  if (!selectedSection) return <LandingPage onSectionSelect={setSelectedSection} onLogout={logout} />;
+  if (!selectedSection)
+    return (
+      <LandingPage
+        onSectionSelect={setSelectedSection}
+        onUpload={() => setSelectedSection('upload')}
+        onLogout={logout}
+      />
+    );
+
+  if (selectedSection === 'upload') {
+    return (
+      <DataUploadPage
+        supabase={supabase}
+        isHomolog={isHomolog}
+        onDataSaved={setData}
+        onBack={() => setSelectedSection(null)}
+        onLogout={logout}
+      />
+    );
+  }
 
   const dataContent = data ? (
     <ProductDashboard
@@ -43,8 +62,8 @@ const App = () => {
     <div className="flex h-full flex-col items-center justify-center text-slate-400">
       <DatabaseIcon size={64} className="mb-4 opacity-20" />
       <p>Nenhum dado carregado.</p>
-      <button onClick={() => setActiveTab('gestao')} className="mt-4 font-bold text-ocl-primary hover:underline">
-        Ir para Gestão de Dados
+      <button onClick={() => setSelectedSection('upload')} className="mt-4 font-bold text-ocl-primary hover:underline">
+        Fazer upload de dados
       </button>
     </div>
   );
@@ -65,13 +84,7 @@ const App = () => {
       onLogout={logout}
       onBackToSections={() => setSelectedSection(null)}
     >
-      <Suspense fallback={<DashboardSkeleton />}>
-        {activeTab === 'gestao' ? (
-          <FileUploader supabase={supabase} onDataSaved={setData} isHomolog={isHomolog} />
-        ) : (
-          dataContent
-        )}
-      </Suspense>
+      <Suspense fallback={<DashboardSkeleton />}>{dataContent}</Suspense>
     </AppShell>
   );
 };
