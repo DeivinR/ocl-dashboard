@@ -88,7 +88,7 @@ export const parseStructuredCSV = (
   return { rawData, dates: uniqueDates, currentDU: finalDU, totalBusinessDays: finalTotalDays };
 };
 
-export const calculateKPIs = (data: DashboardData | null, category: string): KPIs => {
+export const calculateKPIs = (data: DashboardData | null, category: string, section?: string): KPIs => {
   if (!data?.rawData)
     return { current: 0, count: 0, prev: 0, prevCount: 0, avg3: 0, avg3Count: 0, avg6: 0, avg6Count: 0, history: [] };
 
@@ -111,6 +111,12 @@ export const calculateKPIs = (data: DashboardData | null, category: string): KPI
 
   const getValueToSum = (item: RawDataItem): number => {
     if (category === 'CONTENÇÃO') return 1;
+    if (
+      section === 'desempenho' &&
+      (category === 'ENTREGA AMIGÁVEL' || category === 'APREENSÃO' || category === 'RETOMADAS')
+    )
+      return 1;
+    if (section === 'desempenho' && (category === 'CASH' || category === 'RENEGOCIAÇÃO')) return item.valor;
     return item.ho;
   };
 

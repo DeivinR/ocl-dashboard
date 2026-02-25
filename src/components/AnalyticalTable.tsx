@@ -8,10 +8,14 @@ interface AnalyticalTableProps {
   currentDU: number;
   type: 'currency' | 'number';
   category: string;
+  section?: string;
 }
 
-export const AnalyticalTable = ({ history, currentDU, type, category }: Readonly<AnalyticalTableProps>) => {
+export const AnalyticalTable = ({ history, currentDU, type, category, section }: Readonly<AnalyticalTableProps>) => {
   const format = type === 'currency' ? formatCurrency : formatNumber;
+  const hideTicketAndResultado =
+    section === 'desempenho' &&
+    (category === 'ENTREGA AMIGÁVEL' || category === 'APREENSÃO' || category === 'RETOMADAS');
   return (
     <div className="animate-fade-in mt-8">
       <div className="mb-4 flex items-center gap-2">
@@ -29,13 +33,17 @@ export const AnalyticalTable = ({ history, currentDU, type, category }: Readonly
                   <th className="whitespace-nowrap px-6 py-4 text-center font-semibold">Quantidade</th>
                 )}
 
-                {category !== 'CONTENÇÃO' && (
-                  <th className="text-ocl-primary whitespace-nowrap px-6 py-4 text-center font-semibold">
+                {category !== 'CONTENÇÃO' && !hideTicketAndResultado && (
+                  <th className="whitespace-nowrap px-6 py-4 text-center font-semibold text-ocl-primary">
                     Ticket Médio
                   </th>
                 )}
 
-                <th className="whitespace-nowrap px-6 py-4 text-center font-semibold">Resultado (D.U. {currentDU})</th>
+                {!hideTicketAndResultado && (
+                  <th className="whitespace-nowrap px-6 py-4 text-center font-semibold">
+                    Resultado (D.U. {currentDU})
+                  </th>
+                )}
                 <th className="whitespace-nowrap px-6 py-4 text-center font-semibold text-blue-600">MÉDIA DIÁRIA</th>
                 <th className="whitespace-nowrap bg-slate-50/80 px-6 py-4 text-center font-bold">
                   FECHAMENTO / PROJEÇÃO
@@ -60,15 +68,17 @@ export const AnalyticalTable = ({ history, currentDU, type, category }: Readonly
                     </td>
                   )}
 
-                  {category !== 'CONTENÇÃO' && (
-                    <td className="text-ocl-primary whitespace-nowrap px-6 py-4 text-center align-middle font-medium">
+                  {category !== 'CONTENÇÃO' && !hideTicketAndResultado && (
+                    <td className="whitespace-nowrap px-6 py-4 text-center align-middle font-medium text-ocl-primary">
                       {formatCurrency(row.countAtDU > 0 ? row.valueAtDU / row.countAtDU : 0)}
                     </td>
                   )}
 
-                  <td className="text-ocl-primary whitespace-nowrap px-6 py-4 text-center align-middle font-bold">
-                    {format(row.valueAtDU)}
-                  </td>
+                  {!hideTicketAndResultado && (
+                    <td className="whitespace-nowrap px-6 py-4 text-center align-middle font-bold text-ocl-primary">
+                      {format(row.valueAtDU)}
+                    </td>
+                  )}
 
                   <td className="whitespace-nowrap px-6 py-4 text-center align-middle font-medium text-slate-600">
                     {format(row.valueAtDU / currentDU)}
@@ -77,8 +87,8 @@ export const AnalyticalTable = ({ history, currentDU, type, category }: Readonly
                   <td className="whitespace-nowrap bg-slate-50/30 px-6 py-4 text-center align-middle font-bold text-slate-700">
                     {row.isCurrent ? (
                       <div className="flex flex-col items-center justify-center">
-                        <span className="text-ocl-primary text-lg">{format(row.value)}</span>
-                        <span className="text-ocl-primary/70 text-[10px] font-bold uppercase tracking-widest">
+                        <span className="text-lg text-ocl-primary">{format(row.value)}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-ocl-primary/70">
                           PROJEÇÃO
                         </span>
                       </div>

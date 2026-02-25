@@ -1,5 +1,18 @@
 import { useMemo } from 'react';
-import { Wallet, Handshake, Car, Layers, TrendingUp, Clock, Users, Activity, ArrowRight } from 'lucide-react';
+import {
+  Wallet,
+  Handshake,
+  Car,
+  Layers,
+  TrendingUp,
+  Clock,
+  Users,
+  Activity,
+  ArrowRight,
+  Gavel,
+  FileText,
+  ShieldAlert,
+} from 'lucide-react';
 import { formatCurrency, formatNumber } from '../lib/utils';
 import { calculateKPIs } from '../lib/data';
 import type { DashboardData } from '../lib/data';
@@ -12,12 +25,23 @@ interface ProductDashboardProps {
   isMobile: boolean;
   onNext: () => void;
   nextName?: string;
+  section?: string;
 }
 
-export const ProductDashboard = ({ category, data, isMobile, onNext, nextName }: Readonly<ProductDashboardProps>) => {
-  const kpis = useMemo(() => calculateKPIs(data, category), [data, category]);
+export const ProductDashboard = ({
+  category,
+  data,
+  isMobile,
+  onNext,
+  nextName,
+  section,
+}: Readonly<ProductDashboardProps>) => {
+  const kpis = useMemo(() => calculateKPIs(data, category, section), [data, category, section]);
   const isContencao = category === 'CONTENÇÃO';
-  const type = isContencao ? 'number' : 'currency';
+  const isQuantityCategoryInDesempenho =
+    section === 'desempenho' &&
+    (category === 'ENTREGA AMIGÁVEL' || category === 'APREENSÃO' || category === 'RETOMADAS');
+  const type = isContencao || isQuantityCategoryInDesempenho ? 'number' : 'currency';
   const varPrev = kpis.prev > 0 ? ((kpis.current - kpis.prev) / kpis.prev) * 100 : 0;
   const varAvg3 = kpis.avg3 > 0 ? ((kpis.current - kpis.avg3) / kpis.avg3) * 100 : 0;
 
@@ -33,6 +57,9 @@ export const ProductDashboard = ({ category, data, isMobile, onNext, nextName }:
               {category === 'RENEGOCIAÇÃO' && <Handshake size={20} />}
               {category === 'ENTREGA AMIGÁVEL' && <Car size={20} />}
               {category === 'CONSOLIDADO' && <Layers size={20} />}
+              {category === 'APREENSÃO' && <Gavel size={20} />}
+              {category === 'RETOMADAS' && <FileText size={20} />}
+              {category === 'CONTENÇÃO' && <ShieldAlert size={20} />}
               <span className="text-sm font-semibold uppercase tracking-widest">{category}</span>
             </div>
             <h1 className="mb-2 text-4xl font-bold md:text-5xl">
@@ -88,7 +115,13 @@ export const ProductDashboard = ({ category, data, isMobile, onNext, nextName }:
           subtext={`Média: ${Math.round(kpis.avg6Count)} qtd.`}
         />
       </div>
-      <AnalyticalTable history={kpis.history} currentDU={kpis.currentDU!} type={type} category={category} />
+      <AnalyticalTable
+        history={kpis.history}
+        currentDU={kpis.currentDU!}
+        type={type}
+        category={category}
+        section={section}
+      />
       {isMobile && nextName && (
         <button
           onClick={onNext}

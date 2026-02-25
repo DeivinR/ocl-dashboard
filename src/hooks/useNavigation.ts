@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { LayoutDashboard, Wallet, Handshake, Car, Gavel, FileText, ShieldAlert } from 'lucide-react';
 import type { MenuItem } from '../components/shell/Sidebar';
 
-const MENU: MenuItem[] = [
+const FULL_MENU: MenuItem[] = [
   { id: 'CONSOLIDADO', label: 'Visão Geral', icon: LayoutDashboard },
   { id: 'CASH', label: 'Cash (Recuperação)', icon: Wallet },
   { id: 'RENEGOCIAÇÃO', label: 'Renegociação', icon: Handshake },
@@ -12,12 +12,27 @@ const MENU: MenuItem[] = [
   { id: 'CONTENÇÃO', label: 'Contenção de Rolagem', icon: ShieldAlert, spacing: true },
 ];
 
-export const useNavigation = () => {
-  const [activeTab, setActiveTab] = useState('CONSOLIDADO');
+export const useNavigation = (section?: string) => {
+  const menu = useMemo(() => {
+    if (section === 'desempenho') {
+      return FULL_MENU.filter((item) => item.id !== 'CONSOLIDADO');
+    }
+    return FULL_MENU;
+  }, [section]);
 
-  const currentIndex = MENU.findIndex((m) => m.id === activeTab);
-  const nextTab = currentIndex < MENU.length - 1 ? (MENU[currentIndex + 1] ?? null) : null;
-  const prevTab = currentIndex > 0 ? (MENU[currentIndex - 1] ?? null) : null;
+  const defaultTab = useMemo(() => {
+    return section === 'desempenho' ? 'CASH' : 'CONSOLIDADO';
+  }, [section]);
+
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
+  useEffect(() => {
+    setActiveTab(defaultTab);
+  }, [defaultTab]);
+
+  const currentIndex = menu.findIndex((m) => m.id === activeTab);
+  const nextTab = currentIndex < menu.length - 1 ? (menu[currentIndex + 1] ?? null) : null;
+  const prevTab = currentIndex > 0 ? (menu[currentIndex - 1] ?? null) : null;
 
   const goToNext = useCallback(() => {
     if (nextTab) {
@@ -26,5 +41,5 @@ export const useNavigation = () => {
     }
   }, [nextTab]);
 
-  return { menu: MENU, activeTab, setActiveTab, prevTab, nextTab, goToNext };
+  return { menu, activeTab, setActiveTab, prevTab, nextTab, goToNext };
 };

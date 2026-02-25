@@ -15,9 +15,9 @@ const ProductDashboard = lazy(() =>
 
 const App = () => {
   const { user, data, setData, loading, isHomolog, isConfigured, supabase, logout, enterHomolog } = useAuth();
-  const { menu, activeTab, setActiveTab, prevTab, nextTab, goToNext } = useNavigation();
-  const [isSidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const { menu, activeTab, setActiveTab, prevTab, nextTab, goToNext } = useNavigation(selectedSection ?? undefined);
+  const [isSidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const isMobile = useIsMobile();
 
   if (loading)
@@ -57,6 +57,7 @@ const App = () => {
       isMobile={isMobile}
       onNext={goToNext}
       nextName={nextTab?.label}
+      section={selectedSection ?? undefined}
     />
   ) : (
     <div className="flex h-full flex-col items-center justify-center text-slate-400">
