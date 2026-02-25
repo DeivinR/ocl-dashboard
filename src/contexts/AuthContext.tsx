@@ -93,7 +93,12 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
           .select('id, full_name, cargo, access_level, created_at')
           .eq('id', typedSession.user.id)
           .single()
-          .then(({ data: profileData }: { data: any }) => {
+          .then(({ data: profileData, error }: { data: any; error: any }) => {
+            if (error) {
+              console.error('Failed to fetch profile:', error);
+              setProfile(null);
+              return;
+            }
             if (!profileData) {
               setProfile(null);
               return;
