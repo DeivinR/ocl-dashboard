@@ -1,44 +1,18 @@
 import { useState } from 'react';
-import {
-  LayoutDashboard,
-  Wallet,
-  Handshake,
-  Car,
-  Gavel,
-  FileText,
-  Loader2,
-  ShieldAlert,
-  Database as DatabaseIcon,
-} from 'lucide-react';
+import { Loader2, Database as DatabaseIcon } from 'lucide-react';
 import { useIsMobile } from './hooks/useIsMobile';
 import { useAuth } from './contexts/AuthContext';
+import { useNavigation } from './hooks/useNavigation';
 import { AppShell } from './components/shell/AppShell';
-import type { MenuItem } from './components/shell/Sidebar';
 import { ProductDashboard } from './components/ProductDashboard';
 import { FileUploader } from './components/FileUploader';
 import { LoginScreen } from './components/LoginScreen';
 
-const MENU: MenuItem[] = [
-  { id: 'CONSOLIDADO', label: 'Visão Geral', icon: LayoutDashboard },
-  { id: 'CASH', label: 'Cash (Recuperação)', icon: Wallet },
-  { id: 'RENEGOCIAÇÃO', label: 'Renegociação', icon: Handshake },
-  { id: 'ENTREGA AMIGÁVEL', label: 'Entrega Amigável', icon: Car },
-  { id: 'APREENSÃO', label: 'Apreensão', icon: Gavel },
-  { id: 'RETOMADAS', label: 'Retomadas', icon: FileText },
-  { id: 'CONTENÇÃO', label: 'Contenção de Rolagem', icon: ShieldAlert, spacing: true },
-  { id: 'gestao', label: 'Gestão de Dados', icon: DatabaseIcon, spacing: true },
-];
-
 const App = () => {
   const { user, data, setData, loading, isHomolog, isConfigured, supabase, logout, enterHomolog } = useAuth();
-  const [activeTab, setActiveTab] = useState('CONSOLIDADO');
+  const { menu, activeTab, setActiveTab, prevTab, nextTab, goToNext } = useNavigation();
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const isMobile = useIsMobile();
-
-  const currentIndex = MENU.findIndex((m) => m.id === activeTab);
-  const nextTab =
-    currentIndex < MENU.length - 1 && MENU[currentIndex + 1]?.id !== 'gestao' ? (MENU[currentIndex + 1] ?? null) : null;
-  const prevTab = currentIndex > 0 ? (MENU[currentIndex - 1] ?? null) : null;
 
   if (loading)
     return (
@@ -54,12 +28,7 @@ const App = () => {
       category={activeTab}
       data={data}
       isMobile={isMobile}
-      onNext={() => {
-        if (nextTab) {
-          setActiveTab(nextTab.id);
-          window.scrollTo(0, 0);
-        }
-      }}
+      onNext={goToNext}
       nextName={nextTab?.label}
     />
   ) : (
@@ -74,7 +43,7 @@ const App = () => {
 
   return (
     <AppShell
-      menu={MENU}
+      menu={menu}
       activeTab={activeTab}
       isMobile={isMobile}
       isSidebarOpen={isSidebarOpen}
