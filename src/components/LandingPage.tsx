@@ -1,4 +1,5 @@
 import { Briefcase, LogOut, ChevronRight, UploadCloud } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Section {
   id: string;
@@ -25,10 +26,21 @@ interface LandingPageProps {
 }
 
 export const LandingPage = ({ onSectionSelect, onUpload, onLogout }: Readonly<LandingPageProps>) => {
+  const { profile } = useAuth();
+  const profileMeta = [profile?.cargo, profile?.accessLevel].filter(Boolean).join(' • ');
+
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-8 py-4 shadow-sm">
-        <img src="/logo.png" alt="OCL" className="h-10 object-contain" />
+        <div className="flex items-center gap-4">
+          <img src="/logo.png" alt="OCL" className="h-10 object-contain" />
+          {profile?.fullName && (
+            <div className="hidden flex-col leading-tight md:flex">
+              <div className="text-sm font-bold text-slate-900">{profile.fullName}</div>
+              {profileMeta && <div className="text-xs text-slate-500">{profileMeta}</div>}
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <button
             onClick={onUpload}

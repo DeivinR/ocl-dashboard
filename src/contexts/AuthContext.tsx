@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useMemo, useCallback, t
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../lib/database.types';
 import type { DashboardData } from '../lib/data';
+import type { Profile } from '../types/profile';
 
 const SUPABASE_URL = import.meta.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.SUPABASE_ANON_KEY || '';
@@ -11,6 +12,7 @@ interface AuthContextValue {
   supabase: SupabaseClient<Database> | null;
   user: unknown;
   data: DashboardData | null;
+  profile: Profile | null;
   loading: boolean;
   isHomolog: boolean;
   isConfigured: boolean;
@@ -30,6 +32,7 @@ export const useAuth = (): AuthContextValue => {
 export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) => {
   const [user, setUser] = useState<unknown>(null);
   const [data, setData] = useState<DashboardData | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [isHomolog, setIsHomolog] = useState(false);
   const [loading, setLoading] = useState(true);
   const isConfigured = SUPABASE_URL.length > 0 && SUPABASE_ANON_KEY.length > 0;
@@ -47,6 +50,7 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
     }
     setIsHomolog(false);
     setData(null);
+    setProfile(null);
     setUser(null);
   }, [supabase]);
 
@@ -79,10 +83,29 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event: string, session: unknown) => {
-      const typedSession = session as { user: unknown } | null;
+      const typedSession = session as { user: { id: string } } | null;
       if (typedSession) {
         setUser(typedSession.user);
         setIsHomolog(false);
+        setProfile(null);
+        (supabase as unknown as SupabaseClient<any>)
+          .from('profiles')
+          .select('id, full_name, cargo, access_level, created_at')
+          .eq('id', typedSession.user.id)
+          .single()
+          .then(({ data: profileData }: { data: any }) => {
+            if (!profileData) {
+              setProfile(null);
+              return;
+            }
+            setProfile({
+              id: profileData.id,
+              fullName: profileData.full_name ?? null,
+              cargo: profileData.cargo ?? null,
+              accessLevel: profileData.access_level ?? null,
+              createdAt: profileData.created_at ?? null,
+            });
+          });
         if (!data) {
           setLoading(true);
           supabase
@@ -97,6 +120,7 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
         }
       } else {
         setUser(null);
+        setProfile(null);
         setLoading(false);
       }
     });
@@ -108,6 +132,7 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
       supabase,
       user,
       data,
+      profile,
       loading,
       isHomolog,
       isConfigured,
@@ -115,7 +140,7 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
       logout,
       enterHomolog,
     }),
-    [supabase, user, data, loading, isHomolog, isConfigured, logout, enterHomolog],
+    [supabase, user, data, profile, loading, isHomolog, isConfigured, logout, enterHomolog],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
