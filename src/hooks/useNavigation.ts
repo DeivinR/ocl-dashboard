@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { LayoutDashboard, Wallet, Handshake, Car, Gavel, FileText, ShieldAlert } from 'lucide-react';
 import type { MenuItem } from '../components/shell/Sidebar';
 
@@ -20,9 +20,15 @@ export const useNavigation = (section?: string) => {
     return FULL_MENU;
   }, [section]);
 
-  const [activeTab, setActiveTab] = useState(() => {
+  const defaultTab = useMemo(() => {
     return section === 'desempenho' ? 'CASH' : 'CONSOLIDADO';
-  });
+  }, [section]);
+
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
+  useEffect(() => {
+    setActiveTab(defaultTab);
+  }, [defaultTab]);
 
   const currentIndex = menu.findIndex((m) => m.id === activeTab);
   const nextTab = currentIndex < menu.length - 1 ? (menu[currentIndex + 1] ?? null) : null;

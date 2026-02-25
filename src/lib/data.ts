@@ -111,9 +111,12 @@ export const calculateKPIs = (data: DashboardData | null, category: string, sect
 
   const getValueToSum = (item: RawDataItem): number => {
     if (category === 'CONTENÇÃO') return 1;
-    if (section === 'desempenho' && (category === 'CASH' || category === 'RENEGOCIAÇÃO')) {
-      return item.valor;
-    }
+    if (
+      section === 'desempenho' &&
+      (category === 'ENTREGA AMIGÁVEL' || category === 'APREENSÃO' || category === 'RETOMADAS')
+    )
+      return 1;
+    if (section === 'desempenho' && (category === 'CASH' || category === 'RENEGOCIAÇÃO')) return item.valor;
     return item.ho;
   };
 
