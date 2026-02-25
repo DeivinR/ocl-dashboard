@@ -12,10 +12,18 @@ interface ProductDashboardProps {
   isMobile: boolean;
   onNext: () => void;
   nextName?: string;
+  section?: string;
 }
 
-export const ProductDashboard = ({ category, data, isMobile, onNext, nextName }: Readonly<ProductDashboardProps>) => {
-  const kpis = useMemo(() => calculateKPIs(data, category), [data, category]);
+export const ProductDashboard = ({
+  category,
+  data,
+  isMobile,
+  onNext,
+  nextName,
+  section,
+}: Readonly<ProductDashboardProps>) => {
+  const kpis = useMemo(() => calculateKPIs(data, category, section), [data, category, section]);
   const isContencao = category === 'CONTENÇÃO';
   const type = isContencao ? 'number' : 'currency';
   const varPrev = kpis.prev > 0 ? ((kpis.current - kpis.prev) / kpis.prev) * 100 : 0;

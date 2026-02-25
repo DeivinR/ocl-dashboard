@@ -1,4 +1,4 @@
-import { Briefcase, LogOut, ChevronRight, UploadCloud } from 'lucide-react';
+import { Briefcase, LogOut, ChevronRight, UploadCloud, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Section {
@@ -16,6 +16,13 @@ const SECTIONS: Section[] = [
     description: 'Gestão de recuperação, renegociação e entrega amigável',
     icon: Briefcase,
     color: 'from-ocl-primary to-ocl-secondary',
+  },
+  {
+    id: 'desempenho',
+    title: 'Desempenho',
+    description: 'Análise de performance e resultados operacionais',
+    icon: TrendingUp,
+    color: 'from-emerald-600 to-teal-600',
   },
 ];
 
