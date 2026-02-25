@@ -5,7 +5,6 @@ interface HeaderProps {
   menu: MenuItem[];
   activeTab: string;
   isMobile: boolean;
-  isSidebarOpen: boolean;
   currentDU: number | undefined;
   prevTab: MenuItem | null;
   nextTab: MenuItem | null;

@@ -61,7 +61,6 @@ export const AppShell = ({
           menu={menu}
           activeTab={activeTab}
           isMobile={isMobile}
-          isSidebarOpen={isSidebarOpen}
           currentDU={currentDU}
           prevTab={prevTab}
           nextTab={nextTab}

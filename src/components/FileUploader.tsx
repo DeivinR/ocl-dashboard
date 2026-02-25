@@ -9,7 +9,6 @@ import { Card } from './ui/Card';
 interface FileUploaderProps {
   supabase: SupabaseClient<Database> | null;
   onDataSaved: (data: DashboardData) => void;
-  isMobile: boolean;
   isHomolog: boolean;
 }
 

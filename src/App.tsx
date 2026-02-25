@@ -11,7 +11,7 @@ import { LoginScreen } from './components/LoginScreen';
 const App = () => {
   const { user, data, setData, loading, isHomolog, isConfigured, supabase, logout, enterHomolog } = useAuth();
   const { menu, activeTab, setActiveTab, prevTab, nextTab, goToNext } = useNavigation();
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [isSidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const isMobile = useIsMobile();
 
   if (loading)
@@ -21,7 +21,7 @@ const App = () => {
       </div>
     );
   if (!user && !isHomolog)
-    return <LoginScreen supabase={supabase} onLogin={() => {}} onHomolog={enterHomolog} configError={!isConfigured} />;
+    return <LoginScreen supabase={supabase} onHomolog={enterHomolog} configError={!isConfigured} />;
 
   const dataContent = data ? (
     <ProductDashboard
@@ -57,7 +57,7 @@ const App = () => {
       onLogout={logout}
     >
       {activeTab === 'gestao' ? (
-        <FileUploader supabase={supabase} onDataSaved={setData} isMobile={isMobile} isHomolog={isHomolog} />
+        <FileUploader supabase={supabase} onDataSaved={setData} isHomolog={isHomolog} />
       ) : (
         dataContent
       )}

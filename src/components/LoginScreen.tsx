@@ -11,7 +11,6 @@ interface SupabaseAuthClient {
 
 interface LoginScreenProps {
   supabase: SupabaseAuthClient | null;
-  onLogin: () => void;
   onHomolog: () => void;
   configError: boolean;
 }
@@ -30,6 +29,7 @@ export const LoginScreen = ({ supabase, onHomolog, configError }: Readonly<Login
     if (mode === 'homolog') {
       if (email === 'admin@avocati.adv.br' && pass === 'abc@123') {
         onHomolog();
+        setLoading(false);
       } else {
         setErrorMsg('Credenciais inválidas');
         setLoading(false);
@@ -43,6 +43,7 @@ export const LoginScreen = ({ supabase, onHomolog, configError }: Readonly<Login
       try {
         const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
         if (error) throw error;
+        setLoading(false);
       } catch (err) {
         let msg = 'Erro desconhecido.';
         if ((err as Error).message.includes('Invalid login')) msg = 'E-mail ou senha incorretos.';

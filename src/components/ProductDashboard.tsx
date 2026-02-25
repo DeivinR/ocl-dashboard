@@ -25,7 +25,7 @@ export const ProductDashboard = ({ category, data, isMobile, onNext, nextName }:
 
   return (
     <div className="mx-auto max-w-6xl pb-20 md:pb-0">
-      <div className="from-ocl-primary to-ocl-secondary relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-r p-6 text-white shadow-xl md:p-10">
+      <div className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-r from-ocl-primary to-ocl-secondary p-6 text-white shadow-xl md:p-10">
         <div className="relative z-10 flex flex-col items-center justify-between gap-6 text-center md:flex-row md:items-end md:text-left">
           <div className="w-full flex-1 md:w-auto">
             <div className="mb-2 flex items-center justify-center gap-2 opacity-80 md:justify-start">
@@ -82,7 +82,7 @@ export const ProductDashboard = ({ category, data, isMobile, onNext, nextName }:
         <MetricCard
           title="VS. MÉDIA SEMESTRAL"
           value={kpis.avg6}
-          comparison={((kpis.current - kpis.avg6) / kpis.avg6) * 100}
+          comparison={kpis.avg6 > 0 ? ((kpis.current - kpis.avg6) / kpis.avg6) * 100 : 0}
           type={type}
           icon={Activity}
           subtext={`Média: ${Math.round(kpis.avg6Count)} qtd.`}
@@ -92,7 +92,7 @@ export const ProductDashboard = ({ category, data, isMobile, onNext, nextName }:
       {isMobile && nextName && (
         <button
           onClick={onNext}
-          className="text-ocl-primary mt-8 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white p-4 font-bold shadow-sm"
+          className="mt-8 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white p-4 font-bold text-ocl-primary shadow-sm"
         >
           <span>Próximo: {nextName}</span> <ArrowRight size={20} />
         </button>

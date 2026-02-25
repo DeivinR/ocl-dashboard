@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../lib/database.types';
 import type { DashboardData } from '../lib/data';
@@ -39,21 +39,21 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
     return createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { storage: globalThis.sessionStorage },
     });
-  }, []);
+  }, [isConfigured]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     if (supabase) {
       await supabase.auth.signOut();
     }
     setIsHomolog(false);
     setData(null);
     setUser(null);
-  };
+  }, [supabase]);
 
-  const enterHomolog = () => {
+  const enterHomolog = useCallback(() => {
     setIsHomolog(true);
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     if (!user || !supabase) return;
@@ -113,7 +113,7 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
       logout,
       enterHomolog,
     }),
-    [supabase, user, data, loading, isHomolog, isConfigured],
+    [supabase, user, data, loading, isHomolog, isConfigured, logout, enterHomolog],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
