@@ -115,7 +115,13 @@ export const ProductDashboard = ({
           subtext={`Média: ${Math.round(kpis.avg6Count)} qtd.`}
         />
       </div>
-      <AnalyticalTable history={kpis.history} currentDU={kpis.currentDU!} type={type} category={category} />
+      <AnalyticalTable
+        history={kpis.history}
+        currentDU={kpis.currentDU!}
+        type={type}
+        category={category}
+        section={section}
+      />
       {isMobile && nextName && (
         <button
           onClick={onNext}
