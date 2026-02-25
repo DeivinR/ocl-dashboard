@@ -121,7 +121,7 @@ export const LoginScreen = ({ supabase, onHomolog, configError }: Readonly<Login
             {buttonLabel}
           </button>
         </form>
-        <p className="mt-8 text-xs text-slate-400">© 2025 OCL Advogados Associados</p>
+        <p className="mt-8 text-xs text-slate-400">© 2026 OCL Advogados Associados</p>
       </div>
     </div>
   );
