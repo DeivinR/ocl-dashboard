@@ -39,9 +39,9 @@ export const Sidebar = ({
     >
       <div className="relative flex h-24 items-center justify-center border-b border-white/10 p-6">
         {isOpen ? (
-          <img src={LOGO_LIGHT_URL} alt="OCL" className="h-10 object-contain" />
+          <img src={LOGO_LIGHT_URL} alt="OCL" className="h-14 object-contain" />
         ) : (
-          <img src={LOGO_LIGHT_URL} className="h-8" alt="OCL" />
+          <img src={LOGO_LIGHT_URL} className="h-12 object-contain" alt="OCL" />
         )}
         {isMobile && (
           <button onClick={onClose} className="absolute right-4 top-8 text-white/50">
