@@ -1,12 +1,16 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Loader2, Database as DatabaseIcon } from 'lucide-react';
+import { DashboardSkeleton } from './components/ui/Skeleton';
 import { useIsMobile } from './hooks/useIsMobile';
 import { useAuth } from './contexts/AuthContext';
 import { useNavigation } from './hooks/useNavigation';
 import { AppShell } from './components/shell/AppShell';
-import { ProductDashboard } from './components/ProductDashboard';
-import { FileUploader } from './components/FileUploader';
 import { LoginScreen } from './components/LoginScreen';
+
+const ProductDashboard = lazy(() =>
+  import('./components/ProductDashboard').then((m) => ({ default: m.ProductDashboard })),
+);
+const FileUploader = lazy(() => import('./components/FileUploader').then((m) => ({ default: m.FileUploader })));
 
 const App = () => {
   const { user, data, setData, loading, isHomolog, isConfigured, supabase, logout, enterHomolog } = useAuth();
@@ -56,11 +60,13 @@ const App = () => {
       onCloseSidebar={() => setSidebarOpen(false)}
       onLogout={logout}
     >
-      {activeTab === 'gestao' ? (
-        <FileUploader supabase={supabase} onDataSaved={setData} isHomolog={isHomolog} />
-      ) : (
-        dataContent
-      )}
+      <Suspense fallback={<DashboardSkeleton />}>
+        {activeTab === 'gestao' ? (
+          <FileUploader supabase={supabase} onDataSaved={setData} isHomolog={isHomolog} />
+        ) : (
+          dataContent
+        )}
+      </Suspense>
     </AppShell>
   );
 };
