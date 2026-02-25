@@ -27,7 +27,6 @@ interface LandingPageProps {
 
 export const LandingPage = ({ onSectionSelect, onUpload, onLogout }: Readonly<LandingPageProps>) => {
   const { profile } = useAuth();
-  const profileMeta = [profile?.cargo, profile?.accessLevel].filter(Boolean).join(' • ');
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
@@ -37,7 +36,7 @@ export const LandingPage = ({ onSectionSelect, onUpload, onLogout }: Readonly<La
           {profile?.fullName && (
             <div className="hidden flex-col leading-tight md:flex">
               <div className="text-sm font-bold text-slate-900">{profile.fullName}</div>
-              {profileMeta && <div className="text-xs text-slate-500">{profileMeta}</div>}
+              <div className="text-xs text-slate-500">{profile?.cargo}</div>
             </div>
           )}
         </div>

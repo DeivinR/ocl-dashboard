@@ -43,11 +43,6 @@ export const Header = ({
           <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 md:flex">
             <span>{profile.fullName}</span>
             {profile.cargo && <span className="text-slate-500">({profile.cargo})</span>}
-            {profile.accessLevel && (
-              <span className="rounded-full bg-ocl-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                {profile.accessLevel}
-              </span>
-            )}
           </div>
         )}
 
