@@ -1,6 +1,7 @@
 import { Briefcase, LogOut, ChevronRight, UploadCloud, TrendingUp, Sparkles, SendHorizontal } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useChat } from '../hooks/useSocketChat';
 
 interface Section {
   id: string;
@@ -37,13 +38,31 @@ interface LandingPageProps {
 export const LandingPage = ({ onSectionSelect, onUpload, onLogout, onSendMessage }: Readonly<LandingPageProps>) => {
   const { profile } = useAuth();
   const [query, setQuery] = useState('');
+  const [streamingResponse, setStreamingResponse] = useState('');
+
+  const handleToken = useCallback((token: string) => {
+    setStreamingResponse((prev) => prev + token);
+  }, []);
+
+  const { sendMessage: sendSocketMessage, isConnected } = useChat({
+    onToken: handleToken,
+    enabled: true,
+  });
 
   const handleChatSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (query.trim()) {
-      onSendMessage?.(query);
-      setQuery('');
+    if (!query.trim()) return;
+
+    const message = query.trim();
+    setQuery('');
+    setStreamingResponse('');
+
+    if (isConnected) {
+      const conversationId = `conv-${Date.now()}`;
+      sendSocketMessage(conversationId, message);
     }
+
+    onSendMessage?.(message);
   };
 
   return (
@@ -108,22 +127,31 @@ export const LandingPage = ({ onSectionSelect, onUpload, onLogout, onSendMessage
                 </button>
               </div>
               <div className="flex items-center gap-2 border-t border-slate-50 bg-slate-50/50 px-4 py-2">
-                <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Sugestões:</span>
-                <button
-                  type="button"
-                  onClick={() => setQuery('Resumo de performance mensal')}
-                  className="text-xs text-slate-500 transition-colors hover:text-ocl-primary"
-                >
-                  "Resumo mensal"
-                </button>
-                <span className="text-slate-300">•</span>
-                <button
-                  type="button"
-                  onClick={() => setQuery('Status de entregas amigáveis')}
-                  className="text-xs text-slate-500 transition-colors hover:text-ocl-primary"
-                >
-                  "Status de entregas"
-                </button>
+                {streamingResponse && (
+                  <div className="flex-1 text-xs text-slate-700">
+                    <strong>Resposta:</strong> {streamingResponse}
+                  </div>
+                )}
+                {!streamingResponse && (
+                  <>
+                    <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Sugestões:</span>
+                    <button
+                      type="button"
+                      onClick={() => setQuery('Resumo de performance mensal')}
+                      className="text-xs text-slate-500 transition-colors hover:text-ocl-primary"
+                    >
+                      "Resumo mensal"
+                    </button>
+                    <span className="text-slate-300">•</span>
+                    <button
+                      type="button"
+                      onClick={() => setQuery('Status de entregas amigáveis')}
+                      className="text-xs text-slate-500 transition-colors hover:text-ocl-primary"
+                    >
+                      "Status de entregas"
+                    </button>
+                  </>
+                )}
               </div>
             </form>
           </div>
