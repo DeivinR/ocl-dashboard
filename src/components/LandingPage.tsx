@@ -36,7 +36,7 @@ interface LandingPageProps {
 }
 
 export const LandingPage = ({ onSectionSelect, onUpload, onLogout, onSendMessage }: Readonly<LandingPageProps>) => {
-  const { profile } = useAuth();
+  const { profile, supabase } = useAuth();
   const [query, setQuery] = useState('');
   const [streamingResponse, setStreamingResponse] = useState('');
 
@@ -44,9 +44,17 @@ export const LandingPage = ({ onSectionSelect, onUpload, onLogout, onSendMessage
     setStreamingResponse((prev) => prev + token);
   }, []);
 
+  const getAccessToken = useCallback(
+    () =>
+      supabase?.auth.getSession().then(({ data }) => data.session?.access_token ?? null) ??
+      Promise.resolve(null),
+    [supabase],
+  );
+
   const { sendMessage: sendSocketMessage, isConnected } = useChat({
     onToken: handleToken,
     enabled: true,
+    getAccessToken,
   });
 
   const handleChatSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {

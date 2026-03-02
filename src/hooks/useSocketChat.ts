@@ -5,11 +5,14 @@ interface UseSocketChatOptions {
   onToken?: (token: string) => void;
   onDone?: () => void;
   enabled?: boolean;
+  getAccessToken?: () => Promise<string | null>;
 }
 
-export const useChat = ({ onToken, onDone, enabled = true }: UseSocketChatOptions = {}) => {
+export const useChat = ({ onToken, onDone, enabled = true, getAccessToken }: UseSocketChatOptions = {}) => {
   const socketRef = useRef<Socket | null>(null);
   const isFirstCleanup = useRef(true);
+  const getAccessTokenRef = useRef(getAccessToken);
+  getAccessTokenRef.current = getAccessToken;
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,56 +20,86 @@ export const useChat = ({ onToken, onDone, enabled = true }: UseSocketChatOption
     if (!enabled) return;
 
     const wsUrl = import.meta.env.VITE_OCL_DASHBOARD_BACKEND_URL || 'http://localhost:3000';
-    const token = localStorage.getItem('supabase.auth.token');
-    const socket = io(wsUrl, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      timeout: 10000,
-      auth: { token },
-    });
+    let cancelled = false;
+    const getToken = getAccessTokenRef.current;
 
-    socketRef.current = socket;
+    const connect = (token: string | null): (() => void) => {
+      if (cancelled) return () => {};
+      const socket = io(wsUrl, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        timeout: 10000,
+        auth: { token },
+      });
 
-    socket.on('connect', () => {
-      setIsConnected(true);
-      setError(null);
-    });
+      socketRef.current = socket;
 
-    socket.on('disconnect', () => {
-      setIsConnected(false);
-    });
+      socket.on('connect', () => {
+        setIsConnected(true);
+        setError(null);
+      });
 
-    socket.on('connect_error', (err) => {
-      setError(err.message);
-      setIsConnected(false);
-    });
+      socket.on('disconnect', () => {
+        setIsConnected(false);
+      });
 
-    socket.on('token', (data: { text: string } | string) => {
-      const token = typeof data === 'string' ? data : data.text;
-      onToken?.(token);
-    });
+      socket.on('connect_error', (err) => {
+        setError(err.message);
+        setIsConnected(false);
+      });
 
-    socket.on('done', () => {
-      onDone?.();
-    });
+      socket.on('token', (data: { text: string } | string) => {
+        const t = typeof data === 'string' ? data : data.text;
+        onToken?.(t);
+      });
 
-    socket.on('error', (data: { message: string }) => {
-      setError(data.message);
-    });
+      socket.on('done', () => {
+        onDone?.();
+      });
 
-    return () => {
-      if (isFirstCleanup.current) {
-        isFirstCleanup.current = false;
-        return;
-      }
+      socket.on('error', (data: { message: string }) => {
+        setError(data.message);
+      });
 
-      if (socket?.connected) {
-        socket.disconnect();
-      }
-      socketRef.current = null;
+      return () => {
+        if (isFirstCleanup.current) {
+          isFirstCleanup.current = false;
+          return;
+        }
+        if (socket?.connected) {
+          socket.disconnect();
+        }
+        socketRef.current = null;
+      };
     };
+
+    if (getToken) {
+      let cleanup: (() => void) | null = null;
+      getToken().then((token) => {
+        if (!cancelled) cleanup = connect(token);
+      });
+      return () => {
+        cancelled = true;
+        cleanup?.();
+      };
+    }
+
+    let token: string | null = null;
+    if (typeof sessionStorage !== 'undefined') {
+      const sbKey = Object.keys(sessionStorage).find((k) => /^sb-[^-]+-auth-token$/.test(k));
+      if (sbKey) {
+        try {
+          const raw = sessionStorage.getItem(sbKey);
+          const parsed = raw ? (JSON.parse(raw) as { access_token?: string }) : null;
+          token = parsed?.access_token ?? null;
+        } catch {
+          token = null;
+        }
+      }
+    }
+    return connect(token);
   }, [enabled, onToken, onDone]);
 
   const sendMessage = useCallback((conversationId: string, message: string) => {
