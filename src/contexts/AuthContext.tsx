@@ -8,6 +8,13 @@ const SUPABASE_URL = import.meta.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.SUPABASE_ANON_KEY || '';
 const INACTIVITY_LIMIT = 10 * 60 * 1000;
 
+const supabaseSingleton: SupabaseClient<Database> | null =
+  SUPABASE_URL.length > 0 && SUPABASE_ANON_KEY.length > 0
+    ? createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { storage: globalThis.sessionStorage },
+      })
+    : null;
+
 interface AuthContextValue {
   supabase: SupabaseClient<Database> | null;
   user: unknown;
@@ -35,14 +42,8 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isHomolog, setIsHomolog] = useState(false);
   const [loading, setLoading] = useState(true);
-  const isConfigured = SUPABASE_URL.length > 0 && SUPABASE_ANON_KEY.length > 0;
-
-  const supabase = useMemo(() => {
-    if (!isConfigured) return null;
-    return createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { storage: globalThis.sessionStorage },
-    });
-  }, [isConfigured]);
+  const isConfigured = supabaseSingleton !== null;
+  const supabase = supabaseSingleton;
 
   const logout = useCallback(async () => {
     if (supabase) {

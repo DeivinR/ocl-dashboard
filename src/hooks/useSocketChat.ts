@@ -4,11 +4,20 @@ import { io, Socket } from 'socket.io-client';
 interface UseSocketChatOptions {
   onToken?: (token: string) => void;
   onDone?: () => void;
+  onCancelled?: () => void;
+  onError?: (message: string) => void;
   enabled?: boolean;
   getAccessToken?: () => Promise<string | null>;
 }
 
-export const useChat = ({ onToken, onDone, enabled = true, getAccessToken }: UseSocketChatOptions = {}) => {
+export const useChat = ({
+  onToken,
+  onDone,
+  onCancelled,
+  onError,
+  enabled = true,
+  getAccessToken,
+}: UseSocketChatOptions = {}) => {
   const socketRef = useRef<Socket | null>(null);
   const isFirstCleanup = useRef(true);
   const getAccessTokenRef = useRef(getAccessToken);
@@ -50,17 +59,23 @@ export const useChat = ({ onToken, onDone, enabled = true, getAccessToken }: Use
         setIsConnected(false);
       });
 
-      socket.on('token', (data: { text: string } | string) => {
-        const t = typeof data === 'string' ? data : data.text;
-        onToken?.(t);
+      socket.on('token', (chunk: string) => {
+        if (typeof chunk === 'string') onToken?.(chunk);
       });
 
       socket.on('done', () => {
         onDone?.();
       });
 
+      socket.on('cancelled', () => {
+        onCancelled?.();
+        if (!onCancelled) onDone?.();
+      });
+
       socket.on('error', (data: { message: string }) => {
-        setError(data.message);
+        const msg = data?.message ?? 'Unknown error';
+        setError(msg);
+        onError?.(msg);
       });
 
       return () => {
@@ -103,17 +118,26 @@ export const useChat = ({ onToken, onDone, enabled = true, getAccessToken }: Use
   }, [enabled, onToken, onDone]);
 
   const sendMessage = useCallback((conversationId: string, message: string) => {
-    if (!socketRef.current?.connected) {
-      return false;
-    }
-
+    if (!socketRef.current?.connected) return false;
     socketRef.current.emit('chat', { conversationId, message });
+    setError(null);
     return true;
   }, []);
 
+  const cancel = useCallback(() => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('cancelStream');
+      socketRef.current.emit('cancel');
+    }
+  }, []);
+
+  const clearError = useCallback(() => setError(null), []);
+
   return {
     sendMessage,
+    cancel,
     isConnected,
     error,
+    clearError,
   };
 };
