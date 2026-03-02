@@ -79,7 +79,7 @@ export const LandingPage = ({ onSectionSelect, onUpload, onLogout, onSendMessage
           {profile?.fullName && (
             <div className="hidden flex-col leading-tight md:flex">
               <div className="text-sm font-bold text-slate-900">{profile.fullName}</div>
-              <div className="text-xs text-slate-500">{profile?.cargo}</div>
+              <div className="text-xs text-slate-500">{profile?.role}</div>
             </div>
           )}
         </div>

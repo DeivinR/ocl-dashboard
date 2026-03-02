@@ -42,7 +42,7 @@ export const Header = ({
         {profile?.fullName && (
           <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 md:flex">
             <span>{profile.fullName}</span>
-            {profile.cargo && <span className="text-slate-500">({profile.cargo})</span>}
+            {profile.role && <span className="text-slate-500">({profile.role})</span>}
           </div>
         )}
 

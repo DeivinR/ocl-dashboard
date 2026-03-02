@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
         setIsHomolog(false);
         (supabase as unknown as SupabaseClient<any>)
           .from('profiles')
-          .select('id, full_name, cargo, access_level, created_at')
+          .select('id, full_name, role, access_level, created_at')
           .eq('id', typedSession.user.id)
           .single()
           .then(({ data: profileData, error }: { data: any; error: any }) => {
@@ -104,10 +104,10 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
             }
             setProfile({
               id: profileData.id,
-              fullName: profileData.full_name ?? null,
-              cargo: profileData.cargo ?? null,
-              accessLevel: profileData.access_level ?? null,
-              createdAt: profileData.created_at ?? null,
+              fullName: profileData.full_name ?? '',
+              role: profileData.role ?? '',
+              accessLevel: profileData.access_level ?? '',
+              createdAt: profileData.created_at ?? '',
             });
           });
         if (!data) {
