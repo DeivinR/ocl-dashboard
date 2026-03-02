@@ -45,9 +45,7 @@ export const LandingPage = ({ onSectionSelect, onUpload, onLogout, onSendMessage
   }, []);
 
   const getAccessToken = useCallback(
-    () =>
-      supabase?.auth.getSession().then(({ data }) => data.session?.access_token ?? null) ??
-      Promise.resolve(null),
+    () => supabase?.auth.getSession().then(({ data }) => data.session?.access_token ?? null) ?? Promise.resolve(null),
     [supabase],
   );
 

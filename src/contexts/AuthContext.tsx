@@ -87,7 +87,6 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
       if (typedSession) {
         setUser(typedSession.user);
         setIsHomolog(false);
-        setProfile(null);
         (supabase as unknown as SupabaseClient<any>)
           .from('profiles')
           .select('id, full_name, cargo, access_level, created_at')
