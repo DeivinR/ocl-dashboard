@@ -1,8 +1,9 @@
-import { SendHorizontal } from 'lucide-react';
-import { ComposerPrimitive, useAuiState } from '@assistant-ui/react';
+import { SendHorizontal, Square } from 'lucide-react';
+import { ComposerPrimitive, useAui, useAuiState } from '@assistant-ui/react';
 
 export function ChatComposer() {
   const isRunning = useAuiState((s) => s.thread).isRunning;
+  const aui = useAui();
 
   return (
     <div className="border-t border-slate-100 bg-white/80 px-4 py-4 backdrop-blur-sm">
@@ -13,12 +14,20 @@ export function ChatComposer() {
           rows={1}
         />
 
-        <ComposerPrimitive.Send
-          disabled={isRunning}
-          className="flex h-9 w-9 items-center justify-center rounded-xl bg-ocl-primary text-white shadow-sm transition-all duration-200 hover:scale-105 hover:bg-ocl-dark active:scale-95 disabled:cursor-not-allowed disabled:opacity-20 disabled:grayscale disabled:hover:scale-100"
-        >
-          <SendHorizontal size={18} strokeWidth={2.5} className={isRunning ? 'animate-pulse' : ''} />
-        </ComposerPrimitive.Send>
+        {isRunning ? (
+          <button
+            type="button"
+            onClick={() => aui.thread().cancelRun()}
+            className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white transition-all duration-200 hover:bg-red-500 hover:shadow-md hover:shadow-red-200 active:scale-90"
+          >
+            <span className="absolute inset-0 animate-ping rounded-xl bg-slate-400 opacity-20" />
+            <Square size={12} strokeWidth={4} fill="currentColor" className="relative z-10" />
+          </button>
+        ) : (
+          <ComposerPrimitive.Send className="flex h-9 w-9 items-center justify-center rounded-xl bg-ocl-primary text-white shadow-sm transition-all duration-200 hover:scale-105 hover:bg-ocl-dark active:scale-95 disabled:cursor-not-allowed disabled:opacity-20 disabled:grayscale">
+            <SendHorizontal size={18} strokeWidth={2.5} />
+          </ComposerPrimitive.Send>
+        )}
       </ComposerPrimitive.Root>
 
       <p className="mx-auto mt-3 max-w-3xl text-center text-[11px] font-medium tracking-wide text-slate-400/80">
