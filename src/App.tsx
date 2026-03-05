@@ -27,6 +27,11 @@ const App = () => {
     setSelectedSection('chat');
   }, []);
 
+  const handleOpenChat = useCallback(() => {
+    setSelectedSection('chat');
+    setInitialChatMessage(null);
+  }, []);
+
   const handleChatBack = useCallback(() => {
     setSelectedSection(null);
     setInitialChatMessage(null);
@@ -48,6 +53,7 @@ const App = () => {
         onUpload={() => setSelectedSection('upload')}
         onLogout={logout}
         onSendMessage={handleSendMessage}
+        onOpenChat={handleOpenChat}
       />
     );
 
@@ -99,17 +105,15 @@ const App = () => {
 
   return (
     <AppShell
-      menu={menu}
-      activeTab={activeTab}
+      tabs={{ menu, activeTab, prevTab, nextTab, onTabChange: setActiveTab }}
+      sidebar={{
+        isOpen: isSidebarOpen,
+        onToggle: () => setSidebarOpen(!isSidebarOpen),
+        onClose: () => setSidebarOpen(false),
+      }}
       isMobile={isMobile}
-      isSidebarOpen={isSidebarOpen}
       isHomolog={isHomolog}
       currentDU={data?.currentDU}
-      prevTab={prevTab}
-      nextTab={nextTab}
-      onTabChange={setActiveTab}
-      onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
-      onCloseSidebar={() => setSidebarOpen(false)}
       onLogout={logout}
       onBackToSections={() => setSelectedSection(null)}
     >
