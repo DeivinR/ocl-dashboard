@@ -87,6 +87,7 @@ const App = () => {
   const dataContent = data ? (
     <ProductDashboard
       category={activeTab}
+      categoryLabel={menu.find((m) => m.id === activeTab)?.label}
       data={data}
       isMobile={isMobile}
       onNext={goToNext}

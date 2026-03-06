@@ -2,26 +2,35 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { LayoutDashboard, Wallet, Handshake, Car, Gavel, FileText, ShieldAlert } from 'lucide-react';
 import type { MenuItem } from '../components/shell/Sidebar';
 
-const FULL_MENU: MenuItem[] = [
-  { id: 'CONSOLIDADO', label: 'Visão Geral', icon: LayoutDashboard },
-  { id: 'CASH', label: 'Cash (Recuperação)', icon: Wallet },
-  { id: 'RENEGOCIAÇÃO', label: 'Renegociação', icon: Handshake },
+const DESEMPENHO_MENU: MenuItem[] = [
+  { id: 'CASH', label: 'Repasse', icon: Wallet },
+  { id: 'RENEGOCIAÇÃO', label: 'Saldo Renegociado', icon: Handshake },
   { id: 'ENTREGA AMIGÁVEL', label: 'Entrega Amigável', icon: Car },
   { id: 'APREENSÃO', label: 'Apreensão', icon: Gavel },
   { id: 'RETOMADAS', label: 'Retomadas', icon: FileText },
   { id: 'CONTENÇÃO', label: 'Contenção de Rolagem', icon: ShieldAlert, spacing: true },
 ];
 
-export const useNavigation = (section?: string) => {
-  const menu = useMemo(() => {
-    if (section === 'desempenho') {
-      return FULL_MENU.filter((item) => item.id !== 'CONSOLIDADO');
-    }
-    return FULL_MENU;
-  }, [section]);
+const HONORARIO_MENU: MenuItem[] = [
+  { id: 'CONSOLIDADO', label: 'Visão Geral', icon: LayoutDashboard },
+  { id: 'CASH', label: 'Cash (Recuperação)', icon: Wallet },
+  { id: 'RENEGOCIAÇÃO', label: 'Renegociação', icon: Handshake },
+  { id: 'ENTREGA AMIGÁVEL', label: 'Entrega Amigável', icon: Car },
+  { id: 'APREENSÃO', label: 'Apreensão', icon: Gavel },
+  { id: 'RETOMADAS', label: 'Retomadas', icon: FileText },
+];
 
-  const defaultTab = useMemo(() => {
-    return section === 'desempenho' ? 'CASH' : 'CONSOLIDADO';
+const SECTION_MENUS: Record<string, { menu: MenuItem[]; defaultTab: string }> = {
+  desempenho: { menu: DESEMPENHO_MENU, defaultTab: 'CASH' },
+  honorario: { menu: HONORARIO_MENU, defaultTab: 'CONSOLIDADO' },
+};
+
+export const useNavigation = (section?: string) => {
+  const { menu, defaultTab } = useMemo(() => {
+    if (section && SECTION_MENUS[section]) {
+      return SECTION_MENUS[section];
+    }
+    return { menu: HONORARIO_MENU, defaultTab: 'CONSOLIDADO' };
   }, [section]);
 
   const [activeTab, setActiveTab] = useState(defaultTab);

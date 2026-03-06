@@ -21,6 +21,7 @@ import { AnalyticalTable } from './AnalyticalTable';
 
 interface ProductDashboardProps {
   category: string;
+  categoryLabel?: string;
   data: DashboardData;
   isMobile: boolean;
   onNext: () => void;
@@ -30,6 +31,7 @@ interface ProductDashboardProps {
 
 export const ProductDashboard = ({
   category,
+  categoryLabel,
   data,
   isMobile,
   onNext,
@@ -60,7 +62,7 @@ export const ProductDashboard = ({
               {category === 'APREENSÃO' && <Gavel size={20} />}
               {category === 'RETOMADAS' && <FileText size={20} />}
               {category === 'CONTENÇÃO' && <ShieldAlert size={20} />}
-              <span className="text-sm font-semibold uppercase tracking-widest">{category}</span>
+              <span className="text-sm font-semibold uppercase tracking-widest">{categoryLabel ?? category}</span>
             </div>
             <h1 className="mb-2 text-4xl font-bold md:text-5xl">
               {type === 'currency' ? formatCurrency(kpis.current) : formatNumber(kpis.current)}
