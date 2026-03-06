@@ -40,7 +40,7 @@ function MdP({ node: _n, children, ...p }: MdProps<HTMLParagraphElement>) {
 
 function MdUl({ node: _n, children, ...p }: MdProps<HTMLUListElement>) {
   return (
-    <ul {...p} className="mb-4 ml-5 list-disc space-y-1 text-sm leading-relaxed text-slate-800">
+    <ul {...p} className="mb-4 ml-5 list-disc space-y-1 text-sm leading-relaxed text-slate-800 [&_p]:mb-0">
       {children}
     </ul>
   );
@@ -88,8 +88,8 @@ function MdBlockquote({ node: _n, children, ...p }: MdProps<HTMLQuoteElement>) {
 
 function MdTable({ children }: MdProps<HTMLTableElement>) {
   return (
-    <div className="my-6 overflow-hidden rounded-lg border border-slate-200">
-      <table className="w-full border-collapse text-left text-sm">{children}</table>
+    <div className="my-6 w-full overflow-x-auto rounded-lg border border-slate-200">
+      <table className="w-full min-w-max border-collapse text-left text-sm">{children}</table>
     </div>
   );
 }
