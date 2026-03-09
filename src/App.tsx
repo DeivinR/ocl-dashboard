@@ -9,6 +9,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { LandingPage } from './components/LandingPage';
 import { DataUploadPage } from './components/DataUploadPage';
 // import { ChatPage } from './components/ChatPage';
+// Teste de commit
 
 const ProductDashboard = lazy(() =>
   import('./components/ProductDashboard').then((m) => ({ default: m.ProductDashboard })),
