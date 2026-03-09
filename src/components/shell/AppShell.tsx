@@ -21,7 +21,6 @@ interface AppShellProps {
   tabs: AppShellTabs;
   sidebar: AppShellSidebar;
   isMobile: boolean;
-  isHomolog: boolean;
   currentDU: number | undefined;
   onLogout: () => void;
   onBackToSections?: () => void;
@@ -32,7 +31,6 @@ export const AppShell = ({
   tabs,
   sidebar,
   isMobile,
-  isHomolog,
   currentDU,
   onLogout,
   onBackToSections,
@@ -52,7 +50,6 @@ export const AppShell = ({
         activeTab={tabs.activeTab}
         isOpen={sidebar.isOpen}
         isMobile={isMobile}
-        isHomolog={isHomolog}
         onTabChange={(id) => {
           tabs.onTabChange(id);
           if (isMobile) sidebar.onClose();
@@ -80,7 +77,7 @@ export const AppShell = ({
               className="fixed inset-0 z-40 m-0 h-full w-full cursor-default appearance-none border-none bg-black/50 p-0"
               aria-label="Fechar menu"
               onClick={sidebar.onClose}
-            ></button>
+            />
           )}
           {children}
         </div>

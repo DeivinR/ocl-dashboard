@@ -11,70 +11,43 @@ interface SupabaseAuthClient {
 
 interface LoginScreenProps {
   supabase: SupabaseAuthClient | null;
-  onHomolog: () => void;
   configError: boolean;
 }
 
-export const LoginScreen = ({ supabase, onHomolog, configError }: Readonly<LoginScreenProps>) => {
+export const LoginScreen = ({ supabase, configError }: Readonly<LoginScreenProps>) => {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [mode, setMode] = useState<'prod' | 'homolog'>('prod');
 
   const handleLogin = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg('');
-    if (mode === 'homolog') {
-      if (email === 'admin@avocati.adv.br' && pass === 'abc@123') {
-        onHomolog();
-        setLoading(false);
-      } else {
-        setErrorMsg('Credenciais inválidas');
-        setLoading(false);
-      }
-    } else {
-      if (!supabase) {
-        setErrorMsg('Erro crítico: Supabase off.');
-        setLoading(false);
-        return;
-      }
-      try {
-        const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-        if (error) throw error;
-        setLoading(false);
-      } catch (err) {
-        let msg = 'Erro desconhecido.';
-        if ((err as Error).message.includes('Invalid login')) msg = 'E-mail ou senha incorretos.';
-        setErrorMsg(msg);
-        setLoading(false);
-      }
+    if (!supabase) {
+      setErrorMsg('Erro crítico: Supabase off.');
+      setLoading(false);
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+      if (error) throw error;
+      setLoading(false);
+    } catch (err) {
+      let msg = 'Erro desconhecido.';
+      if ((err as Error).message.includes('Invalid login')) msg = 'E-mail ou senha incorretos.';
+      setErrorMsg(msg);
+      setLoading(false);
     }
   };
 
-  const modeLabel = mode === 'homolog' ? 'Acessar Homologação' : 'Entrar';
-  const buttonLabel = loading ? <Loader2 className="mx-auto animate-spin" /> : modeLabel;
+  const buttonLabel = loading ? <Loader2 className="mx-auto animate-spin" /> : 'Entrar';
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-brand-bg p-4">
       <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl md:p-12">
         <img src={LOGO_DARK_URL} alt="OCL" className="mx-auto mb-8 h-16 object-contain" />
-        <div className="mb-6 flex rounded-xl bg-slate-100 p-1">
-          <button
-            onClick={() => setMode('prod')}
-            className={`flex-1 rounded-lg py-2 text-sm font-bold transition-all ${mode === 'prod' ? 'bg-white text-ocl-primary shadow' : 'text-slate-400'}`}
-          >
-            Oficial
-          </button>
-          <button
-            onClick={() => setMode('homolog')}
-            className={`flex-1 rounded-lg py-2 text-sm font-bold transition-all ${mode === 'homolog' ? 'bg-white text-amber-600 shadow' : 'text-slate-400'}`}
-          >
-            Teste
-          </button>
-        </div>
-        {configError && mode === 'prod' && (
+        {configError && (
           <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left">
             <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-amber-800">
               <AlertTriangle size={16} /> Configuração
@@ -116,7 +89,7 @@ export const LoginScreen = ({ supabase, onHomolog, configError }: Readonly<Login
           )}
           <button
             type="submit"
-            className={`w-full transform rounded-xl py-4 font-bold text-white transition-all hover:scale-[1.02] ${mode === 'homolog' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-ocl-primary hover:bg-ocl-hover'}`}
+            className="w-full transform rounded-xl py-4 font-bold text-white transition-all hover:scale-[1.02] bg-ocl-primary hover:bg-ocl-hover"
           >
             {buttonLabel}
           </button>
