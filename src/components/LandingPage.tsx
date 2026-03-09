@@ -12,8 +12,8 @@ interface Section {
 
 const SECTIONS: Section[] = [
   {
-    id: 'honorario',
-    title: 'Honorário',
+    id: 'honorarios',
+    title: 'Honorários',
     description: 'Gestão de recuperação, renegociação e entrega amigável',
     icon: Briefcase,
     color: 'from-ocl-primary to-ocl-secondary',
