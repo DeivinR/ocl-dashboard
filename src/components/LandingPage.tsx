@@ -30,10 +30,20 @@ interface LandingPageProps {
   onSectionSelect: (sectionId: string) => void;
   onUpload: () => void;
   onLogout: () => void;
+  onSendMessage?: (message: string) => void;
+  onOpenChat?: () => void;
 }
 
 export const LandingPage = ({ onSectionSelect, onUpload, onLogout }: Readonly<LandingPageProps>) => {
   const { profile } = useAuth();
+  // const [query, setQuery] = useState('');
+  // const handleChatSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
+  //   e.preventDefault();
+  //   if (!query.trim()) return;
+  //   const message = query.trim();
+  //   setQuery('');
+  //   onSendMessage?.(message);
+  // };
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
@@ -43,11 +53,20 @@ export const LandingPage = ({ onSectionSelect, onUpload, onLogout }: Readonly<La
           {profile?.fullName && (
             <div className="hidden flex-col leading-tight md:flex">
               <div className="text-sm font-bold text-slate-900">{profile.fullName}</div>
-              <div className="text-xs text-slate-500">{profile?.cargo}</div>
+              <div className="text-xs text-slate-500">{profile?.role}</div>
             </div>
           )}
         </div>
         <div className="flex items-center gap-3">
+          {/* {onOpenChat && (
+            <button
+              onClick={onOpenChat}
+              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 md:px-4"
+            >
+              <Bot size={18} />
+              <span className="hidden md:inline">Assistente</span>
+            </button>
+          )} */}
           <button
             onClick={onUpload}
             className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 md:px-4"
@@ -65,16 +84,59 @@ export const LandingPage = ({ onSectionSelect, onUpload, onLogout }: Readonly<La
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col items-center justify-center p-6">
+      <main className="flex flex-1 flex-col items-center px-6 py-12">
         <div className="w-full max-w-5xl">
-          <div className="mb-16 text-center">
-            <h1 className="mb-4 text-4xl font-bold text-slate-900 md:text-5xl">Bem-vindo ao Dashboard</h1>
-            <p className="mx-auto max-w-2xl text-lg text-slate-600">
-              Selecione um módulo abaixo para acessar suas ferramentas de gestão e relatórios.
-            </p>
+          <div className="mb-12 text-center">
+            <h1 className="mb-4 text-4xl font-bold text-slate-900 md:text-5xl">
+              Olá, {profile?.fullName?.split(' ')[0] || 'Bem-vindo'}!
+            </h1>
+            <p className="mx-auto max-w-2xl text-lg text-slate-600">O que você gostaria de analisar hoje?</p>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {/* <div className="mb-16">
+            <form
+              onSubmit={handleChatSubmit}
+              className="group relative mx-auto max-w-3xl overflow-hidden rounded-2xl bg-white p-2 shadow-xl ring-1 ring-slate-200 transition-all focus-within:ring-2 focus-within:ring-ocl-primary/50"
+            >
+              <div className="flex items-center gap-3 px-4 py-2">
+                <Sparkles className="animate-pulse text-ocl-primary" size={24} />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Pergunte sobre honorários, performance ou envie um comando..."
+                  className="flex-1 bg-transparent text-lg text-slate-800 outline-none placeholder:text-slate-400"
+                />
+                <button
+                  type="submit"
+                  disabled={!query.trim()}
+                  className="rounded-xl bg-ocl-primary p-3 text-white transition-all hover:bg-ocl-dark disabled:opacity-30"
+                >
+                  <SendHorizontal size={20} />
+                </button>
+              </div>
+              <div className="flex items-center gap-2 border-t border-slate-50 bg-slate-50/50 px-4 py-2">
+                <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Sugestões:</span>
+                <button
+                  type="button"
+                  onClick={() => setQuery('Resumo de performance mensal')}
+                  className="text-xs text-slate-500 transition-colors hover:text-ocl-primary"
+                >
+                  "Resumo mensal"
+                </button>
+                <span className="text-slate-300">•</span>
+                <button
+                  type="button"
+                  onClick={() => setQuery('Status de entregas amigáveis')}
+                  className="text-xs text-slate-500 transition-colors hover:text-ocl-primary"
+                >
+                  "Status de entregas"
+                </button>
+              </div>
+            </form>
+          </div> */}
+
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-2">
             {SECTIONS.map((section) => {
               const Icon = section.icon;
               return (

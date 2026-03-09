@@ -8,6 +8,13 @@ const SUPABASE_URL = import.meta.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.SUPABASE_ANON_KEY || '';
 const INACTIVITY_LIMIT = 10 * 60 * 1000;
 
+const supabaseSingleton: SupabaseClient<Database> | null =
+  SUPABASE_URL.length > 0 && SUPABASE_ANON_KEY.length > 0
+    ? createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { storage: globalThis.sessionStorage },
+      })
+    : null;
+
 interface AuthContextValue {
   supabase: SupabaseClient<Database> | null;
   user: unknown;
@@ -35,14 +42,8 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isHomolog, setIsHomolog] = useState(false);
   const [loading, setLoading] = useState(true);
-  const isConfigured = SUPABASE_URL.length > 0 && SUPABASE_ANON_KEY.length > 0;
-
-  const supabase = useMemo(() => {
-    if (!isConfigured) return null;
-    return createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { storage: globalThis.sessionStorage },
-    });
-  }, [isConfigured]);
+  const isConfigured = supabaseSingleton !== null;
+  const supabase = supabaseSingleton;
 
   const logout = useCallback(async () => {
     if (supabase) {
@@ -87,10 +88,9 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
       if (typedSession) {
         setUser(typedSession.user);
         setIsHomolog(false);
-        setProfile(null);
         (supabase as unknown as SupabaseClient<any>)
           .from('profiles')
-          .select('id, full_name, cargo, access_level, created_at')
+          .select('id, full_name, role, access_level, created_at')
           .eq('id', typedSession.user.id)
           .single()
           .then(({ data: profileData, error }: { data: any; error: any }) => {
@@ -105,10 +105,10 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
             }
             setProfile({
               id: profileData.id,
-              fullName: profileData.full_name ?? null,
-              cargo: profileData.cargo ?? null,
-              accessLevel: profileData.access_level ?? null,
-              createdAt: profileData.created_at ?? null,
+              fullName: profileData.full_name ?? '',
+              role: profileData.role ?? '',
+              accessLevel: profileData.access_level ?? '',
+              createdAt: profileData.created_at ?? '',
             });
           });
         if (!data) {

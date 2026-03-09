@@ -3,42 +3,44 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import type { MenuItem } from './Sidebar';
 
-interface AppShellProps {
+export interface AppShellTabs {
   menu: MenuItem[];
   activeTab: string;
-  isMobile: boolean;
-  isSidebarOpen: boolean;
-  isHomolog: boolean;
-  currentDU: number | undefined;
   prevTab: MenuItem | null;
   nextTab: MenuItem | null;
   onTabChange: (id: string) => void;
-  onToggleSidebar: () => void;
-  onCloseSidebar: () => void;
+}
+
+export interface AppShellSidebar {
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+}
+
+interface AppShellProps {
+  tabs: AppShellTabs;
+  sidebar: AppShellSidebar;
+  isMobile: boolean;
+  isHomolog: boolean;
+  currentDU: number | undefined;
   onLogout: () => void;
   onBackToSections?: () => void;
   children: ReactNode;
 }
 
 export const AppShell = ({
-  menu,
-  activeTab,
+  tabs,
+  sidebar,
   isMobile,
-  isSidebarOpen,
   isHomolog,
   currentDU,
-  prevTab,
-  nextTab,
-  onTabChange,
-  onToggleSidebar,
-  onCloseSidebar,
   onLogout,
   onBackToSections,
   children,
 }: Readonly<AppShellProps>) => {
   let mainMargin = 'ml-20';
   if (isMobile) mainMargin = 'ml-0';
-  else if (isSidebarOpen) mainMargin = 'ml-72';
+  else if (sidebar.isOpen) mainMargin = 'ml-72';
 
   return (
     <div
@@ -46,38 +48,38 @@ export const AppShell = ({
       style={{ minHeight: '100vh' }}
     >
       <Sidebar
-        menu={menu}
-        activeTab={activeTab}
-        isOpen={isSidebarOpen}
+        menu={tabs.menu}
+        activeTab={tabs.activeTab}
+        isOpen={sidebar.isOpen}
         isMobile={isMobile}
         isHomolog={isHomolog}
         onTabChange={(id) => {
-          onTabChange(id);
-          if (isMobile) onCloseSidebar();
+          tabs.onTabChange(id);
+          if (isMobile) sidebar.onClose();
         }}
-        onClose={onCloseSidebar}
+        onClose={sidebar.onClose}
         onLogout={onLogout}
         onBackToSections={onBackToSections}
       />
       <main className={`flex flex-1 flex-col transition-all duration-300 ${mainMargin}`} style={{ minHeight: '100vh' }}>
         <Header
-          menu={menu}
-          activeTab={activeTab}
+          menu={tabs.menu}
+          activeTab={tabs.activeTab}
           isMobile={isMobile}
           currentDU={currentDU}
-          prevTab={prevTab}
-          nextTab={nextTab}
-          onToggleSidebar={onToggleSidebar}
-          onTabChange={onTabChange}
+          prevTab={tabs.prevTab}
+          nextTab={tabs.nextTab}
+          onToggleSidebar={sidebar.onToggle}
+          onTabChange={tabs.onTabChange}
           onLogout={onLogout}
         />
         <div className="relative flex-1 overflow-y-auto p-4 md:p-8">
-          {isMobile && isSidebarOpen && (
+          {isMobile && sidebar.isOpen && (
             <button
               type="button"
               className="fixed inset-0 z-40 m-0 h-full w-full cursor-default appearance-none border-none bg-black/50 p-0"
               aria-label="Fechar menu"
-              onClick={onCloseSidebar}
+              onClick={sidebar.onClose}
             ></button>
           )}
           {children}
