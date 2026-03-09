@@ -21,11 +21,9 @@ interface AuthContextValue {
   data: DashboardData | null;
   profile: Profile | null;
   loading: boolean;
-  isHomolog: boolean;
   isConfigured: boolean;
   setData: (data: DashboardData | null) => void;
   logout: () => Promise<void>;
-  enterHomolog: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -40,7 +38,6 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
   const [user, setUser] = useState<unknown>(null);
   const [data, setData] = useState<DashboardData | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isHomolog, setIsHomolog] = useState(false);
   const [loading, setLoading] = useState(true);
   const isConfigured = supabaseSingleton !== null;
   const supabase = supabaseSingleton;
@@ -49,16 +46,10 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
     if (supabase) {
       await supabase.auth.signOut();
     }
-    setIsHomolog(false);
     setData(null);
     setProfile(null);
     setUser(null);
   }, [supabase]);
-
-  const enterHomolog = useCallback(() => {
-    setIsHomolog(true);
-    setLoading(false);
-  }, []);
 
   useEffect(() => {
     if (!user || !supabase) return;
@@ -87,7 +78,6 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
       const typedSession = session as { user: { id: string } } | null;
       if (typedSession) {
         setUser(typedSession.user);
-        setIsHomolog(false);
         (supabase as unknown as SupabaseClient<any>)
           .from('profiles')
           .select('id, full_name, role, access_level, created_at')
@@ -139,13 +129,11 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
       data,
       profile,
       loading,
-      isHomolog,
       isConfigured,
       setData,
       logout,
-      enterHomolog,
     }),
-    [supabase, user, data, profile, loading, isHomolog, isConfigured, logout, enterHomolog],
+    [supabase, user, data, profile, loading, isConfigured, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

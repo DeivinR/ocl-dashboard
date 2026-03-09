@@ -15,7 +15,6 @@ interface SidebarProps {
   activeTab: string;
   isOpen: boolean;
   isMobile: boolean;
-  isHomolog: boolean;
   onTabChange: (id: string) => void;
   onClose: () => void;
   onLogout: () => void;
@@ -27,7 +26,6 @@ export const Sidebar = ({
   activeTab,
   isOpen,
   isMobile,
-  isHomolog,
   onTabChange,
   onClose,
   onLogout,
@@ -78,9 +76,6 @@ export const Sidebar = ({
           <LogOut size={20} />
           {isOpen && <span className="text-sm">Sair do Sistema</span>}
         </button>
-        {isOpen && isHomolog && (
-          <div className="mt-2 text-center font-mono text-[10px] text-amber-400">AMBIENTE DE TESTE</div>
-        )}
       </div>
     </aside>
   );

@@ -9,14 +9,13 @@ import { LoginScreen } from './components/LoginScreen';
 import { LandingPage } from './components/LandingPage';
 import { DataUploadPage } from './components/DataUploadPage';
 // import { ChatPage } from './components/ChatPage';
-// Teste de commit
 
 const ProductDashboard = lazy(() =>
   import('./components/ProductDashboard').then((m) => ({ default: m.ProductDashboard })),
 );
 
 const App = () => {
-  const { user, data, setData, loading, isHomolog, isConfigured, supabase, logout, enterHomolog } = useAuth();
+  const { user, data, setData, loading, isConfigured, supabase, logout } = useAuth();
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   // const [initialChatMessage, setInitialChatMessage] = useState<string | null>(null);
   const { menu, activeTab, setActiveTab, prevTab, nextTab, goToNext } = useNavigation(selectedSection ?? undefined);
@@ -44,8 +43,8 @@ const App = () => {
         <Loader2 size={40} className="animate-spin text-ocl-primary" />
       </div>
     );
-  if (!user && !isHomolog)
-    return <LoginScreen supabase={supabase} onHomolog={enterHomolog} configError={!isConfigured} />;
+  if (!user)
+    return <LoginScreen supabase={supabase} configError={!isConfigured} />;
 
   if (!selectedSection)
     return (
@@ -77,7 +76,6 @@ const App = () => {
     return (
       <DataUploadPage
         supabase={supabase}
-        isHomolog={isHomolog}
         onDataSaved={setData}
         onBack={() => setSelectedSection(null)}
         onLogout={logout}
@@ -114,7 +112,6 @@ const App = () => {
         onClose: () => setSidebarOpen(false),
       }}
       isMobile={isMobile}
-      isHomolog={isHomolog}
       currentDU={data?.currentDU}
       onLogout={logout}
       onBackToSections={() => setSelectedSection(null)}

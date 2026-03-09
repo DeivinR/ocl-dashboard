@@ -9,10 +9,9 @@ import { Card } from './ui/Card';
 interface FileUploaderProps {
   supabase: SupabaseClient<Database> | null;
   onDataSaved: (data: DashboardData) => void;
-  isHomolog: boolean;
 }
 
-export const FileUploader = ({ supabase, onDataSaved, isHomolog }: Readonly<FileUploaderProps>) => {
+export const FileUploader = ({ supabase, onDataSaved }: Readonly<FileUploaderProps>) => {
   const [status, setStatus] = useState('idle');
   const [statusMsg, setStatusMsg] = useState('');
   const [manualDU, setManualDU] = useState('1');
@@ -47,7 +46,7 @@ export const FileUploader = ({ supabase, onDataSaved, isHomolog }: Readonly<File
         return;
       }
 
-      if (mode === 'cloud' && !isHomolog) {
+      if (mode === 'cloud') {
         if (!supabase) {
           alert('Supabase não inicializado.');
           setStatus('idle');
@@ -128,16 +127,13 @@ export const FileUploader = ({ supabase, onDataSaved, isHomolog }: Readonly<File
         </div>
 
         <div className="flex flex-col justify-center gap-4 md:flex-row">
-          <label
-            className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-ocl-primary px-6 py-3 font-bold text-white transition ${isHomolog ? 'cursor-not-allowed opacity-50' : 'hover:bg-ocl-hover'}`}
-          >
+          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-ocl-primary px-6 py-3 font-bold text-white transition hover:bg-ocl-hover">
             <Cloud size={20} /> Publicar na Nuvem (Oficial)
             <input
               type="file"
               className="hidden"
               accept=".csv"
               onChange={(e) => handleFile(e, 'cloud')}
-              disabled={isHomolog}
             />
           </label>
           <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-ocl-primary bg-white px-6 py-3 font-bold text-ocl-primary transition hover:bg-blue-50">

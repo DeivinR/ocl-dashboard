@@ -6,7 +6,6 @@ import { FileUploader } from './FileUploader';
 
 interface DataUploadPageProps {
   supabase: SupabaseClient<Database> | null;
-  isHomolog: boolean;
   onDataSaved: (data: DashboardData) => void;
   onBack: () => void;
   onLogout: () => void;
@@ -14,7 +13,6 @@ interface DataUploadPageProps {
 
 export const DataUploadPage = ({
   supabase,
-  isHomolog,
   onDataSaved,
   onBack,
   onLogout,
@@ -43,7 +41,7 @@ export const DataUploadPage = ({
       </header>
 
       <main className="flex-1 px-6">
-        <FileUploader supabase={supabase} onDataSaved={onDataSaved} isHomolog={isHomolog} />
+        <FileUploader supabase={supabase} onDataSaved={onDataSaved} />
       </main>
     </div>
   );
