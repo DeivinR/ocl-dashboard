@@ -16,7 +16,11 @@ export const AnalyticalTable = ({ history, currentDU, type, category, section }:
   const format = type === 'currency' ? formatCurrency : formatNumber;
   const hideTicketAndResultado =
     section === 'desempenho' &&
-    (category === 'ENTREGA AMIGÁVEL' || category === 'APREENSÃO' || category === 'RETOMADAS');
+    (category === 'ENTREGA AMIGÁVEL' ||
+      category === 'APREENSÃO' ||
+      category === 'RETOMADAS' ||
+      category === 'CONTENÇÃO');
+
   return (
     <div className="animate-fade-in mt-8">
       <div className="mb-4 flex items-center gap-2">
@@ -31,8 +35,11 @@ export const AnalyticalTable = ({ history, currentDU, type, category, section }:
                 <th className="whitespace-nowrap px-6 py-4 text-left font-semibold">Referência</th>
 
                 <th className="whitespace-nowrap px-6 py-4 text-center font-semibold">Quantidade</th>
-
-                <th className="whitespace-nowrap px-6 py-4 text-center font-semibold text-ocl-primary">Ticket Médio</th>
+                {!hideTicketAndResultado && (
+                  <th className="whitespace-nowrap px-6 py-4 text-center font-semibold text-ocl-primary">
+                    Ticket Médio
+                  </th>
+                )}
 
                 {!hideTicketAndResultado && (
                   <th className="whitespace-nowrap px-6 py-4 text-center font-semibold">
