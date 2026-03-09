@@ -42,12 +42,10 @@ export const MetricCard = ({
       </div>
       <div>
         <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">{title}</p>
-        <h3 className="text-ocl-primary text-2xl font-bold md:text-3xl">{format(value)}</h3>
+        <h3 className="text-2xl font-bold text-ocl-primary md:text-3xl">{format(value)}</h3>
       </div>
       <div className="mt-4 flex items-end justify-between border-t border-slate-50/50 pt-2">
-        <div className="flex max-w-[60%] items-center gap-1 text-xs font-medium text-slate-400">
-          <Users size={12} className="text-slate-300" /> {subtext}
-        </div>
+        <div className="flex max-w-[60%] items-center gap-1 text-xs font-medium text-slate-400">{subtext}</div>
         <div
           className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold ${isPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}
         >

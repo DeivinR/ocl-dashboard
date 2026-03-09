@@ -9,6 +9,7 @@ interface AnalyticalTableProps {
   type: 'currency' | 'number';
   category: string;
   section?: string;
+  hideQuantityColumn?: boolean;
 }
 
 export const AnalyticalTable = ({ history, currentDU, type, category, section }: Readonly<AnalyticalTableProps>) => {
@@ -29,15 +30,9 @@ export const AnalyticalTable = ({ history, currentDU, type, category, section }:
               <tr className="border-b border-slate-100 bg-slate-50/50 text-xs uppercase tracking-wider text-slate-500">
                 <th className="whitespace-nowrap px-6 py-4 text-left font-semibold">Referência</th>
 
-                {category !== 'CONTENÇÃO' && (
-                  <th className="whitespace-nowrap px-6 py-4 text-center font-semibold">Quantidade</th>
-                )}
+                <th className="whitespace-nowrap px-6 py-4 text-center font-semibold">Quantidade</th>
 
-                {category !== 'CONTENÇÃO' && !hideTicketAndResultado && (
-                  <th className="whitespace-nowrap px-6 py-4 text-center font-semibold text-ocl-primary">
-                    Ticket Médio
-                  </th>
-                )}
+                <th className="whitespace-nowrap px-6 py-4 text-center font-semibold text-ocl-primary">Ticket Médio</th>
 
                 {!hideTicketAndResultado && (
                   <th className="whitespace-nowrap px-6 py-4 text-center font-semibold">
@@ -62,13 +57,11 @@ export const AnalyticalTable = ({ history, currentDU, type, category, section }:
                     </div>
                   </td>
 
-                  {category !== 'CONTENÇÃO' && (
-                    <td className="whitespace-nowrap px-6 py-4 text-center align-middle font-medium text-slate-600">
-                      {row.countAtDU}
-                    </td>
-                  )}
+                  <td className="whitespace-nowrap px-6 py-4 text-center align-middle font-medium text-slate-600">
+                    {row.countAtDU}
+                  </td>
 
-                  {category !== 'CONTENÇÃO' && !hideTicketAndResultado && (
+                  {!hideTicketAndResultado && (
                     <td className="whitespace-nowrap px-6 py-4 text-center align-middle font-medium text-ocl-primary">
                       {formatCurrency(row.countAtDU > 0 ? row.valueAtDU / row.countAtDU : 0)}
                     </td>

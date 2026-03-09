@@ -6,7 +6,6 @@ import {
   Layers,
   TrendingUp,
   Clock,
-  Users,
   Activity,
   ArrowRight,
   Gavel,
@@ -44,6 +43,8 @@ export const ProductDashboard = ({
     section === 'desempenho' &&
     (category === 'ENTREGA AMIGÁVEL' || category === 'APREENSÃO' || category === 'RETOMADAS');
   const type = isContencao || isQuantityCategoryInDesempenho ? 'number' : 'currency';
+  const isDesempenho =
+    section === 'desempenho' && ['ENTREGA AMIGÁVEL', 'APREENSÃO', 'RETOMADAS', 'CONTENÇÃO'].includes(category);
   const varPrev = kpis.prev > 0 ? ((kpis.current - kpis.prev) / kpis.prev) * 100 : 0;
   const varAvg3 = kpis.avg3 > 0 ? ((kpis.current - kpis.avg3) / kpis.avg3) * 100 : 0;
 
@@ -72,9 +73,11 @@ export const ProductDashboard = ({
               <div className="inline-flex items-center justify-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm backdrop-blur-sm">
                 <Clock size={14} /> <span>Acumulado até o {kpis.currentDU}º Dia Útil</span>
               </div>
-              <div className="inline-flex items-center justify-center gap-2 rounded-full bg-black/20 px-4 py-1.5 text-xs font-medium text-white/90 backdrop-blur-sm">
-                <Users size={12} /> <span>{kpis.count} Qtd.</span>
-              </div>
+              {!isDesempenho && (
+                <div className="inline-flex items-center justify-center gap-2 rounded-full bg-black/20 px-4 py-1.5 text-xs font-medium text-white/90 backdrop-blur-sm">
+                  <span>{kpis.count} Qtd.</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -98,7 +101,7 @@ export const ProductDashboard = ({
           comparison={varPrev}
           type={type}
           icon={Activity}
-          subtext={`${Math.round(kpis.prevCount)} qtd.`}
+          subtext={isDesempenho ? '' : `${Math.round(kpis.prevCount)} qtd.`}
         />
         <MetricCard
           title="VS. MÉDIA TRIMESTRAL"
@@ -106,7 +109,7 @@ export const ProductDashboard = ({
           comparison={varAvg3}
           type={type}
           icon={Activity}
-          subtext={`Média: ${Math.round(kpis.avg3Count)} qtd.`}
+          subtext={isDesempenho ? '' : `Média: ${Math.round(kpis.avg3Count)} qtd.`}
         />
         <MetricCard
           title="VS. MÉDIA SEMESTRAL"
@@ -114,7 +117,7 @@ export const ProductDashboard = ({
           comparison={kpis.avg6 > 0 ? ((kpis.current - kpis.avg6) / kpis.avg6) * 100 : 0}
           type={type}
           icon={Activity}
-          subtext={`Média: ${Math.round(kpis.avg6Count)} qtd.`}
+          subtext={isDesempenho ? '' : `Média: ${Math.round(kpis.avg6Count)} qtd.`}
         />
       </div>
       <AnalyticalTable
