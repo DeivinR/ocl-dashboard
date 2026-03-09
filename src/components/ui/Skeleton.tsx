@@ -50,3 +50,33 @@ export const DashboardSkeleton = () => {
     </div>
   );
 };
+
+export const ConversationListSkeleton = () => (
+  <div className="space-y-2 p-2">
+    {Array.from({ length: 6 }, (_, i) => (
+      <div key={`conversation-skeleton-${i}`} className="flex flex-col gap-2 rounded-lg p-3">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-3 w-8" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+export const ChatMessagesSkeleton = () => (
+  <div className="flex flex-1 flex-col gap-4 p-4">
+    <div className="flex justify-start">
+      <Skeleton className="h-16 w-64 rounded-2xl rounded-bl-md" />
+    </div>
+    <div className="flex justify-end">
+      <Skeleton className="h-12 w-48 rounded-2xl rounded-br-md" />
+    </div>
+    <div className="flex justify-start">
+      <Skeleton className="h-20 w-72 rounded-2xl rounded-bl-md" />
+    </div>
+    <div className="flex justify-end">
+      <Skeleton className="h-10 w-32 rounded-2xl rounded-br-md" />
+    </div>
+  </div>
+);

@@ -1,4 +1,5 @@
 import { Sparkles } from 'lucide-react';
+import { useChatActions } from './SocketChatRuntime';
 
 const SUGGESTIONS = [
   'Qual o resumo de performance deste mês?',
@@ -6,7 +7,14 @@ const SUGGESTIONS = [
   'Top 5 contratos em atraso',
 ];
 
-export function EmptyState({ onSuggest }: Readonly<{ onSuggest: (text: string) => void }>) {
+interface EmptyStateProps {
+  onSuggest?: (text: string) => void;
+}
+
+export function EmptyState({ onSuggest: onSuggestProp }: Readonly<EmptyStateProps>) {
+  const actions = useChatActions();
+  const onSuggest = onSuggestProp ?? actions?.sendMessage ?? (() => {});
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-8 px-4 py-16">
       <div className="flex flex-col items-center gap-4">

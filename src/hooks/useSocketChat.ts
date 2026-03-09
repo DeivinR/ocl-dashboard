@@ -3,7 +3,7 @@ import { io, Socket } from 'socket.io-client';
 
 interface UseSocketChatOptions {
   onToken?: (token: string) => void;
-  onDone?: () => void;
+  onDone?: (payload?: { conversationId?: string }) => void;
   onCancelled?: () => void;
   onError?: (message: string) => void;
   enabled?: boolean;
@@ -22,6 +22,16 @@ export const useChat = ({
   const isFirstCleanup = useRef(true);
   const getAccessTokenRef = useRef(getAccessToken);
   getAccessTokenRef.current = getAccessToken;
+
+  const onTokenRef = useRef(onToken);
+  onTokenRef.current = onToken;
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+  const onCancelledRef = useRef(onCancelled);
+  onCancelledRef.current = onCancelled;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
+
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,22 +70,22 @@ export const useChat = ({
       });
 
       socket.on('token', (chunk: string) => {
-        if (typeof chunk === 'string') onToken?.(chunk);
+        if (typeof chunk === 'string') onTokenRef.current?.(chunk);
       });
 
-      socket.on('done', () => {
-        onDone?.();
+      socket.on('done', (payload?: { conversationId?: string }) => {
+        onDoneRef.current?.(payload);
       });
 
       socket.on('cancelled', () => {
-        onCancelled?.();
-        if (!onCancelled) onDone?.();
+        onCancelledRef.current?.();
+        if (!onCancelledRef.current) onDoneRef.current?.();
       });
 
       socket.on('error', (data: { message: string }) => {
         const msg = data?.message ?? 'Unknown error';
         setError(msg);
-        onError?.(msg);
+        onErrorRef.current?.(msg);
       });
 
       return () => {
@@ -115,7 +125,7 @@ export const useChat = ({
       }
     }
     return connect(token);
-  }, [enabled, onToken, onDone]);
+  }, [enabled]);
 
   const sendMessage = useCallback((conversationId: string, message: string) => {
     if (!socketRef.current?.connected) return false;

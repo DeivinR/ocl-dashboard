@@ -1,18 +1,27 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type { ThreadMessageLike } from '@assistant-ui/core';
 import type { AppendMessage } from '@assistant-ui/react';
 import { useExternalStoreRuntime, AssistantRuntimeProvider } from '@assistant-ui/react';
 import { useChat } from '../../hooks/useSocketChat';
 
-const CONVERSATION_ID_MAX = 100;
 const MESSAGE_MAX = 10_000;
 
 function genId() {
   return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
+export const ChatActionsContext = createContext<{ sendMessage: (text: string) => void } | null>(null);
+
+export function useChatActions() {
+  const ctx = useContext(ChatActionsContext);
+  return ctx;
+}
+
 interface SocketChatRuntimeProps {
   getAccessToken: () => Promise<string | null>;
+  conversationId: string;
+  initialMessages: ThreadMessageLike[];
+  onConversationCreated?: (id: string) => void;
   initialMessage: string | null;
   onInitialMessageConsumed: () => void;
   children: React.ReactNode;
@@ -20,15 +29,31 @@ interface SocketChatRuntimeProps {
 
 export function SocketChatRuntime({
   getAccessToken,
+  conversationId,
+  initialMessages,
+  onConversationCreated,
   initialMessage,
   onInitialMessageConsumed,
   children,
 }: Readonly<SocketChatRuntimeProps>) {
-  const [messages, setMessages] = useState<ThreadMessageLike[]>([]);
+  const [messages, setMessages] = useState<ThreadMessageLike[]>(() => initialMessages);
   const [isRunning, setIsRunning] = useState(false);
-  const conversationIdRef = useRef(`conv-${Date.now()}`);
+  const conversationIdRef = useRef(conversationId);
+  conversationIdRef.current = conversationId;
+  const initialMessagesRef = useRef(initialMessages);
+  initialMessagesRef.current = initialMessages;
   const streamingIdRef = useRef<string | null>(null);
   const lastErrorRef = useRef<string | null>(null);
+  const prevConversationIdRef = useRef(conversationId);
+
+  useEffect(() => {
+    if (prevConversationIdRef.current !== conversationId) {
+      prevConversationIdRef.current = conversationId;
+      setMessages(initialMessagesRef.current);
+      setIsRunning(false);
+      streamingIdRef.current = null;
+    }
+  }, [conversationId]);
 
   const finishStreaming = useCallback(
     (status: NonNullable<ThreadMessageLike['status']>) => {
@@ -41,9 +66,16 @@ export function SocketChatRuntime({
     []
   );
 
-  const onDone = useCallback(() => {
-    finishStreaming({ type: 'complete', reason: 'stop' });
-  }, [finishStreaming]);
+  const onConversationCreatedRef = useRef(onConversationCreated);
+  onConversationCreatedRef.current = onConversationCreated;
+
+  const onDone = useCallback(
+    (payload?: { conversationId?: string }) => {
+      if (payload?.conversationId) onConversationCreatedRef.current?.(payload.conversationId);
+      finishStreaming({ type: 'complete', reason: 'stop' });
+    },
+    [finishStreaming]
+  );
 
   const onCancelled = useCallback(() => {
     finishStreaming({ type: 'incomplete', reason: 'cancelled' });
@@ -103,9 +135,7 @@ export function SocketChatRuntime({
       };
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
       setIsRunning(true);
-      const cid = (conversationIdRef.current || `conv-${Date.now()}`).slice(0, CONVERSATION_ID_MAX);
-      conversationIdRef.current = cid;
-      sendMessage(cid, message);
+      sendMessage(conversationIdRef.current, message);
     },
     [sendMessage, clearError]
   );
@@ -146,21 +176,25 @@ export function SocketChatRuntime({
 
   const runtime = useExternalStoreRuntime(store);
 
+  const chatActions = useMemo(() => ({ sendMessage: runTurn }), [runTurn]);
+
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      {error && (
-        <div className="flex items-center justify-between gap-2 border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={clearError}
-            className="rounded px-2 py-1 font-medium hover:bg-red-100"
-          >
-            Fechar
-          </button>
-        </div>
-      )}
-      {children}
+      <ChatActionsContext.Provider value={chatActions}>
+        {error && (
+          <div className="flex items-center justify-between gap-2 border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={clearError}
+              className="rounded px-2 py-1 font-medium hover:bg-red-100"
+            >
+              Fechar
+            </button>
+          </div>
+        )}
+        {children}
+      </ChatActionsContext.Provider>
     </AssistantRuntimeProvider>
   );
 }
