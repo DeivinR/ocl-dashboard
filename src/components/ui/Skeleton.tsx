@@ -65,18 +65,26 @@ export const ConversationListSkeleton = () => (
 );
 
 export const ChatMessagesSkeleton = () => (
-  <div className="flex flex-1 flex-col gap-4 p-4">
-    <div className="flex justify-start">
-      <Skeleton className="h-16 w-64 rounded-2xl rounded-bl-md" />
+  <div className="flex flex-1 flex-col gap-0">
+    <div className="mx-auto flex w-full max-w-3xl items-end gap-2 px-4 pb-2 pt-4">
+      <Skeleton className="h-8 w-8 flex-shrink-0 rounded-full" />
+      <Skeleton className="h-14 w-64 rounded-2xl rounded-bl-sm" />
     </div>
-    <div className="flex justify-end">
-      <Skeleton className="h-12 w-48 rounded-2xl rounded-br-md" />
+    <div className="mx-auto flex w-full max-w-3xl justify-end px-4 pb-2 pt-4">
+      <div className="flex max-w-[80%] items-end gap-2">
+        <Skeleton className="h-12 w-48 rounded-2xl rounded-br-sm" />
+        <Skeleton className="h-8 w-8 flex-shrink-0 rounded-full" />
+      </div>
     </div>
-    <div className="flex justify-start">
-      <Skeleton className="h-20 w-72 rounded-2xl rounded-bl-md" />
+    <div className="mx-auto flex w-full max-w-3xl items-end gap-2 px-4 pb-2 pt-4">
+      <Skeleton className="h-8 w-8 flex-shrink-0 rounded-full" />
+      <Skeleton className="h-20 w-72 rounded-2xl rounded-bl-sm" />
     </div>
-    <div className="flex justify-end">
-      <Skeleton className="h-10 w-32 rounded-2xl rounded-br-md" />
+    <div className="mx-auto flex w-full max-w-3xl justify-end px-4 pb-2 pt-4">
+      <div className="flex max-w-[80%] items-end gap-2">
+        <Skeleton className="h-10 w-40 rounded-2xl rounded-br-sm" />
+        <Skeleton className="h-8 w-8 flex-shrink-0 rounded-full" />
+      </div>
     </div>
   </div>
 );

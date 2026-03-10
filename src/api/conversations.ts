@@ -22,6 +22,19 @@ export async function createConversation(getToken: GetToken): Promise<Conversati
   return res.json();
 }
 
+export async function updateConversation(
+  conversationId: string,
+  payload: { title: string },
+  getToken: GetToken,
+): Promise<Conversation> {
+  const res = await createAuthFetch(getToken)(`/conversations/${conversationId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
 export async function deleteConversation(conversationId: string, getToken: GetToken): Promise<void> {
   await createAuthFetch(getToken)(`/conversations/${conversationId}`, { method: 'DELETE' });
 }

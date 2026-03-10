@@ -15,7 +15,7 @@ const ProductDashboard = lazy(() =>
 );
 
 const App = () => {
-  const { user, data, setData, loading, isConfigured, supabase, logout } = useAuth();
+  const { user, data, profile, setData, loading, isConfigured, supabase, logout } = useAuth();
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [initialChatMessage, setInitialChatMessage] = useState<string | null>(null);
   const { menu, activeTab, setActiveTab, prevTab, nextTab, goToNext } = useNavigation(selectedSection ?? undefined);
@@ -67,6 +67,8 @@ const App = () => {
         onBack={handleChatBack}
         onUpload={() => setSelectedSection('upload')}
         onLogout={logout}
+        userName={profile?.fullName ?? ''}
+        userRole={profile?.role ?? ''}
       />
     );
   }

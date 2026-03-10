@@ -6,6 +6,7 @@ import {
   createConversation,
   getMessages,
   deleteConversation,
+  updateConversation,
 } from '../api/conversations';
 
 export const conversationKeys = {
@@ -59,6 +60,20 @@ export function useMessages(conversationId: string | null, getAccessToken: () =>
     enabled: !!conversationId,
     retry: false,
     refetchOnWindowFocus: false,
+  });
+}
+
+export function useUpdateConversation(getAccessToken: () => Promise<string | null>) {
+  const queryClient = useQueryClient();
+  const getAccessTokenRef = useRef(getAccessToken);
+  getAccessTokenRef.current = getAccessToken;
+
+  return useMutation<Conversation, Error, { conversationId: string; title: string }>({
+    mutationFn: ({ conversationId, title }) =>
+      updateConversation(conversationId, { title }, () => getAccessTokenRef.current()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: conversationKeys.all });
+    },
   });
 }
 
