@@ -1,24 +1,11 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { MessageSquarePlus, MessageCircle, AlertCircle, MoreVertical, Trash2, Loader2, Pencil } from 'lucide-react';
+import { AlertCircle, MoreVertical, Trash2, Loader2, Pencil, MessagesSquare } from 'lucide-react';
 import type { Conversation } from '../../interfaces/conversation';
 import { ConversationListSkeleton } from '../ui/Skeleton';
 import { RenameConversationDialog } from './RenameConversationDialog';
 
 const cn = (...classes: string[]) => classes.filter(Boolean).join(' ');
-
-function formatDate(iso: string): string {
-  try {
-    const d = new Date(iso);
-    const now = new Date();
-    const isToday = d.toDateString() === now.toDateString();
-
-    if (isToday) return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
-  } catch {
-    return '';
-  }
-}
 
 interface ConversationListProps {
   conversations: Conversation[];
@@ -98,7 +85,7 @@ export function ConversationList({
           disabled={creating || loading}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 transition-all hover:bg-slate-50 hover:text-ocl-primary disabled:opacity-50"
         >
-          <MessageSquarePlus size={18} className={creating ? 'animate-pulse' : ''} />
+          <MessagesSquare size={18} className={creating ? 'animate-pulse' : ''} />
           <span>{creating ? 'Criando...' : 'Nova conversa'}</span>
         </button>
       </div>
@@ -138,20 +125,14 @@ export function ConversationList({
                           <div className="absolute bottom-2 left-0 top-0 h-full w-1 rounded-s-full bg-ocl-primary" />
                         )}
                         <div className="flex w-full items-center justify-between gap-2">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <MessageCircle
-                              size={14}
-                              className={cn('flex-shrink-0', isSelected ? 'text-ocl-primary' : 'text-slate-400')}
-                            />
-                            <span
-                              className={cn(
-                                'truncate text-sm font-medium',
-                                isSelected ? 'text-slate-900' : 'text-slate-500',
-                              )}
-                            >
-                              {title}
-                            </span>
-                          </div>
+                          <span
+                            className={cn(
+                              'truncate text-sm font-medium',
+                              isSelected ? 'text-slate-900' : 'text-slate-500',
+                            )}
+                          >
+                            {title}
+                          </span>
                         </div>
                       </div>
                       {(onDelete || onRename) && (
