@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useCallback } from 'react';
 import { Loader2, Database as DatabaseIcon } from 'lucide-react';
 import { DashboardSkeleton } from './components/ui/Skeleton';
 import { useIsMobile } from './hooks/useIsMobile';
@@ -8,7 +8,7 @@ import { AppShell } from './components/shell/AppShell';
 import { LoginScreen } from './components/LoginScreen';
 import { LandingPage } from './components/LandingPage';
 import { DataUploadPage } from './components/DataUploadPage';
-// import { ChatPage } from './components/ChatPage';
+import { ChatPage } from './components/ChatPage';
 
 const ProductDashboard = lazy(() =>
   import('./components/ProductDashboard').then((m) => ({ default: m.ProductDashboard })),
@@ -17,25 +17,25 @@ const ProductDashboard = lazy(() =>
 const App = () => {
   const { user, data, setData, loading, isConfigured, supabase, logout } = useAuth();
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
-  // const [initialChatMessage, setInitialChatMessage] = useState<string | null>(null);
+  const [initialChatMessage, setInitialChatMessage] = useState<string | null>(null);
   const { menu, activeTab, setActiveTab, prevTab, nextTab, goToNext } = useNavigation(selectedSection ?? undefined);
   const [isSidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const isMobile = useIsMobile();
 
-  // const handleSendMessage = useCallback((message: string) => {
-  //   setInitialChatMessage(message);
-  //   setSelectedSection('chat');
-  // }, []);
+  const handleSendMessage = useCallback((message: string) => {
+    setInitialChatMessage(message);
+    setSelectedSection('chat');
+  }, []);
 
-  // const handleOpenChat = useCallback(() => {
-  //   setSelectedSection('chat');
-  //   setInitialChatMessage(null);
-  // }, []);
+  const handleOpenChat = useCallback(() => {
+    setSelectedSection('chat');
+    setInitialChatMessage(null);
+  }, []);
 
-  // const handleChatBack = useCallback(() => {
-  //   setSelectedSection(null);
-  //   setInitialChatMessage(null);
-  // }, []);
+  const handleChatBack = useCallback(() => {
+    setSelectedSection(null);
+    setInitialChatMessage(null);
+  }, []);
 
   if (loading)
     return (
@@ -43,8 +43,7 @@ const App = () => {
         <Loader2 size={40} className="animate-spin text-ocl-primary" />
       </div>
     );
-  if (!user)
-    return <LoginScreen supabase={supabase} configError={!isConfigured} />;
+  if (!user) return <LoginScreen supabase={supabase} configError={!isConfigured} />;
 
   if (!selectedSection)
     return (
@@ -52,25 +51,25 @@ const App = () => {
         onSectionSelect={setSelectedSection}
         onUpload={() => setSelectedSection('upload')}
         onLogout={logout}
-        // onSendMessage={handleSendMessage}
-        // onOpenChat={handleOpenChat}
+        onSendMessage={handleSendMessage}
+        onOpenChat={handleOpenChat}
       />
     );
 
-  // if (selectedSection === 'chat') {
-  //   return (
-  //     <ChatPage
-  //       getAccessToken={() =>
-  //         supabase?.auth.getSession().then(({ data }) => data.session?.access_token ?? null) ?? Promise.resolve(null)
-  //       }
-  //       initialMessage={initialChatMessage}
-  //       onInitialMessageConsumed={() => setInitialChatMessage(null)}
-  //       onBack={handleChatBack}
-  //       onUpload={() => setSelectedSection('upload')}
-  //       onLogout={logout}
-  //     />
-  //   );
-  // }
+  if (selectedSection === 'chat') {
+    return (
+      <ChatPage
+        getAccessToken={() =>
+          supabase?.auth.getSession().then(({ data }) => data.session?.access_token ?? null) ?? Promise.resolve(null)
+        }
+        initialMessage={initialChatMessage}
+        onInitialMessageConsumed={() => setInitialChatMessage(null)}
+        onBack={handleChatBack}
+        onUpload={() => setSelectedSection('upload')}
+        onLogout={logout}
+      />
+    );
+  }
 
   if (selectedSection === 'upload') {
     return (

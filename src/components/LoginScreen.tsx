@@ -89,12 +89,12 @@ export const LoginScreen = ({ supabase, configError }: Readonly<LoginScreenProps
           )}
           <button
             type="submit"
-            className="w-full transform rounded-xl py-4 font-bold text-white transition-all hover:scale-[1.02] bg-ocl-primary hover:bg-ocl-hover"
+            className="w-full transform rounded-xl bg-ocl-primary py-4 font-bold text-white transition-all hover:scale-[1.02] hover:bg-ocl-hover"
           >
             {buttonLabel}
           </button>
         </form>
-        <p className="mt-8 text-xs text-slate-400">© 2026 OCL Advogados Associados</p>
+        <p className="mt-8 text-xs text-slate-400">© {new Date().getFullYear()} OCL Advogados Associados</p>
       </div>
     </div>
   );
