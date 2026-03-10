@@ -1,4 +1,4 @@
-import { Bot, User } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { useAuiState } from '@assistant-ui/react';
 import { Markdown } from './Markdown';
 import { TypingDots } from './TypingDots';
@@ -13,17 +13,10 @@ function extractText(content: unknown): string {
 
 function UserBubble({ text }: Readonly<{ text: string }>) {
   return (
-    <div className="mx-auto flex w-full max-w-3xl justify-end px-4 pb-2 pt-4">
-      <div className="flex max-w-[80%] items-end gap-2">
-        <div className="flex flex-col items-end gap-1">
-          <div className="rounded-2xl rounded-br-sm bg-ocl-primary px-4 py-3 text-white shadow-md">
-            <p className="whitespace-pre-wrap text-sm leading-relaxed">{text}</p>
-          </div>
-        </div>
-        <div className="flex-shrink-0">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ocl-secondary text-white shadow-sm">
-            <User size={15} />
-          </div>
+    <div className="mx-auto flex w-full max-w-3xl justify-end px-4 py-2">
+      <div className="flex max-w-[85%] flex-col items-end">
+        <div className="rounded-full rounded-tr-sm bg-ocl-primary px-4 py-2.5 text-white shadow-sm transition-all">
+          <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{text}</p>
         </div>
       </div>
     </div>
@@ -32,21 +25,23 @@ function UserBubble({ text }: Readonly<{ text: string }>) {
 
 function AssistantBubble({ text, isRunning }: Readonly<{ text: string; isRunning: boolean }>) {
   return (
-    <div className="mx-auto flex w-full max-w-3xl items-end gap-2 px-4 pb-2 pt-4">
-      <div className="flex-shrink-0">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-ocl-primary to-ocl-secondary text-white shadow-sm">
-          <Bot size={15} />
+    <div className="mx-auto flex w-full max-w-3xl items-start gap-3 px-4 py-3">
+      <div className="mt-1 flex-shrink-0">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-ocl-primary to-ocl-secondary text-white shadow-sm ring-2 ring-white">
+          <Bot size={16} strokeWidth={2.5} />
         </div>
       </div>
-      <div className="flex max-w-[80%] flex-col gap-1">
-        <div className="rounded-2xl rounded-bl-sm bg-white px-4 py-3 shadow-md ring-1 ring-slate-200">
+      <div className="flex max-w-[85%] flex-col">
+        <div className="rounded-full rounded-tl-sm bg-white px-5 py-3 shadow-sm ring-1 ring-slate-100 transition-all">
           {isRunning && text === '' ? (
-            <TypingDots />
+            <div className="py-1">
+              <TypingDots />
+            </div>
           ) : (
-            <div className="text-slate-800">
+            <div className="prose-sm prose-slate max-w-none text-slate-800">
               <Markdown text={text} />
               {isRunning && (
-                <div className="mt-2">
+                <div className="mt-4 flex justify-start border-t border-slate-50 pt-2">
                   <TypingDots />
                 </div>
               )}

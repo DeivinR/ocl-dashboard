@@ -126,18 +126,18 @@ export const LandingPage = ({
                 <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Sugestões:</span>
                 <button
                   type="button"
-                  onClick={() => setQuery('Resumo de performance mensal')}
+                  onClick={() => setQuery('Repasse de cash no mês')}
                   className="text-xs text-slate-500 transition-colors hover:text-ocl-primary"
                 >
-                  "Resumo mensal"
+                  "Repasse de cash no mês"
                 </button>
                 <span className="text-slate-300">•</span>
                 <button
                   type="button"
-                  onClick={() => setQuery('Status de entregas amigáveis')}
+                  onClick={() => setQuery('Batimento de meta por região')}
                   className="text-xs text-slate-500 transition-colors hover:text-ocl-primary"
                 >
-                  "Status de entregas"
+                  "Batimento de meta por região"
                 </button>
               </div>
             </form>

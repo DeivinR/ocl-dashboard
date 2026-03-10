@@ -1,11 +1,7 @@
 import { Sparkles } from 'lucide-react';
 import { useChatActions } from './SocketChatRuntime';
 
-const SUGGESTIONS = [
-  'Qual o resumo de performance deste mês?',
-  'Status das entregas amigáveis',
-  'Top 5 contratos em atraso',
-];
+const SUGGESTIONS = ['Repasse de cash no mês', 'Batimento de meta por região', 'Retomadas realizadas no mês'];
 
 interface EmptyStateProps {
   onSuggest?: (text: string) => void;

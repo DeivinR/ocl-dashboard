@@ -9,13 +9,15 @@ import { EmptyState } from './chat/EmptyState';
 import { StandaloneComposer } from './chat/StandaloneComposer';
 import { ConversationList } from './chat/ConversationList';
 import type { Conversation } from '../interfaces/conversation';
-import { useConversations, useCreateConversation, useDeleteConversation, useUpdateConversation, useMessages } from '../hooks/useConversations';
+import {
+  useConversations,
+  useCreateConversation,
+  useDeleteConversation,
+  useUpdateConversation,
+  useMessages,
+} from '../hooks/useConversations';
 
-const EMPTY_SUGGESTIONS = [
-  'Qual o resumo de performance deste mês?',
-  'Status das entregas amigáveis',
-  'Top 5 contratos em atraso',
-] as const;
+const SUGGESTIONS = ['Repasse de cash no mês', 'Batimento de meta por região', 'Retomadas realizadas no mês'];
 
 function apiMessagesToThreadMessages(
   messages: { id: string; role: 'user' | 'assistant'; content: string }[],
@@ -155,7 +157,7 @@ export function ChatPage({
             </div>
           </div>
           <div className="flex flex-wrap justify-center gap-2">
-            {EMPTY_SUGGESTIONS.map((s) => (
+            {SUGGESTIONS.map((s) => (
               <button
                 key={s}
                 type="button"
