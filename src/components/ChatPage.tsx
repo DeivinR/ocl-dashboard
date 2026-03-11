@@ -255,7 +255,7 @@ export function ChatPage({
 
           <div className="flex h-16 items-center overflow-hidden border-t border-slate-200">
             <div className="flex w-16 shrink-0 items-center justify-center">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-ocl-primary to-ocl-secondary text-xs font-semibold text-white shadow-sm">
+              <div className="text-md flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-ocl-primary to-ocl-secondary font-semibold text-white shadow-sm">
                 {userInitial}
               </div>
             </div>
