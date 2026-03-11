@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, MoreVertical, Trash2, Loader2, Pencil, MessagesSquare } from 'lucide-react';
+import { AlertCircle, MoreVertical, Trash2, Loader2, Pencil, CirclePlus, Ellipsis } from 'lucide-react';
 import type { Conversation } from '../../interfaces/conversation';
 import { ConversationListSkeleton } from '../ui/Skeleton';
 import { RenameConversationDialog } from './RenameConversationDialog';
@@ -85,7 +85,7 @@ export function ConversationList({
           disabled={creating || loading}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 transition-all hover:bg-slate-50 hover:text-ocl-primary disabled:opacity-50"
         >
-          <MessagesSquare size={18} className={creating ? 'animate-pulse' : ''} />
+          <CirclePlus size={18} className={creating ? 'animate-pulse' : ''} />
           <span>{creating ? 'Criando...' : 'Nova conversa'}</span>
         </button>
       </div>
@@ -127,7 +127,7 @@ export function ConversationList({
                         <div className="flex w-full items-center justify-between gap-2">
                           <span
                             className={cn(
-                              'truncate text-sm font-medium',
+                              'truncate text-sm font-normal',
                               isSelected ? 'text-slate-900' : 'text-slate-500',
                             )}
                           >
@@ -136,7 +136,7 @@ export function ConversationList({
                         </div>
                       </div>
                       {(onDelete || onRename) && (
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        <div className="absolute right-1 top-1/2 -translate-y-1/2">
                           <button
                             ref={openMenuId === c.id ? triggerRef : undefined}
                             type="button"
@@ -145,9 +145,12 @@ export function ConversationList({
                               setOpenMenuId((id) => (id === c.id ? null : c.id));
                             }}
                             aria-label="Opções"
-                            className="rounded p-1.5 text-slate-400 opacity-0 transition-colors hover:bg-slate-200/60 hover:text-slate-700 group-hover:opacity-100"
+                            className={cn(
+                              'rounded p-1.5 text-slate-500 transition-colors hover:bg-slate-200/60 hover:text-slate-700',
+                              openMenuId === c.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                            )}
                           >
-                            <MoreVertical size={14} />
+                            <Ellipsis size={20} />
                           </button>
                         </div>
                       )}
@@ -172,7 +175,7 @@ export function ConversationList({
               ref={menuRef}
               role="menu"
               tabIndex={0}
-              className="fixed z-50 min-w-[140px] rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+              className="fixed z-50 min-w-[140px] rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg"
               style={{ top: menuPosition.top, left: menuPosition.left }}
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.key === 'Escape' && setOpenMenuId(null)}
@@ -184,12 +187,13 @@ export function ConversationList({
                     setRenameTarget({ id: c.id, currentTitle: title });
                     setOpenMenuId(null);
                   }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
                 >
                   <Pencil size={14} />
                   Mudar nome
                 </button>
               )}
+              <div className="mx-auto my-1.5 h-px w-11/12 bg-slate-200" />
               {onDelete && (
                 <button
                   type="button"
@@ -198,7 +202,7 @@ export function ConversationList({
                     setOpenMenuId(null);
                   }}
                   disabled={isDeleting}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
                 >
                   {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                   Excluir
