@@ -16,6 +16,7 @@ import {
   useUpdateConversation,
   useMessages,
 } from '../hooks/useConversations';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 const SUGGESTIONS = ['Repasse de cash no mês', 'Batimento de meta por região', 'Retomadas realizadas no mês'];
 
@@ -64,7 +65,10 @@ export function ChatPage({
   const updateMutation = useUpdateConversation(getAccessToken);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const isMobile = useIsMobile();
+  const [isSidebarOpen, setSidebarOpen] = useState(() =>
+    globalThis.window === undefined ? true : globalThis.window.innerWidth >= 1024,
+  );
 
   const messagesQuery = useMessages(selectedConversationId, getAccessToken);
   const currentMessages =
@@ -84,8 +88,9 @@ export function ChatPage({
         return;
       }
       setSelectedConversationId(id);
+      if (isMobile) setSidebarOpen(false);
     },
-    [handleNewChat],
+    [handleNewChat, isMobile],
   );
 
   const initialCreateAttempted = useRef(false);
@@ -201,16 +206,19 @@ export function ChatPage({
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-slate-50">
+      {isSidebarOpen && (
+        <div className="fixed inset-0 z-30 bg-black/20 lg:hidden" onClick={() => setSidebarOpen(false)} aria-hidden />
+      )}
       <main className="flex h-full w-full">
         <aside
-          className={`relative flex flex-col border-r border-slate-200 bg-slate-50/50 transition-all duration-300 ease-in-out ${
-            isSidebarOpen ? 'w-72' : 'w-16'
+          className={`fixed inset-y-0 left-0 z-40 flex w-[min(18rem,85vw)] max-w-[18rem] flex-col border-r border-slate-200 bg-slate-50 shadow-xl transition-transform duration-300 ease-in-out lg:relative lg:inset-auto lg:z-auto lg:w-16 lg:max-w-none lg:bg-slate-50/50 lg:shadow-none lg:transition-[width] ${
+            isSidebarOpen ? 'translate-x-0 lg:w-72' : '-translate-x-full lg:translate-x-0'
           }`}
         >
-          <div className="flex h-16 items-center overflow-hidden border-b border-slate-200">
+          <div className="flex h-14 shrink-0 items-center overflow-hidden border-b border-slate-200 lg:h-16">
             <div
               className={`flex items-center transition-all duration-300 ease-in-out ${
-                isSidebarOpen ? 'w-56 pl-4 opacity-100' : 'pointer-events-none w-0 opacity-0'
+                isSidebarOpen ? 'w-56 pl-3 opacity-100 lg:pl-4' : 'pointer-events-none w-0 opacity-0'
               }`}
             >
               <button
@@ -223,11 +231,12 @@ export function ChatPage({
                 <img src="/logo.png" alt="OCL" className="h-7 object-contain" />
               </div>
             </div>
-            <div className="flex w-16 shrink-0 items-center justify-center">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center lg:h-16 lg:w-16">
               <button
                 type="button"
                 onClick={() => setSidebarOpen((o) => !o)}
                 className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-200/50"
+                aria-label={isSidebarOpen ? 'Fechar menu' : 'Abrir menu'}
               >
                 {isSidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
               </button>
@@ -253,8 +262,8 @@ export function ChatPage({
             </div>
           </div>
 
-          <div className="flex h-16 items-center overflow-hidden border-t border-slate-200">
-            <div className="flex w-16 shrink-0 items-center justify-center">
+          <div className="flex h-14 shrink-0 items-center overflow-hidden border-t border-slate-200 lg:h-16">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center lg:h-16 lg:w-16">
               <div className="text-md flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-ocl-primary to-ocl-secondary font-semibold text-white shadow-sm">
                 {userInitial}
               </div>
@@ -280,7 +289,22 @@ export function ChatPage({
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">{mainContent}</div>
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          {isMobile && (
+            <div className="flex h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-3 lg:px-4">
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(true)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-200/50"
+                aria-label="Abrir menu"
+              >
+                <PanelLeftOpen size={20} />
+              </button>
+              <img src="/logo.png" alt="OCL" className="h-6 object-contain lg:h-7" />
+            </div>
+          )}
+          {mainContent}
+        </div>
       </main>
 
       <style>{`

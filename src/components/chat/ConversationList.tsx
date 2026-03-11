@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, MoreVertical, Trash2, Loader2, Pencil, CirclePlus, Ellipsis } from 'lucide-react';
+import { AlertCircle, Trash2, Loader2, Pencil, CirclePlus, Ellipsis } from 'lucide-react';
 import type { Conversation } from '../../interfaces/conversation';
 import { ConversationListSkeleton } from '../ui/Skeleton';
 import { RenameConversationDialog } from './RenameConversationDialog';
@@ -78,19 +78,19 @@ export function ConversationList({
         embedded ? 'min-h-0 flex-1' : 'w-64 flex-shrink-0 border-r border-slate-200 bg-slate-50/50',
       )}
     >
-      <div className="p-3">
+      <div className="p-2 md:p-3">
         <button
           type="button"
           onClick={() => onSelect(null)}
           disabled={creating || loading}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 transition-all hover:bg-slate-50 hover:text-ocl-primary disabled:opacity-50"
+          className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-lg bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 transition-all hover:bg-slate-50 hover:text-ocl-primary disabled:opacity-50 md:min-h-0 md:px-4"
         >
           <CirclePlus size={18} className={creating ? 'animate-pulse' : ''} />
           <span>{creating ? 'Criando...' : 'Nova conversa'}</span>
         </button>
       </div>
 
-      <div ref={listScrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2">
+      <div ref={listScrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-1.5 md:px-2">
         {error && (
           <div className="m-2 flex items-center gap-2 rounded-md bg-red-50 p-3 text-xs text-red-700">
             <AlertCircle size={14} />
@@ -114,10 +114,10 @@ export function ConversationList({
                     <button
                       onClick={() => onSelect(c.id)}
                       className={cn(
-                        'group relative flex w-full flex-col items-start gap-1 rounded-lg px-3 py-2.5 transition-all',
+                        'group relative flex w-full min-h-[44px] flex-col items-start justify-center gap-1 rounded-lg px-2.5 py-2.5 transition-all md:min-h-0 md:px-3',
                         isSelected
                           ? 'bg-white shadow-sm ring-1 ring-slate-200'
-                          : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900',
+                          : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 active:bg-slate-200/70',
                       )}
                     >
                       <div className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left">
