@@ -20,9 +20,18 @@ const HONORARIO_MENU: MenuItem[] = [
   { id: 'RETOMADAS', label: 'Retomadas', icon: FileText },
 ];
 
+const METAS_MENU: MenuItem[] = [
+  { id: 'cash', label: 'Cash', icon: Wallet },
+  { id: 'reneg', label: 'Renegociação', icon: Handshake },
+  { id: 'amigavel', label: 'Entrega Amigável', icon: Car },
+  { id: 'judicial', label: 'Judicial', icon: Gavel },
+  { id: 'retomada', label: 'Retomadas', icon: FileText },
+];
+
 const SECTION_MENUS: Record<string, { menu: MenuItem[]; defaultTab: string }> = {
   desempenho: { menu: DESEMPENHO_MENU, defaultTab: 'CASH' },
   honorario: { menu: HONORARIO_MENU, defaultTab: 'CONSOLIDADO' },
+  metas: { menu: METAS_MENU, defaultTab: 'cash' },
 };
 
 export const useNavigation = (section?: string) => {
@@ -39,7 +48,12 @@ export const useNavigation = (section?: string) => {
     setActiveTab(defaultTab);
   }, [defaultTab]);
 
-  const currentIndex = menu.findIndex((m) => m.id === activeTab);
+  const effectiveActiveTab = useMemo(
+    () => (menu.some((m) => m.id === activeTab) ? activeTab : defaultTab),
+    [menu, activeTab, defaultTab],
+  );
+
+  const currentIndex = menu.findIndex((m) => m.id === effectiveActiveTab);
   const nextTab = currentIndex < menu.length - 1 ? (menu[currentIndex + 1] ?? null) : null;
   const prevTab = currentIndex > 0 ? (menu[currentIndex - 1] ?? null) : null;
 
@@ -50,5 +64,5 @@ export const useNavigation = (section?: string) => {
     }
   }, [nextTab]);
 
-  return { menu, activeTab, setActiveTab, prevTab, nextTab, goToNext };
+  return { menu, activeTab: effectiveActiveTab, setActiveTab, prevTab, nextTab, goToNext };
 };

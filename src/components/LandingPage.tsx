@@ -1,4 +1,14 @@
-import { Briefcase, LogOut, ChevronRight, UploadCloud, TrendingUp, Bot, Sparkles, SendHorizontal } from 'lucide-react';
+import {
+  Briefcase,
+  LogOut,
+  ChevronRight,
+  UploadCloud,
+  TrendingUp,
+  Bot,
+  Sparkles,
+  SendHorizontal,
+  Target,
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
 
@@ -24,6 +34,13 @@ const SECTIONS: Section[] = [
     description: 'Análise de performance e resultados operacionais',
     icon: TrendingUp,
     color: 'from-emerald-600 to-teal-600',
+  },
+  {
+    id: 'metas',
+    title: 'Metas',
+    description: 'Gestão de metas e objetivos',
+    icon: Target,
+    color: 'from-orange-600 to-amber-600',
   },
 ];
 
@@ -143,7 +160,7 @@ export const LandingPage = ({
             </form>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-2">
+          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {SECTIONS.map((section) => {
               const Icon = section.icon;
               return (

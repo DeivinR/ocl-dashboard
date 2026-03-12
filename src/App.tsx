@@ -9,6 +9,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { LandingPage } from './components/LandingPage';
 import { DataUploadPage } from './components/DataUploadPage';
 import { ChatPage } from './components/ChatPage';
+import { GoalsDashboard } from './components/GoalsDashboard';
 
 const ProductDashboard = lazy(() =>
   import('./components/ProductDashboard').then((m) => ({ default: m.ProductDashboard })),
@@ -81,6 +82,32 @@ const App = () => {
         onBack={() => setSelectedSection(null)}
         onLogout={logout}
       />
+    );
+  }
+
+  if (selectedSection === 'metas') {
+    return (
+      <AppShell
+        tabs={{ menu, activeTab, prevTab, nextTab, onTabChange: setActiveTab }}
+        sidebar={{
+          isOpen: isSidebarOpen,
+          onToggle: () => setSidebarOpen(!isSidebarOpen),
+          onClose: () => setSidebarOpen(false),
+        }}
+        isMobile={isMobile}
+        currentDU={undefined}
+        onLogout={logout}
+        onBackToSections={() => setSelectedSection(null)}
+      >
+        <GoalsDashboard
+          getToken={() =>
+            supabase?.auth.getSession().then(({ data: sessionData }) => sessionData.session?.access_token ?? null) ??
+            Promise.resolve(null)
+          }
+          activeTab={activeTab}
+          categoryLabel={menu.find((m) => m.id === activeTab)?.label}
+        />
+      </AppShell>
     );
   }
 

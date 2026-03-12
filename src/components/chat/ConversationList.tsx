@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertCircle, Trash2, Loader2, Pencil, CirclePlus, Ellipsis } from 'lucide-react';
 import type { Conversation } from '../../interfaces/conversation';
+import { useClickOutside } from '../../hooks/useClickOutside';
 import { ConversationListSkeleton } from '../ui/Skeleton';
 import { RenameConversationDialog } from './RenameConversationDialog';
 
@@ -60,16 +61,7 @@ export function ConversationList({
     };
   }, [openMenuId]);
 
-  useEffect(() => {
-    if (!openMenuId) return;
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (menuRef.current?.contains(target) || triggerRef.current?.contains(target)) return;
-      setOpenMenuId(null);
-    };
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, [openMenuId]);
+  useClickOutside([menuRef, triggerRef], () => setOpenMenuId(null), !!openMenuId);
 
   return (
     <aside

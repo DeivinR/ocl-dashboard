@@ -64,6 +64,35 @@ export const ConversationListSkeleton = () => (
   </div>
 );
 
+export const GoalsDashboardSkeleton = () => (
+  <div className="mt-8">
+    <div className="mb-4 flex items-center gap-2">
+      <Skeleton className="h-5 w-5 rounded" />
+      <Skeleton className="h-5 w-48" />
+    </div>
+    <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_2px_10px_-3px_rgba(0,51,102,0.1)]">
+      <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-4">
+        <div className="flex gap-4">
+          <Skeleton className="h-4 w-14" />
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-4 w-14" />
+        </div>
+      </div>
+      <div className="divide-y divide-slate-50 px-6">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+          <div key={i} className="flex gap-4 py-4">
+            <Skeleton className="h-4 w-14" />
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 export const ChatMessagesSkeleton = () => (
   <div className="flex flex-1 flex-col gap-0">
     <div className="mx-auto flex w-full max-w-3xl items-end gap-2 px-4 pb-2 pt-4">
