@@ -58,15 +58,22 @@ export const TooltipContent = ({
           return 0;
         };
 
+        const formatLabel = (point: (typeof visiblePoints)[number]) => {
+          const id = String(point.seriesId);
+          const rawLabel = seriesLabels[id] ?? id;
+          if (hasCumulativeSeries && (id.endsWith('_acumulado') || id.endsWith('_projecao'))) {
+            return rawLabel.replace(/\s+(Acumulado|Projeção)$/u, '');
+          }
+          return rawLabel;
+        };
+
         if (!hasCumulativeSeries) {
           const sortedVisible = [...visiblePoints].sort(sortByMonthAndType);
           return sortedVisible.map((point) => (
             <div key={String(point.seriesId)} className="flex items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-1.5">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: point.seriesColor }} />
-                <span className="truncate text-[11px] text-slate-500">
-                  {seriesLabels[String(point.seriesId)] ?? point.seriesId}
-                </span>
+                <span className="truncate text-[11px] text-slate-500">{formatLabel(point)}</span>
               </div>
               <span className="text-xs font-bold tabular-nums text-ocl-primary">{fmt(Number(point.data.y))}</span>
             </div>
@@ -92,9 +99,7 @@ export const TooltipContent = ({
                         className="h-1.5 w-1.5 shrink-0 rounded-full"
                         style={{ backgroundColor: point.seriesColor }}
                       />
-                      <span className="truncate text-[11px] text-slate-500">
-                        {seriesLabels[String(point.seriesId)] ?? point.seriesId}
-                      </span>
+                      <span className="truncate text-[11px] text-slate-500">{formatLabel(point)}</span>
                     </div>
                     <span className="text-xs font-bold tabular-nums text-ocl-primary">{fmt(Number(point.data.y))}</span>
                   </div>
@@ -112,9 +117,7 @@ export const TooltipContent = ({
                         className="h-1.5 w-1.5 shrink-0 rounded-full"
                         style={{ backgroundColor: point.seriesColor }}
                       />
-                      <span className="truncate text-[11px] text-slate-500">
-                        {seriesLabels[String(point.seriesId)] ?? point.seriesId}
-                      </span>
+                      <span className="truncate text-[11px] text-slate-500">{formatLabel(point)}</span>
                     </div>
                     <span className="text-xs font-bold tabular-nums text-ocl-primary">{fmt(Number(point.data.y))}</span>
                   </div>

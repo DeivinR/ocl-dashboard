@@ -169,7 +169,7 @@ export const renderDailyValueLine = ({
 
   return (
     <>
-      <span className="flex items-center gap-2 text-3xl font-bold text-ocl-primary transition-all duration-150">
+      <span className="flex items-center gap-2 text-3xl font-bold text-ocl-primary tabular-nums transition-all duration-150">
         {fmt(displayDailyValue)}
       </span>
       {selectedDU && (
@@ -201,7 +201,7 @@ export const renderCumulativeValueLine = ({
   displayProjectionTotal: number;
 }) => (
   <>
-    <span className="flex items-center gap-2 text-3xl font-bold text-ocl-primary transition-all duration-150">
+    <span className="flex items-center gap-2 text-3xl font-bold text-ocl-primary tabular-nums transition-all duration-150">
       {fmt(displayCumulativeTotal)}
     </span>
     <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600">
