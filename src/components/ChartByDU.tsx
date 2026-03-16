@@ -1,0 +1,184 @@
+import { useState, useMemo, useCallback } from 'react';
+import { BarChart3, Layers } from 'lucide-react';
+import type { SliceData } from '@nivo/line';
+import { getValuesByBusinessDay, type DashboardData } from '../lib/data';
+import { formatCurrency, formatNumber } from '../lib/utils';
+import { resolveSeriesStyles, type LineSeries } from '../lib/chartStyles';
+import { colors } from '../lib/colors';
+import { MultiSeriesLineChart } from './ui/LineChart';
+import { ChartSection } from './ui/ChartSection';
+import type { MonthsToShow } from './ui/PeriodSelect';
+import { buildDailyDataMultiMonth, buildCumulativeDataMultiMonth } from '../lib/chartByDuData';
+import { useIsMobile } from '../hooks/useIsMobile';
+import {
+  buildDailyDisplayState,
+  buildCumulativeDisplayState,
+  renderDailyValueLine,
+  renderCumulativeValueLine,
+} from './ui/ChartByDuDisplay';
+
+interface ChartByDUProps {
+  data: DashboardData;
+  category: string;
+  section?: string;
+  valueType?: 'currency' | 'number';
+}
+
+export const ChartByDU = ({ data, category, section, valueType = 'currency' }: Readonly<ChartByDUProps>) => {
+  const isMobile = useIsMobile();
+  const values = useMemo(() => getValuesByBusinessDay(data, category, section), [data, category, section]);
+  const [dailyMonthsToShow, setDailyMonthsToShow] = useState<MonthsToShow>(1);
+  const [monthsToShow, setMonthsToShow] = useState<MonthsToShow>(1);
+  const [dailySlice, setDailySlice] = useState<SliceData<LineSeries> | null>(null);
+  const [cumulativeSlice, setCumulativeSlice] = useState<SliceData<LineSeries> | null>(null);
+
+  const totalDays = data.totalBusinessDays ?? 22;
+  const fmt = valueType === 'number' ? formatNumber : formatCurrency;
+
+  const {
+    series: dailyDataMultiMonth,
+    seriesLabels: dailySeriesLabels,
+    monthOffsets: dailyMonthOffsets,
+  } = useMemo(
+    () => buildDailyDataMultiMonth(data, category, section, dailyMonthsToShow, totalDays),
+    [data, category, section, dailyMonthsToShow, totalDays],
+  );
+
+  const dailyStyleMap = useMemo(
+    () =>
+      resolveSeriesStyles(
+        dailyDataMultiMonth.map((s) => s.id),
+        dailyMonthOffsets,
+        colors.ocl.primary,
+      ),
+    [dailyDataMultiMonth, dailyMonthOffsets],
+  );
+
+  const currentDailyValues = useMemo(
+    () => getValuesByBusinessDay(data, category, section, 0),
+    [data, category, section],
+  );
+
+  const {
+    series: cumulativeDataMultiMonth,
+    seriesLabels: cumulativeSeriesLabels,
+    monthOffsets: cumulativeMonthOffsets,
+  } = useMemo(
+    () => buildCumulativeDataMultiMonth(data, category, section, monthsToShow, totalDays),
+    [data, category, section, monthsToShow, totalDays],
+  );
+
+  const cumulativeStyleMap = useMemo(
+    () =>
+      resolveSeriesStyles(
+        cumulativeDataMultiMonth.map((s) => s.id),
+        cumulativeMonthOffsets,
+        colors.ocl.primary,
+      ),
+    [cumulativeDataMultiMonth, cumulativeMonthOffsets],
+  );
+
+  const handleDailySliceChange = useCallback(
+    (slice: SliceData<LineSeries> | null) => {
+      if (isMobile) setDailySlice(slice);
+    },
+    [isMobile],
+  );
+
+  const handleCumulativeSliceChange = useCallback(
+    (slice: SliceData<LineSeries> | null) => {
+      if (isMobile) setCumulativeSlice(slice);
+    },
+    [isMobile],
+  );
+
+  if (!values.length) return null;
+
+  const {
+    chartMinWidth: chartMinWidthDaily,
+    selectedDU,
+    selectedDailyPoints,
+    displayDailyValue,
+    displayDiff,
+    displayIsPositive,
+  } = buildDailyDisplayState({
+    data,
+    dailyDataMultiMonth,
+    dailyMonthOffsets,
+    currentDailyValues,
+    dailySlice,
+  });
+
+  const {
+    chartMinWidth: chartMinWidthCumulative,
+    displayCumulativeTotal,
+    displayProjectionTotal,
+    selectedCumulativeDU,
+  } = buildCumulativeDisplayState({
+    data,
+    values,
+    cumulativeDataMultiMonth,
+    cumulativeSlice,
+  });
+
+  return (
+    <div className="animate-fade-in mb-8 space-y-8">
+      <ChartSection
+        title="Evolução Diária por DU"
+        icon={<BarChart3 size={20} className="text-ocl-primary" />}
+        valueLine={renderDailyValueLine({
+          selectedDU,
+          selectedDailyPoints,
+          dailyMonthsToShow,
+          fmt,
+          displayDailyValue,
+          currentDailyLength: currentDailyValues.length,
+          displayIsPositive,
+          displayDiff,
+          dailySeriesLabels,
+        })}
+        periodValue={dailyMonthsToShow}
+        onPeriodChange={setDailyMonthsToShow}
+        chartMinWidth={chartMinWidthDaily}
+        isMobile={isMobile}
+      >
+        <MultiSeriesLineChart
+          data={dailyDataMultiMonth}
+          fmt={fmt}
+          styleMap={dailyStyleMap}
+          seriesLabels={dailyMonthsToShow > 1 || isMobile ? dailySeriesLabels : undefined}
+          defaultColor={colors.ocl.primary}
+          onSliceChange={isMobile ? handleDailySliceChange : undefined}
+          height={isMobile ? 320 : undefined}
+          isMobile={isMobile}
+        />
+      </ChartSection>
+
+      <ChartSection
+        title="Acumulado por DU"
+        icon={<Layers size={20} className="text-ocl-primary" />}
+        valueLine={renderCumulativeValueLine({
+          fmt,
+          displayCumulativeTotal,
+          selectedCumulativeDU,
+          displayProjectionTotal,
+        })}
+        periodValue={monthsToShow}
+        onPeriodChange={setMonthsToShow}
+        chartMinWidth={chartMinWidthCumulative}
+        isMobile={isMobile}
+      >
+        <MultiSeriesLineChart
+          data={cumulativeDataMultiMonth}
+          fmt={fmt}
+          styleMap={cumulativeStyleMap}
+          seriesLabels={cumulativeSeriesLabels}
+          defaultColor={colors.ocl.primary}
+          onSliceChange={isMobile ? handleCumulativeSliceChange : undefined}
+          height={isMobile ? 320 : undefined}
+          isMobile={isMobile}
+        />
+      </ChartSection>
+    </div>
+  );
+};

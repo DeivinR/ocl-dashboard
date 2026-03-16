@@ -16,6 +16,7 @@ import { formatCurrency, formatNumber } from '../lib/utils';
 import { calculateKPIs } from '../lib/data';
 import type { DashboardData } from '../lib/data';
 import { MetricCard } from './ui/Card';
+import { ChartByDU } from './ChartByDU';
 import { AnalyticalTable } from './AnalyticalTable';
 
 interface ProductDashboardProps {
@@ -120,6 +121,9 @@ export const ProductDashboard = ({
           subtext={isDesempenho ? '' : `Média: ${Math.round(kpis.avg6Count)} qtd.`}
         />
       </div>
+      {(section === 'honorarios' || section === 'desempenho') && (
+        <ChartByDU data={data} category={category} section={section} valueType={type} />
+      )}
       <AnalyticalTable
         history={kpis.history}
         currentDU={kpis.currentDU!}

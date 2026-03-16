@@ -1,4 +1,4 @@
-const DOTS = [0, 1, 2] as const;
+const DOTS = [0, 1, 2];
 
 export function TypingDots() {
   return (
