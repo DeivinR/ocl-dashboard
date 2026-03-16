@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { TrendingUp, TrendingDown, Users } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import { formatCurrency, formatNumber } from '../../lib/utils';
 
 interface CardProps {

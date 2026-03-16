@@ -25,7 +25,7 @@ export const PeriodSelect = ({ value, onChange }: Readonly<PeriodSelectProps>) =
         >
           {CUMULATIVE_MONTH_OPTIONS.map((n) => (
             <option key={n} value={n}>
-              Últimos {n} {n === 1 ? 'mês' : 'meses'}
+              {n === 1 ? 'Este mês' : 'Últimos ' + n + ' meses'}
             </option>
           ))}
         </select>
@@ -36,4 +36,3 @@ export const PeriodSelect = ({ value, onChange }: Readonly<PeriodSelectProps>) =
     </label>
   );
 };
-
