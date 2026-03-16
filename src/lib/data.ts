@@ -88,52 +88,101 @@ export const parseStructuredCSV = (
   return { rawData, dates: uniqueDates, currentDU: finalDU, totalBusinessDays: finalTotalDays };
 };
 
+function filterByCategory(item: RawDataItem, category: string): boolean {
+  if (category === 'CONSOLIDADO') return true;
+  if (category === 'CONTENÇÃO') return !!item.risco && item.risco.length > 2;
+  const prod = item.produto?.toUpperCase();
+  if (category === 'CASH') return ['PARCIAL', 'ATUALIZAÇÃO', 'QUITAÇÃO', 'VAP'].some((p) => prod?.includes(p));
+  if (category === 'RENEGOCIAÇÃO') return prod === 'RENEGOCIAÇÃO';
+  if (category === 'ENTREGA AMIGÁVEL') return prod === 'ENTREGA AMIGÁVEL';
+  if (category === 'APREENSÃO') return prod === 'APREENSÃO';
+  if (category === 'RETOMADAS') return prod === 'ENTREGA AMIGÁVEL' || prod === 'APREENSÃO';
+  return false;
+}
+
+export interface ValueByDU {
+  du: number;
+  valor: number;
+}
+
+function getValueToSum(item: RawDataItem, category: string, section?: string): number {
+  if (category === 'CONTENÇÃO') return 1;
+  if (
+    section === 'desempenho' &&
+    (category === 'ENTREGA AMIGÁVEL' || category === 'APREENSÃO' || category === 'RETOMADAS')
+  )
+    return 1;
+  if (section === 'desempenho' && (category === 'CASH' || category === 'RENEGOCIAÇÃO')) return item.valor;
+  return item.ho;
+}
+
+export const getValuesByBusinessDay = (
+  data: DashboardData | null,
+  category: string,
+  section?: string,
+  periodOffset = 0,
+): ValueByDU[] => {
+  if (!data?.rawData?.length || !data.dates?.length) return [];
+  const { rawData, dates } = data;
+  const periodIndex = dates.length - 1 - periodOffset;
+  if (periodIndex < 0) return [];
+  const targetDate = dates[periodIndex];
+  if (!targetDate) return [];
+
+  const maxDU =
+    periodOffset === 0
+      ? data.currentDU
+      : Math.max(0, ...rawData.filter((d) => d.periodo === targetDate).map((d) => d.du));
+  if (maxDU < 1) return [];
+
+  const result: ValueByDU[] = [];
+  for (let du = 1; du <= maxDU; du++) {
+    const valor = rawData
+      .filter((d) => d.periodo === targetDate && d.du === du && filterByCategory(d, category))
+      .reduce((acc, curr) => acc + getValueToSum(curr, category, section), 0);
+    result.push({ du, valor });
+  }
+  return result;
+};
+
+export const getAccumulatedValueAtDU = (
+  data: DashboardData | null,
+  category: string,
+  section: string | undefined,
+  targetDU: number,
+): number => {
+  if (!data?.rawData?.length || !data.dates?.length || targetDU < 1) return 0;
+  const { rawData, dates } = data;
+  const currentDate = dates.at(-1);
+  if (!currentDate) return 0;
+  return rawData
+    .filter((d) => d.periodo === currentDate && d.du <= targetDU && filterByCategory(d, category))
+    .reduce((acc, curr) => acc + getValueToSum(curr, category, section), 0);
+};
+
 export const calculateKPIs = (data: DashboardData | null, category: string, section?: string): KPIs => {
   if (!data?.rawData)
     return { current: 0, count: 0, prev: 0, prevCount: 0, avg3: 0, avg3Count: 0, avg6: 0, avg6Count: 0, history: [] };
 
   const { rawData, dates, currentDU, totalBusinessDays } = data;
   const n = dates.length;
-  const currentDate = dates[n - 1];
-  const prevDate = dates[n - 2];
-
-  const filterByCategory = (item: RawDataItem): boolean => {
-    if (category === 'CONSOLIDADO') return true;
-    if (category === 'CONTENÇÃO') return !!item.risco && item.risco.length > 2;
-    const prod = item.produto?.toUpperCase();
-    if (category === 'CASH') return ['PARCIAL', 'ATUALIZAÇÃO', 'QUITAÇÃO', 'VAP'].some((p) => prod?.includes(p));
-    if (category === 'RENEGOCIAÇÃO') return prod === 'RENEGOCIAÇÃO';
-    if (category === 'ENTREGA AMIGÁVEL') return prod === 'ENTREGA AMIGÁVEL';
-    if (category === 'APREENSÃO') return prod === 'APREENSÃO';
-    if (category === 'RETOMADAS') return prod === 'ENTREGA AMIGÁVEL' || prod === 'APREENSÃO';
-    return false;
-  };
-
-  const getValueToSum = (item: RawDataItem): number => {
-    if (category === 'CONTENÇÃO') return 1;
-    if (
-      section === 'desempenho' &&
-      (category === 'ENTREGA AMIGÁVEL' || category === 'APREENSÃO' || category === 'RETOMADAS')
-    )
-      return 1;
-    if (section === 'desempenho' && (category === 'CASH' || category === 'RENEGOCIAÇÃO')) return item.valor;
-    return item.ho;
-  };
+  const currentDate = dates.at(-1);
+  const prevDate = dates.at(-2);
 
   const countUntilDU = (targetDate: string | undefined, limitDU: number): number => {
-    return rawData.filter((d) => d.periodo === targetDate && d.du <= limitDU && filterByCategory(d)).length;
+    return rawData.filter((d) => d.periodo === targetDate && d.du <= limitDU && filterByCategory(d, category)).length;
   };
 
   const sumUntilDU = (targetDate: string | undefined, limitDU: number): number => {
     return rawData
-      .filter((d) => d.periodo === targetDate && d.du <= limitDU && filterByCategory(d))
-      .reduce((acc, curr) => acc + getValueToSum(curr), 0);
+      .filter((d) => d.periodo === targetDate && d.du <= limitDU && filterByCategory(d, category))
+      .reduce((acc, curr) => acc + getValueToSum(curr, category, section), 0);
   };
 
   const sumTotalMonth = (targetDate: string): number => {
     return rawData
-      .filter((d) => d.periodo === targetDate && filterByCategory(d))
-      .reduce((acc, curr) => acc + getValueToSum(curr), 0);
+      .filter((d) => d.periodo === targetDate && filterByCategory(d, category))
+      .reduce((acc, curr) => acc + getValueToSum(curr, category, section), 0);
   };
 
   const currentVal = sumUntilDU(currentDate, currentDU);

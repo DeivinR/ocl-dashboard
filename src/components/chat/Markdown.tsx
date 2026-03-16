@@ -145,7 +145,7 @@ const COMPONENTS = {
   code: MdCode,
   pre: MdPre,
   hr: MdHr,
-} as const;
+};
 
 class MarkdownErrorBoundary extends Component<
   Readonly<{ fallbackText: string; children: ReactNode }>,

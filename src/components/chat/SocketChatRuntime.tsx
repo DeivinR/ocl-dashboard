@@ -55,16 +55,13 @@ export function SocketChatRuntime({
     }
   }, [conversationId]);
 
-  const finishStreaming = useCallback(
-    (status: NonNullable<ThreadMessageLike['status']>) => {
-      const completedId = streamingIdRef.current;
-      if (!completedId) return;
-      streamingIdRef.current = null;
-      setMessages((prev) => prev.map((m) => (m.id === completedId ? { ...m, status } : m)));
-      setIsRunning(false);
-    },
-    []
-  );
+  const finishStreaming = useCallback((status: NonNullable<ThreadMessageLike['status']>) => {
+    const completedId = streamingIdRef.current;
+    if (!completedId) return;
+    streamingIdRef.current = null;
+    setMessages((prev) => prev.map((m) => (m.id === completedId ? { ...m, status } : m)));
+    setIsRunning(false);
+  }, []);
 
   const onConversationCreatedRef = useRef(onConversationCreated);
   onConversationCreatedRef.current = onConversationCreated;
@@ -74,7 +71,7 @@ export function SocketChatRuntime({
       if (payload?.conversationId) onConversationCreatedRef.current?.(payload.conversationId);
       finishStreaming({ type: 'complete', reason: 'stop' });
     },
-    [finishStreaming]
+    [finishStreaming],
   );
 
   const onCancelled = useCallback(() => {
@@ -86,7 +83,7 @@ export function SocketChatRuntime({
       lastErrorRef.current = message;
       finishStreaming({ type: 'incomplete', reason: 'error', error: message });
     },
-    [finishStreaming]
+    [finishStreaming],
   );
 
   const onToken = useCallback((token: string) => {
@@ -98,10 +95,10 @@ export function SocketChatRuntime({
       const content = Array.isArray(last.content) ? last.content : [];
       const textPart = content.find((p): p is { type: 'text'; text: string } => p.type === 'text');
       const newText = (textPart?.text ?? '') + token;
-      const newContent = textPart ? content.map((p) => (p.type === 'text' ? { type: 'text' as const, text: newText } : p)) : [{ type: 'text' as const, text: newText }];
-      return prev.map((m) =>
-        m.id === targetId ? { ...m, content: newContent } : m
-      );
+      const newContent = textPart
+        ? content.map((p) => (p.type === 'text' ? { type: 'text', text: newText } : p))
+        : [{ type: 'text', text: newText }];
+      return prev.map((m) => (m.id === targetId ? { ...m, content: newContent } : m));
     });
   }, []);
 
@@ -137,7 +134,7 @@ export function SocketChatRuntime({
       setIsRunning(true);
       sendMessage(conversationIdRef.current, message);
     },
-    [sendMessage, clearError]
+    [sendMessage, clearError],
   );
 
   const onCancel = useCallback(async () => {
@@ -151,7 +148,7 @@ export function SocketChatRuntime({
       if (part?.type !== 'text' || typeof (part as { text?: string }).text !== 'string') return;
       runTurn((part as { type: 'text'; text: string }).text);
     },
-    [runTurn]
+    [runTurn],
   );
 
   const initialConsumed = useRef(false);
@@ -171,7 +168,7 @@ export function SocketChatRuntime({
       onCancel,
       convertMessage,
     }),
-    [messages, isRunning, onNew, onCancel, convertMessage]
+    [messages, isRunning, onNew, onCancel, convertMessage],
   );
 
   const runtime = useExternalStoreRuntime(store);
@@ -184,11 +181,7 @@ export function SocketChatRuntime({
         {error && (
           <div className="flex items-center justify-between gap-2 border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">
             <span>{error}</span>
-            <button
-              type="button"
-              onClick={clearError}
-              className="rounded px-2 py-1 font-medium hover:bg-red-100"
-            >
+            <button type="button" onClick={clearError} className="rounded px-2 py-1 font-medium hover:bg-red-100">
               Fechar
             </button>
           </div>
