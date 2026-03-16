@@ -1,16 +1,11 @@
 import { useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Conversation } from '../interfaces/conversation';
-import {
-  getConversations,
-  createConversation,
-  getMessages,
-  deleteConversation,
-} from '../api/conversations';
+import { getConversations, createConversation, getMessages, deleteConversation } from '../api/conversations';
 
 export const conversationKeys = {
-  all: ['conversations'] as const,
-  messages: (id: string) => [...conversationKeys.all, id, 'messages'] as const,
+  all: ['conversations'],
+  messages: (id: string) => [...conversationKeys.all, id, 'messages'],
 };
 
 export function useConversations(getAccessToken: () => Promise<string | null>) {
@@ -68,8 +63,7 @@ export function useDeleteConversation(getAccessToken: () => Promise<string | nul
   getAccessTokenRef.current = getAccessToken;
 
   return useMutation<void, Error, string>({
-    mutationFn: (conversationId) =>
-      deleteConversation(conversationId, () => getAccessTokenRef.current()),
+    mutationFn: (conversationId) => deleteConversation(conversationId, () => getAccessTokenRef.current()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: conversationKeys.all });
     },
