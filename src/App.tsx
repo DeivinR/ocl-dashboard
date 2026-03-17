@@ -10,7 +10,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { ForgotPasswordScreen } from './components/ForgotPasswordScreen';
 import { PasswordChangeScreen } from './components/PasswordChangeScreen';
 import { LandingPage } from './components/LandingPage';
-import { DataUploadPage } from './components/DataUploadPage';
+import { SettingsPage } from './components/SettingsPage';
 // import { ChatPage } from './components/ChatPage';
 
 const ProductDashboard = lazy(() =>
@@ -63,7 +63,7 @@ const App = () => {
     <div className="flex h-full flex-col items-center justify-center text-slate-400">
       <DatabaseIcon size={64} className="mb-4 opacity-20" />
       <p>Nenhum dado carregado.</p>
-      <button onClick={() => navigate('/upload')} className="mt-4 font-bold text-ocl-primary hover:underline">
+      <button onClick={() => navigate('/settings')} className="mt-4 font-bold text-ocl-primary hover:underline">
         Fazer upload de dados
       </button>
     </div>
@@ -113,14 +113,14 @@ const App = () => {
           selectedSection ? (
             protectedApp
           ) : (
-            <LandingPage onSectionSelect={setSelectedSection} onUpload={() => navigate('/upload')} onLogout={logout} />
+            <LandingPage onSectionSelect={setSelectedSection} onOpenSettings={() => navigate('/settings')} onLogout={logout} />
           )
         }
       />
       <Route
-        path="/upload"
+        path="/settings"
         element={
-          <DataUploadPage supabase={supabase} onDataSaved={setData} onBack={() => navigate('/')} onLogout={logout} />
+          <SettingsPage supabase={supabase} onDataSaved={setData} onBack={() => navigate('/')} onLogout={logout} />
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />

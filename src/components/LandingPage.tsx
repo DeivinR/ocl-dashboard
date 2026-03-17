@@ -1,4 +1,4 @@
-import { Briefcase, LogOut, ChevronRight, UploadCloud, TrendingUp } from 'lucide-react';
+import { Briefcase, LogOut, ChevronRight, Settings, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Section {
@@ -28,13 +28,13 @@ const SECTIONS: Section[] = [
 
 interface LandingPageProps {
   onSectionSelect: (sectionId: string) => void;
-  onUpload: () => void;
+  onOpenSettings: () => void;
   onLogout: () => void;
   onSendMessage?: (message: string) => void;
   onOpenChat?: () => void;
 }
 
-export const LandingPage = ({ onSectionSelect, onUpload, onLogout }: Readonly<LandingPageProps>) => {
+export const LandingPage = ({ onSectionSelect, onOpenSettings, onLogout }: Readonly<LandingPageProps>) => {
   const { profile } = useAuth();
   // const [query, setQuery] = useState('');
   // const handleChatSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
@@ -68,11 +68,11 @@ export const LandingPage = ({ onSectionSelect, onUpload, onLogout }: Readonly<La
             </button>
           )} */}
           <button
-            onClick={onUpload}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 md:px-4"
+            onClick={onOpenSettings}
+            className="flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2.5 text-slate-700 transition-colors hover:bg-slate-100"
+            title="Configurações"
           >
-            <UploadCloud size={18} />
-            <span className="hidden md:inline">Upload de Dados</span>
+            <Settings size={20} />
           </button>
           <button
             onClick={onLogout}
