@@ -22,7 +22,7 @@ const HONORARIO_MENU: MenuItem[] = [
 
 const SECTION_MENUS: Record<string, { menu: MenuItem[]; defaultTab: string }> = {
   desempenho: { menu: DESEMPENHO_MENU, defaultTab: 'CASH' },
-  honorario: { menu: HONORARIO_MENU, defaultTab: 'CONSOLIDADO' },
+  honorarios: { menu: HONORARIO_MENU, defaultTab: 'CONSOLIDADO' },
 };
 
 export const useNavigation = (section?: string) => {

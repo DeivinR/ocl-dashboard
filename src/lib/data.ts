@@ -105,6 +105,13 @@ export interface ValueByDU {
   valor: number;
 }
 
+function getEffectiveCurrentDU(data: DashboardData, category: string): number {
+  const base = data.currentDU || 1;
+  const extra = category === 'RENEGOCIAÇÃO' ? 1 : 0;
+  const total = data.totalBusinessDays || 22;
+  return Math.max(1, Math.min(base + extra, total));
+}
+
 function getValueToSum(item: RawDataItem, category: string, section?: string): number {
   if (category === 'CONTENÇÃO') return 1;
   if (
@@ -129,10 +136,10 @@ export const getValuesByBusinessDay = (
   const targetDate = dates[periodIndex];
   if (!targetDate) return [];
 
-  const maxDU =
-    periodOffset === 0
-      ? data.currentDU
-      : Math.max(0, ...rawData.filter((d) => d.periodo === targetDate).map((d) => d.du));
+  const maxDUInFile = Math.max(0, ...rawData.filter((d) => d.periodo === targetDate).map((d) => d.du));
+  const maxDUCap = periodOffset === 0 ? getEffectiveCurrentDU(data, category) : maxDUInFile;
+
+  const maxDU = periodOffset === 0 ? Math.min(maxDUCap, maxDUInFile) : Math.max(1, maxDUInFile);
   if (maxDU < 1) return [];
 
   const result: ValueByDU[] = [];
@@ -164,7 +171,8 @@ export const calculateKPIs = (data: DashboardData | null, category: string, sect
   if (!data?.rawData)
     return { current: 0, count: 0, prev: 0, prevCount: 0, avg3: 0, avg3Count: 0, avg6: 0, avg6Count: 0, history: [] };
 
-  const { rawData, dates, currentDU, totalBusinessDays } = data;
+  const { rawData, dates, totalBusinessDays } = data;
+  const currentDU = getEffectiveCurrentDU(data, category);
   const n = dates.length;
   const currentDate = dates.at(-1);
   const prevDate = dates.at(-2);
