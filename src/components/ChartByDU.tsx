@@ -152,6 +152,7 @@ export const ChartByDU = ({ data, category, section, valueType = 'currency' }: R
         onPeriodChange={setDailyMonthsToShow}
         chartMinWidth={chartMinWidthDaily}
         isMobile={isMobile}
+        currentDU={data.currentDU}
       >
         <MultiSeriesLineChart
           data={dailyDataMultiMonth}
@@ -181,6 +182,7 @@ export const ChartByDU = ({ data, category, section, valueType = 'currency' }: R
         onPeriodChange={setMonthsToShow}
         chartMinWidth={chartMinWidthCumulative}
         isMobile={isMobile}
+        currentDU={data.currentDU}
       >
         <MultiSeriesLineChart
           data={cumulativeDataMultiMonth}

@@ -132,11 +132,15 @@ export const TooltipContent = ({
 );
 
 export const buildSliceTooltip =
-  (setSlice: (s: SliceData<LineSeries> | null) => void) =>
+  (setSlice: (s: SliceData<LineSeries> | null) => void, isMobile = false) =>
   ({ slice }: { slice: SliceData<LineSeries> }) => {
     useEffect(() => {
       setSlice(slice);
-      return () => setSlice(null);
+      return () => {
+        if (!isMobile) {
+          setSlice(null);
+        }
+      };
     }, [slice]);
     return null;
   };

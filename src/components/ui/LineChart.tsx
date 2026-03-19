@@ -60,7 +60,7 @@ export const buildLineChartProps = (
   enablePoints: true,
   useMesh: !seriesLabels,
   enableSlices: seriesLabels ? 'x' : false,
-  sliceTooltip: seriesLabels ? buildSliceTooltip(setSlice) : undefined,
+  sliceTooltip: seriesLabels ? buildSliceTooltip(setSlice, isMobile) : undefined,
   tooltip: seriesLabels ? undefined : LineTooltip(fmt),
   layers: ['grid', 'markers', 'axes', 'areas', 'crosshair', linesLayer, 'points', 'slices', 'mesh', 'legends'],
   theme: {
@@ -125,7 +125,7 @@ export const MultiSeriesLineChart = ({
     <div
       style={{ height }}
       onMouseMove={handleMouseMove}
-      onMouseLeave={() => setSliceCb(null)}
+      onMouseLeave={isMobile ? undefined : () => setSliceCb(null)}
       role="application"
       aria-label="Line chart"
     >
