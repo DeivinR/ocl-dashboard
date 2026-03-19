@@ -1,5 +1,7 @@
 import { parseCurrency, formatMonth } from './utils';
 
+const DEFAULT_BUSINESS_DAYS = 22;
+
 export interface RawDataItem {
   produto: string;
   valor: number;
@@ -48,21 +50,31 @@ export const parseStructuredCSV = (
   const lines = csvText.split(/\r?\n/).filter((line) => line.trim() !== '');
   if (lines.length < 2) return null;
 
-  const headers = lines[0]!.split(';').map((h) => h.trim().toUpperCase());
+  const headers = lines[0]!.split(';').map((h) =>
+    h
+      .trim()
+      .toUpperCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, ''),
+  );
   const colMap = {
     PRODUTO: headers.indexOf('PRODUTO'),
     REPASSE: headers.indexOf('REPASSE'),
     HO: headers.indexOf('HO'),
     DU: headers.indexOf('DU'),
-    PERIODO: headers.indexOf('PERÍODO'),
+    PERIODO: headers.indexOf('PERIODO'),
     TIPO: headers.indexOf('TIPO'),
-    RISCO: headers.indexOf('RISCO CONTENÇÃO'),
+    RISCO: headers.indexOf('RISCO CONTENCAO'),
   };
+
+  if (Object.values(colMap).some((idx) => idx < 0)) {
+    return null;
+  }
 
   const rawData: RawDataItem[] = [];
   for (let i = 1; i < lines.length; i++) {
-    const row = lines[i]!.split(';');
-    if (row.length < headers.length) continue;
+    const row = lines[i]?.split(';');
+    if (!row || row.length < headers.length) continue;
     const du = Number.parseInt(row[colMap.DU] ?? '0') || 0;
     rawData.push({
       produto: row[colMap.PRODUTO]?.trim() || 'Outros',
@@ -76,13 +88,15 @@ export const parseStructuredCSV = (
   }
 
   const uniqueDates = [...new Set(rawData.map((d) => d.periodo))].sort((a, b) => a.localeCompare(b));
-  let finalDU = manualDU ? Number.parseInt(manualDU) : 1;
-  const finalTotalDays = totalDays ? Number.parseInt(totalDays) : 22;
+  const parsedManualDU = Number.parseInt(manualDU ?? '');
+  let finalDU = Number.isNaN(parsedManualDU) ? 1 : parsedManualDU;
+  const parsedTotalDays = Number.parseInt(totalDays ?? '');
+  const finalTotalDays = Number.isNaN(parsedTotalDays) ? DEFAULT_BUSINESS_DAYS : parsedTotalDays;
 
   if (!manualDU) {
     const latestDate = uniqueDates.at(-1);
     const currentMonthData = rawData.filter((d) => d.periodo === latestDate);
-    finalDU = Math.max(...currentMonthData.map((d) => d.du), 1);
+    finalDU = currentMonthData.reduce((max, d) => Math.max(max, d.du), 1);
   }
 
   return { rawData, dates: uniqueDates, currentDU: finalDU, totalBusinessDays: finalTotalDays };
@@ -90,7 +104,7 @@ export const parseStructuredCSV = (
 
 function filterByCategory(item: RawDataItem, category: string): boolean {
   if (category === 'CONSOLIDADO') return true;
-  if (category === 'CONTENÇÃO') return !!item.risco && item.risco.length > 2;
+  if (category === 'CONTENÇÃO') return item.risco.trim() !== '';
   const prod = item.produto?.toUpperCase();
   if (category === 'CASH') return ['PARCIAL', 'ATUALIZAÇÃO', 'QUITAÇÃO', 'VAP'].some((p) => prod?.includes(p));
   if (category === 'RENEGOCIAÇÃO') return prod === 'RENEGOCIAÇÃO';
@@ -108,8 +122,13 @@ export interface ValueByDU {
 function getEffectiveCurrentDU(data: DashboardData, category: string): number {
   const base = data.currentDU || 1;
   const extra = category === 'RENEGOCIAÇÃO' ? 1 : 0;
-  const total = data.totalBusinessDays || 22;
+  const total = data.totalBusinessDays || DEFAULT_BUSINESS_DAYS;
   return Math.max(1, Math.min(base + extra, total));
+}
+
+function calculateProjection(accumulated: number, currentDay: number, totalDays: number): number {
+  if (currentDay === 0) return 0;
+  return (accumulated / currentDay) * totalDays;
 }
 
 function getValueToSum(item: RawDataItem, category: string, section?: string): number {
@@ -207,17 +226,12 @@ export const calculateKPIs = (data: DashboardData | null, category: string, sect
   const avg6Val = last6.reduce((acc, d) => acc + sumUntilDU(d, currentDU), 0) / (last6.length || 1);
   const avg6Count = last6.reduce((acc, d) => acc + countUntilDU(d, currentDU), 0) / (last6.length || 1);
 
-  const calculateProjection = (accumulated: number, currentDay: number, totalDays: number): number => {
-    if (currentDay === 0) return 0;
-    return (accumulated / currentDay) * totalDays;
-  };
-
   const history: HistoryItem[] = dates
     .map((d) => {
       const isCurrent = d === currentDate;
       const totalMonthVal = sumTotalMonth(d);
       const closingValue = isCurrent
-        ? calculateProjection(currentVal, currentDU, totalBusinessDays || 22)
+        ? calculateProjection(currentVal, currentDU, totalBusinessDays || DEFAULT_BUSINESS_DAYS)
         : totalMonthVal;
 
       return {

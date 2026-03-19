@@ -1,53 +1,35 @@
 import { useState, lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Loader2, Database as DatabaseIcon } from 'lucide-react';
 import { DashboardSkeleton } from './components/ui/Skeleton';
 import { useIsMobile } from './hooks/useIsMobile';
 import { useAuth } from './contexts/AuthContext';
 import { useNavigation } from './hooks/useNavigation';
 import { AppShell } from './components/shell/AppShell';
-import { LoginScreen } from './components/LoginScreen';
-import { ForgotPasswordScreen } from './components/ForgotPasswordScreen';
-import { PasswordChangeScreen } from './components/PasswordChangeScreen';
+import { LoginPage } from './components/LoginPage';
+import { ForgotPasswordPage } from './components/ForgotPasswordPage';
+import { PasswordChangePage } from './components/PasswordChangePage';
 import { LandingPage } from './components/LandingPage';
 import { SettingsPage } from './components/SettingsPage';
-// import { ChatPage } from './components/ChatPage';
+import type { DashboardData } from './lib/data';
+import { getAppUrl } from './lib/config';
 
 const ProductDashboard = lazy(() =>
   import('./components/ProductDashboard').then((m) => ({ default: m.ProductDashboard })),
 );
 
-const App = () => {
-  const { user, data, setData, loading, isConfigured, supabase, logout } = useAuth();
-  const [selectedSection, setSelectedSection] = useState<string | null>(null);
-  // const [initialChatMessage, setInitialChatMessage] = useState<string | null>(null);
-  const { menu, activeTab, setActiveTab, prevTab, nextTab, goToNext } = useNavigation(selectedSection ?? undefined);
-  const [isSidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
-  const isMobile = useIsMobile();
-  const location = useLocation();
+interface DashboardRouteProps {
+  data: DashboardData | null;
+  isMobile: boolean;
+  isSidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
+  logout: () => Promise<void>;
+}
+
+const DashboardRoute = ({ data, isMobile, isSidebarOpen, setSidebarOpen, logout }: DashboardRouteProps) => {
+  const { section } = useParams<{ section: string }>();
   const navigate = useNavigate();
-
-  // const handleSendMessage = useCallback((message: string) => {
-  //   setInitialChatMessage(message);
-  //   setSelectedSection('chat');
-  // }, []);
-
-  // const handleOpenChat = useCallback(() => {
-  //   setSelectedSection('chat');
-  //   setInitialChatMessage(null);
-  // }, []);
-
-  // const handleChatBack = useCallback(() => {
-  //   setSelectedSection(null);
-  //   setInitialChatMessage(null);
-  // }, []);
-
-  if (loading)
-    return (
-      <div className="flex items-center justify-center bg-brand-bg" style={{ minHeight: '100vh' }}>
-        <Loader2 size={40} className="animate-spin text-ocl-primary" />
-      </div>
-    );
+  const { menu, activeTab, setActiveTab, prevTab, nextTab, goToNext } = useNavigation(section);
 
   const dataContent = data ? (
     <ProductDashboard
@@ -57,7 +39,7 @@ const App = () => {
       isMobile={isMobile}
       onNext={goToNext}
       nextName={nextTab?.label}
-      section={selectedSection ?? undefined}
+      section={section}
     />
   ) : (
     <div className="flex h-full flex-col items-center justify-center text-slate-400">
@@ -69,7 +51,7 @@ const App = () => {
     </div>
   );
 
-  const protectedApp = (
+  return (
     <AppShell
       tabs={{ menu, activeTab, prevTab, nextTab, onTabChange: setActiveTab }}
       sidebar={{
@@ -80,27 +62,54 @@ const App = () => {
       isMobile={isMobile}
       currentDU={data?.currentDU}
       onLogout={logout}
-      onBackToSections={() => setSelectedSection(null)}
+      onBackToSections={() => navigate('/')}
     >
       <Suspense fallback={<DashboardSkeleton />}>{dataContent}</Suspense>
     </AppShell>
   );
+};
+
+const App = () => {
+  const { user, data, updateData, loading, isConfigured, supabase, logout, isPasswordResetInProgress } = useAuth();
+  const [isSidebarOpen, setSidebarOpen] = useState(
+    () => globalThis.window !== undefined && globalThis.window.innerWidth >= 1024,
+  );
+  const isMobile = useIsMobile();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const redirectToChangePassword = `${getAppUrl()}/change-password`;
+
+  if (loading)
+    return (
+      <div className="flex items-center justify-center bg-brand-bg" style={{ minHeight: '100vh' }}>
+        <Loader2 size={40} className="animate-spin text-ocl-primary" />
+      </div>
+    );
 
   if (!user) {
     return (
       <Routes>
-        <Route path="/login" element={<LoginScreen supabase={supabase} configError={!isConfigured} />} />
+        <Route path="/login" element={<LoginPage supabase={supabase} configError={!isConfigured} />} />
         <Route
           path="/forgot-password"
           element={
-            <ForgotPasswordScreen supabase={supabase} configError={!isConfigured} redirectTo="/change-password" />
+            <ForgotPasswordPage supabase={supabase} configError={!isConfigured} redirectTo={redirectToChangePassword} />
           }
         />
-        <Route path="/change-password" element={<PasswordChangeScreen supabase={supabase} />} />
+        <Route path="/change-password" element={<PasswordChangePage supabase={supabase} />} />
         <Route
           path="*"
           element={<Navigate to={location.pathname === '/forgot-password' ? '/forgot-password' : '/login'} replace />}
         />
+      </Routes>
+    );
+  }
+
+  if (isPasswordResetInProgress) {
+    return (
+      <Routes>
+        <Route path="/change-password" element={<PasswordChangePage supabase={supabase} />} />
+        <Route path="*" element={<Navigate to="/change-password" replace />} />
       </Routes>
     );
   }
@@ -110,17 +119,30 @@ const App = () => {
       <Route
         path="/"
         element={
-          selectedSection ? (
-            protectedApp
-          ) : (
-            <LandingPage onSectionSelect={setSelectedSection} onOpenSettings={() => navigate('/settings')} onLogout={logout} />
-          )
+          <LandingPage
+            onSectionSelect={(sectionId) => navigate(`/dashboard/${sectionId}`)}
+            onOpenSettings={() => navigate('/settings')}
+            onLogout={logout}
+          />
         }
       />
       <Route
+        path="/dashboard/:section"
+        element={
+          <DashboardRoute
+            data={data}
+            isMobile={isMobile}
+            isSidebarOpen={isSidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+            logout={logout}
+          />
+        }
+      />
+      <Route path="/dashboard" element={<Navigate to="/dashboard/honorarios" replace />} />
+      <Route
         path="/settings"
         element={
-          <SettingsPage supabase={supabase} onDataSaved={setData} onBack={() => navigate('/')} onLogout={logout} />
+          <SettingsPage supabase={supabase} onDataSaved={updateData} onBack={() => navigate('/')} onLogout={logout} />
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />

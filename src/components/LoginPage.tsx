@@ -9,12 +9,12 @@ interface SupabaseAuthClient {
   };
 }
 
-interface LoginScreenProps {
+interface LoginPageProps {
   supabase: SupabaseAuthClient | null;
   configError: boolean;
 }
 
-export const LoginScreen = ({ supabase, configError }: Readonly<LoginScreenProps>) => {
+export const LoginPage = ({ supabase, configError }: Readonly<LoginPageProps>) => {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [loading, setLoading] = useState(false);
