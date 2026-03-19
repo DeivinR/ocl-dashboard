@@ -52,7 +52,7 @@ export const LoginPage = ({ supabase, configError }: Readonly<LoginPageProps>) =
             <h4 className="mb-2 flex items-center gap-2 text-sm font-bold text-amber-800">
               <AlertTriangle size={16} /> Configuração
             </h4>
-            <p className="text-xs text-amber-700">Verifique variáveis de ambiente no Vercel.</p>
+            <p className="text-xs text-amber-700">Verifique variáveis de ambiente.</p>
           </div>
         )}
         <form onSubmit={handleLogin} className="space-y-4 text-left">
