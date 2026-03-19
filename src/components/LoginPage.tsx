@@ -9,12 +9,12 @@ interface SupabaseAuthClient {
   };
 }
 
-interface LoginScreenProps {
+interface LoginPageProps {
   supabase: SupabaseAuthClient | null;
   configError: boolean;
 }
 
-export const LoginScreen = ({ supabase, configError }: Readonly<LoginScreenProps>) => {
+export const LoginPage = ({ supabase, configError }: Readonly<LoginPageProps>) => {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [loading, setLoading] = useState(false);
@@ -89,11 +89,14 @@ export const LoginScreen = ({ supabase, configError }: Readonly<LoginScreenProps
           )}
           <button
             type="submit"
-            className="w-full transform rounded-xl py-4 font-bold text-white transition-all hover:scale-[1.02] bg-ocl-primary hover:bg-ocl-hover"
+            className="w-full transform rounded-xl bg-ocl-primary py-4 font-bold text-white transition-all hover:scale-[1.02] hover:bg-ocl-hover"
           >
             {buttonLabel}
           </button>
         </form>
+        <a href="/forgot-password" className="mt-4 inline-block text-xs font-semibold text-ocl-primary hover:underline">
+          Esqueci minha senha
+        </a>
         <p className="mt-8 text-xs text-slate-400">© 2026 OCL Advogados Associados</p>
       </div>
     </div>
