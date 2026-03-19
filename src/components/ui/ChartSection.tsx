@@ -39,4 +39,3 @@ export const ChartSection = ({
     </Card>
   </div>
 );
-

@@ -92,8 +92,6 @@ export const ChartByDU = ({ data, category, section, valueType = 'currency' }: R
     [isMobile],
   );
 
-  if (!values.length) return null;
-
   const {
     chartMinWidth: chartMinWidthDaily,
     selectedDU,
@@ -101,25 +99,37 @@ export const ChartByDU = ({ data, category, section, valueType = 'currency' }: R
     displayDailyValue,
     displayDiff,
     displayIsPositive,
-  } = buildDailyDisplayState({
-    data,
-    dailyDataMultiMonth,
-    dailyMonthOffsets,
-    currentDailyValues,
-    dailySlice,
-  });
+    hasPreviousDU,
+  } = useMemo(
+    () =>
+      buildDailyDisplayState({
+        data,
+        dailyDataMultiMonth,
+        dailyMonthOffsets,
+        currentDailyValues,
+        dailySlice,
+      }),
+    [data, dailyDataMultiMonth, dailyMonthOffsets, currentDailyValues, dailySlice],
+  );
 
   const {
     chartMinWidth: chartMinWidthCumulative,
     displayCumulativeTotal,
     displayProjectionTotal,
     selectedCumulativeDU,
-  } = buildCumulativeDisplayState({
-    data,
-    values,
-    cumulativeDataMultiMonth,
-    cumulativeSlice,
-  });
+    selectedCumulativePoints,
+  } = useMemo(
+    () =>
+      buildCumulativeDisplayState({
+        data,
+        values,
+        cumulativeDataMultiMonth,
+        cumulativeSlice,
+      }),
+    [data, values, cumulativeDataMultiMonth, cumulativeSlice],
+  );
+
+  if (!values.length) return null;
 
   return (
     <div className="animate-fade-in mb-8 space-y-8">
@@ -136,6 +146,7 @@ export const ChartByDU = ({ data, category, section, valueType = 'currency' }: R
           displayIsPositive,
           displayDiff,
           dailySeriesLabels,
+          hasPreviousDU,
         })}
         periodValue={dailyMonthsToShow}
         onPeriodChange={setDailyMonthsToShow}
@@ -162,6 +173,9 @@ export const ChartByDU = ({ data, category, section, valueType = 'currency' }: R
           displayCumulativeTotal,
           selectedCumulativeDU,
           displayProjectionTotal,
+          selectedCumulativePoints,
+          monthsToShow,
+          cumulativeSeriesLabels,
         })}
         periodValue={monthsToShow}
         onPeriodChange={setMonthsToShow}

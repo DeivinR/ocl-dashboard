@@ -16,6 +16,7 @@ export interface DailyDisplayState {
   displayDailyValue: number;
   displayDiff: number;
   displayIsPositive: boolean;
+  hasPreviousDU: boolean;
 }
 
 export interface CumulativeDisplayState {
@@ -23,6 +24,7 @@ export interface CumulativeDisplayState {
   displayCumulativeTotal: number;
   displayProjectionTotal: number;
   selectedCumulativeDU: string | null;
+  selectedCumulativePoints: SliceData<LineSeries>['points'] | null;
 }
 
 export const buildDailyDisplayState = ({
@@ -73,6 +75,7 @@ export const buildDailyDisplayState = ({
   const displayDiff =
     selectedDailyValue !== null && prevSelectedValue !== null ? selectedDailyValue - prevSelectedValue : baseDiff;
   const displayIsPositive = displayDiff >= 0;
+  const hasPreviousDU = selectedDU === null ? currentDailyValues.length >= 2 : selectedDUIndex > 0;
 
   return {
     chartMinWidth,
@@ -81,6 +84,7 @@ export const buildDailyDisplayState = ({
     displayDailyValue,
     displayDiff,
     displayIsPositive,
+    hasPreviousDU,
   };
 };
 
@@ -112,6 +116,21 @@ export const buildCumulativeDisplayState = ({
   const chartMinWidth = maxDUCumulative * LINE_MIN_WIDTH_PX;
 
   const selectedCumulativeDU = cumulativeSlice?.points[0]?.data.xFormatted ?? null;
+  const selectedCumulativePoints = cumulativeSlice
+    ? [...cumulativeSlice.points]
+        .filter((p) => !isGhostSeries(String(p.seriesId)))
+        .sort((a, b) => {
+          const aId = String(a.seriesId);
+          const bId = String(b.seriesId);
+          const aIsProjection = aId.endsWith('_projecao');
+          const bIsProjection = bId.endsWith('_projecao');
+          if (aIsProjection && !bIsProjection) return -1;
+          if (!aIsProjection && bIsProjection) return 1;
+          const aMonth = aId.split('_')[0] ?? '';
+          const bMonth = bId.split('_')[0] ?? '';
+          return bMonth.localeCompare(aMonth);
+        })
+    : null;
   const selectedCumulativeValue = cumulativeSlice ? getPointValue(cumulativeSlice, '_acumulado') : null;
   const selectedProjectionValue = cumulativeSlice ? getPointValue(cumulativeSlice, '_projecao') : null;
   const displayCumulativeTotal = selectedCumulativeValue ?? cumulativeTotalBase;
@@ -122,6 +141,7 @@ export const buildCumulativeDisplayState = ({
     displayCumulativeTotal,
     displayProjectionTotal,
     selectedCumulativeDU,
+    selectedCumulativePoints,
   };
 };
 
@@ -131,10 +151,10 @@ export const renderDailyValueLine = ({
   dailyMonthsToShow,
   fmt,
   displayDailyValue,
-  currentDailyLength,
   displayIsPositive,
   displayDiff,
   dailySeriesLabels,
+  hasPreviousDU,
 }: {
   selectedDU: string | null;
   selectedDailyPoints: SliceData<LineSeries>['points'] | null;
@@ -145,6 +165,7 @@ export const renderDailyValueLine = ({
   displayIsPositive: boolean;
   displayDiff: number;
   dailySeriesLabels: Record<string, string>;
+  hasPreviousDU: boolean;
 }) => {
   if (selectedDU && selectedDailyPoints && dailyMonthsToShow > 1) {
     return (
@@ -169,7 +190,7 @@ export const renderDailyValueLine = ({
 
   return (
     <>
-      <span className="flex items-center gap-2 text-3xl font-bold text-ocl-primary tabular-nums transition-all duration-150">
+      <span className="flex items-center gap-2 text-3xl font-bold tabular-nums text-ocl-primary transition-all duration-150">
         {fmt(displayDailyValue)}
       </span>
       {selectedDU && (
@@ -177,7 +198,7 @@ export const renderDailyValueLine = ({
           DU {selectedDU}
         </span>
       )}
-      {currentDailyLength >= 2 && (
+      {hasPreviousDU && (
         <span
           className={`flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold ${displayIsPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}
         >
@@ -194,19 +215,80 @@ export const renderCumulativeValueLine = ({
   displayCumulativeTotal,
   selectedCumulativeDU,
   displayProjectionTotal,
+  selectedCumulativePoints,
+  monthsToShow,
+  cumulativeSeriesLabels,
 }: {
   fmt: (v: number) => string;
   displayCumulativeTotal: number;
   selectedCumulativeDU: string | null;
   displayProjectionTotal: number;
-}) => (
-  <>
-    <span className="flex items-center gap-2 text-3xl font-bold text-ocl-primary tabular-nums transition-all duration-150">
-      {fmt(displayCumulativeTotal)}
-    </span>
-    <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600">
-      {selectedCumulativeDU ? `DU ${selectedCumulativeDU} · ` : ''}
-      Projeção: {fmt(displayProjectionTotal)}
-    </span>
-  </>
-);
+  selectedCumulativePoints: SliceData<LineSeries>['points'] | null;
+  monthsToShow: number;
+  cumulativeSeriesLabels: Record<string, string>;
+}) => {
+  if (selectedCumulativeDU && selectedCumulativePoints && monthsToShow > 1) {
+    const projecaoPoints = selectedCumulativePoints.filter((p) => String(p.seriesId).endsWith('_projecao'));
+    const acumuladoPoints = selectedCumulativePoints.filter((p) => String(p.seriesId).endsWith('_acumulado'));
+
+    const formatLabel = (point: (typeof selectedCumulativePoints)[number]) => {
+      const id = String(point.seriesId);
+      const rawLabel = cumulativeSeriesLabels[id] ?? id;
+      return rawLabel.replace(/\s+(Acumulado|Projeção)$/u, '');
+    };
+
+    return (
+      <>
+        <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-500">
+          DU {selectedCumulativeDU}
+        </span>
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
+          {projecaoPoints.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Projeção</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {projecaoPoints.map((point) => (
+                  <div key={String(point.seriesId)} className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: point.seriesColor }} />
+                    <span className="text-xs font-semibold text-slate-500">{formatLabel(point)}:</span>
+                    <span className="text-sm font-bold text-ocl-primary">{fmt(Number(point.data.y))}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {acumuladoPoints.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Acumulado</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {acumuladoPoints.map((point) => (
+                  <div key={String(point.seriesId)} className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: point.seriesColor }} />
+                    <span className="text-xs font-semibold text-slate-500">{formatLabel(point)}:</span>
+                    <span className="text-sm font-bold text-ocl-primary">{fmt(Number(point.data.y))}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <span className="flex items-center gap-2 text-3xl font-bold tabular-nums text-ocl-primary transition-all duration-150">
+        {fmt(displayCumulativeTotal)}
+      </span>
+      {selectedCumulativeDU && (
+        <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-500">
+          DU {selectedCumulativeDU}
+        </span>
+      )}
+      <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600">
+        Projeção: {fmt(displayProjectionTotal)}
+      </span>
+    </>
+  );
+};
