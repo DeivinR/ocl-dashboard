@@ -1,23 +1,23 @@
 import { useEffect } from 'react';
 import { type Point, type SliceData } from '@nivo/line';
-import type { LineSeries } from '../../lib/chartStyles';
+import type { LineSeries } from '../../services';
 
 export const isGhostSeries = (seriesId: string) =>
   seriesId.endsWith('_ghostAxis') || seriesId.endsWith('_ghostAxisCum');
 
 export const LineTooltip =
   (fmt: (v: number) => string) =>
-  ({ point }: { point: Point<LineSeries> }) => {
-    const seriesId = String((point as unknown as { serieId?: string }).serieId ?? '');
-    const value = Number(point.data.y);
-    if (isGhostSeries(seriesId) || value === 0) return null;
-    return (
-      <div className="rounded-lg border border-slate-100 bg-white px-3 py-2 text-xs shadow-lg">
-        <p className="whitespace-nowrap font-semibold text-slate-500">DU {point.data.xFormatted}</p>
-        <p className="text-base font-bold text-ocl-primary">{fmt(value)}</p>
-      </div>
-    );
-  };
+    ({ point }: { point: Point<LineSeries> }) => {
+      const seriesId = String((point as unknown as { serieId?: string }).serieId ?? '');
+      const value = Number(point.data.y);
+      if (isGhostSeries(seriesId) || value === 0) return null;
+      return (
+        <div className="rounded-lg border border-slate-100 bg-white px-3 py-2 text-xs shadow-lg">
+          <p className="whitespace-nowrap font-semibold text-slate-500">DU {point.data.xFormatted}</p>
+          <p className="text-base font-bold text-ocl-primary">{fmt(value)}</p>
+        </div>
+      );
+    };
 
 export const TooltipContent = ({
   xLabel,
@@ -132,11 +132,15 @@ export const TooltipContent = ({
 );
 
 export const buildSliceTooltip =
-  (setSlice: (s: SliceData<LineSeries> | null) => void) =>
-  ({ slice }: { slice: SliceData<LineSeries> }) => {
-    useEffect(() => {
-      setSlice(slice);
-      return () => setSlice(null);
-    }, [slice]);
-    return null;
-  };
+  (setSlice: (s: SliceData<LineSeries> | null) => void, isMobile = false) =>
+    ({ slice }: { slice: SliceData<LineSeries> }) => {
+      useEffect(() => {
+        setSlice(slice);
+        return () => {
+          if (!isMobile) {
+            setSlice(null);
+          }
+        };
+      }, [slice]);
+      return null;
+    };

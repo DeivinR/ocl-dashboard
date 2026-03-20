@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Loader2, ShieldAlert, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { logger } from '../../utils';
 
 const LOGO_DARK_URL = '/logo.png';
 
@@ -38,7 +39,7 @@ export const ForgotPasswordPage = ({ supabase, configError, redirectTo }: Readon
       if (error) throw error;
       setSuccessMsg('Enviamos um link para redefinir sua senha. Verifique seu e-mail.');
     } catch (err) {
-      console.error(err);
+      logger.error('Failed to send password reset email', err as Error, { email });
       let msg = 'Erro ao enviar link de redefinição.';
       if ((err as Error).message.includes('rate limit'))
         msg = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';

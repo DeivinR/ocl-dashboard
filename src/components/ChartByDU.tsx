@@ -1,13 +1,11 @@
 import { useState, useMemo } from 'react';
 import { BarChart3, Layers } from 'lucide-react';
-import { getValuesByBusinessDay, type DashboardData } from '../lib/data';
-import { formatCurrency, formatNumber } from '../lib/utils';
-import { resolveSeriesStyles } from '../lib/chartStyles';
-import { colors } from '../lib/colors';
+import { getValuesByBusinessDay, type DashboardData, resolveSeriesStyles } from '../services';
+import { formatCurrency, formatNumber, colors } from '../utils';
 import { MultiSeriesLineChart } from './ui/LineChart';
 import { ChartSection } from './ui/ChartSection';
 import type { MonthsToShow } from './ui/PeriodSelect';
-import { buildDailyDataMultiMonth, buildCumulativeDataMultiMonth } from '../lib/chartByDuData';
+import { buildDailyDataMultiMonth, buildCumulativeDataMultiMonth } from '../services';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useDebouncedSlice } from '../hooks/useDebouncedSlice';
 import {
@@ -138,6 +136,7 @@ export const ChartByDU = ({ data, category, section, valueType = 'currency' }: R
         onPeriodChange={setDailyMonthsToShow}
         chartMinWidth={chartMinWidthDaily}
         isMobile={isMobile}
+        currentDU={data.currentDU}
       >
         <MultiSeriesLineChart
           data={dailyDataMultiMonth}
@@ -168,6 +167,7 @@ export const ChartByDU = ({ data, category, section, valueType = 'currency' }: R
         onPeriodChange={setMonthsToShow}
         chartMinWidth={chartMinWidthCumulative}
         isMobile={isMobile}
+        currentDU={data.currentDU}
       >
         <MultiSeriesLineChart
           data={cumulativeDataMultiMonth}

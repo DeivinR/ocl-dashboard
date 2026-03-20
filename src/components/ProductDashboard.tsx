@@ -12,9 +12,8 @@ import {
   FileText,
   ShieldAlert,
 } from 'lucide-react';
-import { formatCurrency, formatNumber } from '../lib/utils';
-import { calculateKPIs } from '../lib/data';
-import type { DashboardData } from '../lib/data';
+import { formatCurrency, formatNumber } from '../utils';
+import { calculateKPIs, type DashboardData } from '../services';
 import { MetricCard } from './ui/Card';
 import { ChartByDU } from './ChartByDU';
 import { AnalyticalTable } from './AnalyticalTable';

@@ -1,4 +1,4 @@
-import type { DashboardData } from './data';
+import type { DashboardData } from '../services/data';
 
 export interface Database {
   public: {

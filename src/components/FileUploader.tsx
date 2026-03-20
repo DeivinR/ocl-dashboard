@@ -1,9 +1,9 @@
 import { useState, type ChangeEvent } from 'react';
 import { Cloud, Settings, CheckCircle2, Loader2 } from 'lucide-react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { parseStructuredCSV } from '../lib/data';
-import type { DashboardData } from '../lib/data';
-import type { Database } from '../lib/database.types';
+import { parseStructuredCSV, type DashboardData } from '../services';
+import type { Database } from '../config/database.types';
+import { logger } from '../utils';
 
 interface FileUploaderProps {
   supabase: SupabaseClient<Database> | null;
@@ -108,7 +108,7 @@ export const FileUploader = ({ supabase, onDataSaved }: Readonly<FileUploaderPro
         setStatus('success-cloud');
         setStatusMsg('Dashboard atualizado com sucesso.');
       } catch (err) {
-        console.error('Erro Supabase:', err);
+        logger.error('Failed to save dashboard to Supabase', err as Error);
         alert('Erro ao salvar: ' + (err as Error).message);
         setStatus('idle');
       }

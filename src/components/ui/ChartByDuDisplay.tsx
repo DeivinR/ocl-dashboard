@@ -1,7 +1,6 @@
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import type { SliceData } from '@nivo/line';
-import type { DashboardData, ValueByDU } from '../../lib/data';
-import { LINE_MIN_WIDTH_PX, type LineSeries } from '../../lib/chartStyles';
+import { LINE_MIN_WIDTH_PX, type DashboardData, type ValueByDU, type LineSeries } from '../../services';
 import { isGhostSeries } from './ChartTooltip';
 
 const getPointValue = (slice: SliceData<LineSeries>, seriesIdSuffix: string): number | null => {

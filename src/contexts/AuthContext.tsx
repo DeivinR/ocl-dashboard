@@ -1,10 +1,12 @@
-import { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import { type SupabaseClient, type User } from '@supabase/supabase-js';
 import { useLocation } from 'react-router-dom';
-import type { Database } from '../lib/database.types';
-import type { DashboardData } from '../lib/data';
-import type { Profile } from '../types/profile';
-import { getSupabaseClient } from '../lib/supabase';
+import { useQueryClient } from '@tanstack/react-query';
+import type { Database } from '../config/database.types';
+import type { DashboardData } from '../services/data';
+import type { Profile } from '../types';
+import { getSupabaseClient } from '../config';
+import { useDashboardData, useProfile, queryKeys } from '../hooks/queries';
 
 const INACTIVITY_LIMIT = 10 * 60 * 1000;
 
@@ -30,30 +32,33 @@ export const useAuth = (): AuthContextValue => {
 
 export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) => {
   const location = useLocation();
-  const dataFetchedRef = useRef(false);
+  const queryClient = useQueryClient();
 
   const supabase = useMemo(() => getSupabaseClient(), []);
 
   const [user, setUser] = useState<User | null>(null);
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPasswordResetInProgress, setIsPasswordResetInProgress] = useState(false);
   const isConfigured = supabase !== null;
 
-  const updateData = useCallback((newData: DashboardData | null) => {
-    setData(newData);
-  }, []);
+  const shouldFetchData = !!user && !isPasswordResetInProgress;
+  const { data: dashboardData, isLoading: isDashboardLoading } = useDashboardData(supabase, shouldFetchData);
+  const { data: profileData, isLoading: isProfileLoading } = useProfile(supabase, user?.id ?? null, shouldFetchData);
+
+  const updateData = useCallback(
+    (newData: DashboardData | null) => {
+      queryClient.setQueryData(queryKeys.dashboard, newData);
+    },
+    [queryClient],
+  );
 
   const logout = useCallback(async () => {
     if (supabase) {
       await supabase.auth.signOut();
     }
-    setData(null);
-    setProfile(null);
+    queryClient.clear();
     setUser(null);
-    dataFetchedRef.current = false;
-  }, [supabase]);
+  }, [supabase, queryClient]);
 
   useEffect(() => {
     if (!user || !supabase) return;
@@ -71,72 +76,23 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
     };
   }, [user, supabase, logout]);
 
-  const fetchProfile = useCallback(
-    async (userId: string, cancelled: { current: boolean }) => {
-      if (!supabase) return;
-      const { data: profileData, error }: { data: any; error: any } = await supabase
-        .from('profiles')
-        .select('id, full_name, role, access_level, created_at')
-        .eq('id', userId)
-        .single();
-
-      if (cancelled.current) return;
-      if (error) {
-        console.error('Failed to fetch profile:', error);
-        setProfile(null);
-        return;
-      }
-      if (!profileData) {
-        setProfile(null);
-        return;
-      }
-      setProfile({
-        id: profileData.id,
-        fullName: profileData.full_name ?? '',
-        role: profileData.role ?? '',
-        accessLevel: profileData.access_level ?? '',
-        createdAt: profileData.created_at ?? '',
-      });
-    },
-    [supabase],
-  );
-
-  const fetchDashboardData = useCallback(
-    async (cancelled: { current: boolean }) => {
-      if (!supabase || dataFetchedRef.current) return;
-      if (!cancelled.current) setLoading(true);
-      dataFetchedRef.current = true;
-      const { data: dbData } = await supabase.from('dashboards').select('content').eq('id', 'latest').single();
-      if (cancelled.current) return;
-      if (dbData?.content) setData(dbData.content);
-      setLoading(false);
-    },
-    [supabase],
-  );
-
   const handlePasswordResetPage = useCallback((cancelled: { current: boolean }) => {
     if (cancelled.current) return;
     setIsPasswordResetInProgress(true);
     setLoading(false);
   }, []);
 
-  const handleNormalSession = useCallback(
-    (userId: string, cancelled: { current: boolean }) => {
-      if (cancelled.current) return;
-      setIsPasswordResetInProgress(false);
-      fetchProfile(userId, cancelled);
-      fetchDashboardData(cancelled);
-    },
-    [fetchProfile, fetchDashboardData],
-  );
+  const handleNormalSession = useCallback((cancelled: { current: boolean }) => {
+    if (cancelled.current) return;
+    setIsPasswordResetInProgress(false);
+    setLoading(false);
+  }, []);
 
   const handleNoSession = useCallback((cancelled: { current: boolean }) => {
     if (cancelled.current) return;
     setUser(null);
-    setProfile(null);
     setIsPasswordResetInProgress(false);
     setLoading(false);
-    dataFetchedRef.current = false;
   }, []);
 
   useEffect(() => {
@@ -157,7 +113,7 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
         if (isOnPasswordResetPage) {
           handlePasswordResetPage(cancelledRef);
         } else {
-          handleNormalSession(session.user.id, cancelledRef);
+          handleNormalSession(cancelledRef);
         }
       } else {
         handleNoSession(cancelledRef);
@@ -170,19 +126,32 @@ export const AuthProvider = ({ children }: Readonly<{ children: ReactNode }>) =>
     };
   }, [supabase, location.pathname, handlePasswordResetPage, handleNormalSession, handleNoSession]);
 
+  const isDataLoading = shouldFetchData && (isDashboardLoading || isProfileLoading);
+  const combinedLoading = loading || isDataLoading;
+
   const value = useMemo(
     () => ({
       supabase,
       user,
-      data,
-      profile,
-      loading,
+      data: dashboardData ?? null,
+      profile: profileData ?? null,
+      loading: combinedLoading,
       isConfigured,
       isPasswordResetInProgress,
       updateData,
       logout,
     }),
-    [supabase, user, data, profile, loading, isConfigured, isPasswordResetInProgress, updateData, logout],
+    [
+      supabase,
+      user,
+      dashboardData,
+      profileData,
+      combinedLoading,
+      isConfigured,
+      isPasswordResetInProgress,
+      updateData,
+      logout,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

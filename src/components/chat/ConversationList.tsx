@@ -1,5 +1,5 @@
 import { MessageSquarePlus, MessageCircle, AlertCircle, Trash2, Loader2 } from 'lucide-react';
-import type { Conversation } from '../../interfaces/conversation';
+import type { Conversation } from '../../types';
 import { ConversationListSkeleton } from '../ui/Skeleton';
 
 const cn = (...classes: string[]) => classes.filter(Boolean).join(' ');
