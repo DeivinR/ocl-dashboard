@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { SliceData } from '@nivo/line';
-import type { LineSeries } from '../lib/chartStyles';
+import type { LineSeries } from '../services';
 
 export const useDebouncedSlice = (isMobile: boolean, delay: number = 100) => {
   const [slice, setSlice] = useState<SliceData<LineSeries> | null>(null);

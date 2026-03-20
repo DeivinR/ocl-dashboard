@@ -2,13 +2,13 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import type { ThreadMessageLike } from '@assistant-ui/core';
 import { ArrowLeft, LogOut, UploadCloud, Bot } from 'lucide-react';
 import { ThreadPrimitive } from '@assistant-ui/react';
-import { SocketChatRuntime } from './chat/SocketChatRuntime';
-import { ChatMessageBubble } from './chat/ChatMessageBubble';
-import { ChatComposer } from './chat/ChatComposer';
-import { EmptyState } from './chat/EmptyState';
-import { ConversationList } from './chat/ConversationList';
-import { ChatMessagesSkeleton } from './ui/Skeleton';
-import type { Conversation } from '../interfaces/conversation';
+import { SocketChatRuntime } from '../components/chat/SocketChatRuntime';
+import { ChatMessageBubble } from '../components/chat/ChatMessageBubble';
+import { ChatComposer } from '../components/chat/ChatComposer';
+import { EmptyState } from '../components/chat/EmptyState';
+import { ConversationList } from '../components/chat/ConversationList';
+import { ChatMessagesSkeleton } from '../components/ui/Skeleton';
+import type { Conversation } from '../types';
 import {
   useConversations,
   useCreateConversation,
@@ -93,7 +93,7 @@ export function ChatPage({
       .then((conv: Conversation) => {
         setSelectedConversationId(conv.id);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [initialMessage, selectedConversationId]);
 
   const handleConversationCreated = useCallback((id: string) => {

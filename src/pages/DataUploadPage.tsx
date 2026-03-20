@@ -1,8 +1,8 @@
 import { ArrowLeft, LogOut } from 'lucide-react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '../lib/database.types';
-import type { DashboardData } from '../lib/data';
-import { FileUploader } from './FileUploader';
+import type { Database } from '../config/database.types';
+import type { DashboardData } from '../services';
+import { FileUploader } from '../components/FileUploader';
 
 interface DataUploadPageProps {
   supabase: SupabaseClient<Database> | null;

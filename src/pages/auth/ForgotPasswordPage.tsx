@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Loader2, ShieldAlert, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { logger } from '../lib/logger';
+import { logger } from '../../utils';
 
 const LOGO_DARK_URL = '/logo.png';
 

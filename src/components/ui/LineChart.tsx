@@ -1,8 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ResponsiveLine, type LineSvgProps, type LineCustomSvgLayerProps, type SliceData } from '@nivo/line';
-import type { LineSeries, SeriesStyleMap } from '../../lib/chartStyles';
-import { CHART_HEIGHT } from '../../lib/chartStyles';
+import { CHART_HEIGHT, type LineSeries, type SeriesStyleMap } from '../../services';
 import { LineTooltip, buildSliceTooltip, TooltipContent, isGhostSeries } from './ChartTooltip';
 
 const TOOLTIP_OFFSET = 14;

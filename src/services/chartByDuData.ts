@@ -1,5 +1,5 @@
 import { getValuesByBusinessDay, type DashboardData, type ValueByDU } from './data';
-import { formatMonth } from './utils';
+import { formatMonth } from '../utils';
 import type { LineSeries } from './chartStyles';
 
 const toCumulativeSeriesWithId = (values: ValueByDU[], seriesId: string): LineSeries => {

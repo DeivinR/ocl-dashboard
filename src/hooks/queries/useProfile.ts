@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '../../lib/database.types';
+import type { Database } from '../../config/database.types';
 import type { Profile } from '../../types/profile';
 
 export const profileKeys = {

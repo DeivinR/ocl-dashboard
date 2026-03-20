@@ -49,7 +49,7 @@ export const PasswordChangePage = ({ supabase }: Readonly<PasswordChangePageProp
   const tokenType = (params.get('type') ?? '').toLowerCase();
 
   useEffect(() => {
-    if (alreadyVerified) return;
+    if (alreadyVerified || successMsg) return;
 
     const controller = new AbortController();
 
@@ -87,7 +87,7 @@ export const PasswordChangePage = ({ supabase }: Readonly<PasswordChangePageProp
     })();
 
     return () => controller.abort();
-  }, [alreadyVerified, navigate, supabase, tokenHash, tokenType]);
+  }, [alreadyVerified, navigate, supabase, tokenHash, tokenType, successMsg]);
 
   const isValid = password.length >= 6 && password === confirmPassword && !loading && tokenVerified;
   const inputsDisabled = loading || tokenLoading || !tokenVerified;
@@ -123,6 +123,7 @@ export const PasswordChangePage = ({ supabase }: Readonly<PasswordChangePageProp
         if (isSessionExpiredAfterUpdate) {
           clearVerifiedFlag();
           setSuccessMsg('Senha alterada com sucesso. Redirecionando para o login...');
+          setLoading(false);
           setPassword('');
           setConfirmPassword('');
           await supabase.auth.signOut();

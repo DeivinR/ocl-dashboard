@@ -2,10 +2,10 @@ import { createContext, useContext, useState, useEffect, useMemo, useCallback, t
 import { type SupabaseClient, type User } from '@supabase/supabase-js';
 import { useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Database } from '../lib/database.types';
-import type { DashboardData } from '../lib/data';
-import type { Profile } from '../types/profile';
-import { getSupabaseClient } from '../lib/supabase';
+import type { Database } from '../config/database.types';
+import type { DashboardData } from '../services/data';
+import type { Profile } from '../types';
+import { getSupabaseClient } from '../config';
 import { useDashboardData, useProfile, queryKeys } from '../hooks/queries';
 
 const INACTIVITY_LIMIT = 10 * 60 * 1000;

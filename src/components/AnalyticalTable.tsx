@@ -1,6 +1,6 @@
 import { Calendar, Database } from 'lucide-react';
-import { formatCurrency, formatNumber } from '../lib/utils';
-import type { HistoryItem } from '../lib/data';
+import { formatCurrency, formatNumber } from '../utils';
+import type { HistoryItem } from '../services';
 import { Card } from './ui/Card';
 
 interface AnalyticalTableProps {

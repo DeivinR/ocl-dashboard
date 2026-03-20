@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Conversation } from '../interfaces/conversation';
+import type { Conversation } from '../types';
 import { getConversations, createConversation, getMessages, deleteConversation } from '../api/conversations';
 
 export const conversationKeys = {

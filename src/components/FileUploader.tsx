@@ -1,10 +1,9 @@
 import { useState, type ChangeEvent } from 'react';
 import { Cloud, Settings, CheckCircle2, Loader2 } from 'lucide-react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { parseStructuredCSV } from '../lib/data';
-import type { DashboardData } from '../lib/data';
-import type { Database } from '../lib/database.types';
-import { logger } from '../lib/logger';
+import { parseStructuredCSV, type DashboardData } from '../services';
+import type { Database } from '../config/database.types';
+import { logger } from '../utils';
 
 interface FileUploaderProps {
   supabase: SupabaseClient<Database> | null;

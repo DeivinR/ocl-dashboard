@@ -1,7 +1,6 @@
 import type { GetToken } from './client';
 import { createAuthFetch } from './client';
-import type { Conversation } from '../interfaces/conversation';
-import type { Message } from '../interfaces/message';
+import type { Conversation, Message } from '../types';
 
 export async function getConversations(getToken: GetToken): Promise<Conversation[]> {
   const res = await createAuthFetch(getToken)('/conversations');

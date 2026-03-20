@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '../../lib/database.types';
-import type { DashboardData } from '../../lib/data';
+import type { Database } from '../../config/database.types';
+import type { DashboardData } from '../../services';
 
 export const dashboardKeys = {
   all: ['dashboard'] as const,
