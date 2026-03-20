@@ -214,7 +214,7 @@ export const MultiSeriesLineChart = ({
 
   return (
     <div
-      style={{ height }}
+      style={{ height, userSelect: 'none', WebkitUserSelect: 'none', touchAction: 'none' }}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setSliceCb(null)}
       role="application"
