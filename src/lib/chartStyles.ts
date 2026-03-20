@@ -2,7 +2,8 @@ export const LINE_MIN_WIDTH_PX = 36;
 export const CHART_HEIGHT = 350;
 
 export const HISTORICAL_COLOR = '#94a3b8';
-export const HISTORICAL_OPACITIES = [1, 0.5];
+export const HISTORICAL_COLORS = ['#f59e0b', '#8b5cf6'];
+export const HISTORICAL_OPACITIES = [0.5, 0.5];
 export const PROJECTION_COLOR = '#2dd4bf';
 export const PROJECTION_COLOR_HISTORICAL = '#99f6e4';
 
@@ -25,7 +26,9 @@ export const resolveSeriesStyles = (
     const isProjection = id.endsWith('_projecao');
     let color: string;
     if (isProjection) color = offset === 0 ? PROJECTION_COLOR : PROJECTION_COLOR_HISTORICAL;
-    else color = offset === 0 ? currentColor : HISTORICAL_COLOR;
+    else
+      color =
+        offset === 0 ? currentColor : (HISTORICAL_COLORS[(offset - 1) % HISTORICAL_COLORS.length] ?? HISTORICAL_COLOR);
     const opacity = offset === 0 ? 1 : (HISTORICAL_OPACITIES[(offset - 1) as 0 | 1] ?? 0.5);
     result[id] = { color, opacity };
   }
