@@ -9,6 +9,21 @@ const getPointValue = (slice: SliceData<LineSeries>, seriesIdSuffix: string): nu
   return point ? Number(point.data.y) : null;
 };
 
+const calculateChartMinWidth = (series: LineSeries[], fallbackLength: number): number => {
+  const allX = series.flatMap((s) => s.data.map((d) => Number(String(d.x).replace('DU ', ''))));
+  const validX = allX.filter((n) => !Number.isNaN(n));
+  const maxDU = series.length > 0 && validX.length > 0 ? Math.max(...validX, 1) : fallbackLength;
+  return maxDU * LINE_MIN_WIDTH_PX;
+};
+
+const filterAndSortPoints = (
+  points: SliceData<LineSeries>['points'],
+  sortFn?: (a: SliceData<LineSeries>['points'][number], b: SliceData<LineSeries>['points'][number]) => number,
+) => {
+  const filtered = points.filter((p) => !isGhostSeries(String(p.seriesId)));
+  return sortFn ? filtered.sort(sortFn) : filtered.reverse();
+};
+
 export interface DailyDisplayState {
   chartMinWidth: number;
   selectedDU: string | null;
@@ -44,21 +59,22 @@ export const buildDailyDisplayState = ({
   const prevDUValue = currentDailyValues.length >= 2 ? (currentDailyValues.at(-2)?.valor ?? 0) : 0;
   const baseDiff = lastDUValue - prevDUValue;
 
-  const allDailyX = dailyDataMultiMonth.flatMap((s) => s.data.map((d) => Number(d.x)));
-  const validDailyX = allDailyX.filter((n) => !Number.isNaN(n));
-  const maxDUDaily =
-    dailyDataMultiMonth.length > 0 && validDailyX.length > 0 ? Math.max(...validDailyX, 1) : currentDailyValues.length;
-  const chartMinWidth = maxDUDaily * LINE_MIN_WIDTH_PX;
+  const chartMinWidth = calculateChartMinWidth(dailyDataMultiMonth, currentDailyValues.length);
 
   const rawSelectedDU = dailySlice?.points[0]?.data.xFormatted ?? null;
+  const selectedDUNumber = rawSelectedDU === null ? null : Number.parseInt(String(rawSelectedDU), 10);
+  const isCurrentMonthPoint = dailySlice?.points.some((p) => {
+    const seriesId = String(p.seriesId);
+    return dailyMonthOffsets[seriesId] === 0;
+  }) ?? false;
   const isFutureDU =
-    rawSelectedDU !== null && Number.parseInt(String(rawSelectedDU), 10) > (data.currentDU ?? Number.POSITIVE_INFINITY);
+    selectedDUNumber !== null &&
+    isCurrentMonthPoint &&
+    selectedDUNumber > (data.currentDU ?? Number.POSITIVE_INFINITY);
   const effectiveSlice = isFutureDU ? null : dailySlice;
 
   const selectedDU = effectiveSlice?.points[0]?.data.xFormatted ?? null;
-  const selectedDailyPoints = effectiveSlice
-    ? [...effectiveSlice.points].filter((p) => !isGhostSeries(String(p.seriesId))).reverse()
-    : null;
+  const selectedDailyPoints = effectiveSlice ? filterAndSortPoints(effectiveSlice.points) : null;
   const selectedDailyValue = effectiveSlice ? getPointValue(effectiveSlice, '_diario') : null;
   const displayDailyValue = selectedDailyValue ?? lastDUValue;
 
@@ -105,31 +121,21 @@ export const buildCumulativeDisplayState = ({
   const cumulativeTotalBase = currentMonthCumulativeSeries?.data.at(-1)?.y ?? 0;
   const projectionTotalBase = currentMonthProjectionSeries?.data.at(-1)?.y ?? 0;
 
-  const allCumulativeX = cumulativeDataMultiMonth.flatMap((s) =>
-    s.data.map((d) => Number(String(d.x).replace('DU ', ''))),
-  );
-  const validCumulativeX = allCumulativeX.filter((n) => !Number.isNaN(n));
-  const maxDUCumulative =
-    cumulativeDataMultiMonth.length > 0 && validCumulativeX.length > 0
-      ? Math.max(...validCumulativeX, 1)
-      : values.length;
-  const chartMinWidth = maxDUCumulative * LINE_MIN_WIDTH_PX;
+  const chartMinWidth = calculateChartMinWidth(cumulativeDataMultiMonth, values.length);
 
   const selectedCumulativeDU = cumulativeSlice?.points[0]?.data.xFormatted ?? null;
   const selectedCumulativePoints = cumulativeSlice
-    ? [...cumulativeSlice.points]
-        .filter((p) => !isGhostSeries(String(p.seriesId)))
-        .sort((a, b) => {
-          const aId = String(a.seriesId);
-          const bId = String(b.seriesId);
-          const aIsProjection = aId.endsWith('_projecao');
-          const bIsProjection = bId.endsWith('_projecao');
-          if (aIsProjection && !bIsProjection) return -1;
-          if (!aIsProjection && bIsProjection) return 1;
-          const aMonth = aId.split('_')[0] ?? '';
-          const bMonth = bId.split('_')[0] ?? '';
-          return bMonth.localeCompare(aMonth);
-        })
+    ? filterAndSortPoints(cumulativeSlice.points, (a, b) => {
+      const aId = String(a.seriesId);
+      const bId = String(b.seriesId);
+      const aIsProjection = aId.endsWith('_projecao');
+      const bIsProjection = bId.endsWith('_projecao');
+      if (aIsProjection && !bIsProjection) return -1;
+      if (!aIsProjection && bIsProjection) return 1;
+      const aMonth = aId.split('_')[0] ?? '';
+      const bMonth = bId.split('_')[0] ?? '';
+      return bMonth.localeCompare(aMonth);
+    })
     : null;
   const selectedCumulativeValue = cumulativeSlice ? getPointValue(cumulativeSlice, '_acumulado') : null;
   const selectedProjectionValue = cumulativeSlice ? getPointValue(cumulativeSlice, '_projecao') : null;
@@ -161,7 +167,6 @@ export const renderDailyValueLine = ({
   dailyMonthsToShow: number;
   fmt: (v: number) => string;
   displayDailyValue: number;
-  currentDailyLength: number;
   displayIsPositive: boolean;
   displayDiff: number;
   dailySeriesLabels: Record<string, string>;
