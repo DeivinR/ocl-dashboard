@@ -1,15 +1,15 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { BarChart3, Layers } from 'lucide-react';
-import type { SliceData } from '@nivo/line';
 import { getValuesByBusinessDay, type DashboardData } from '../lib/data';
 import { formatCurrency, formatNumber } from '../lib/utils';
-import { resolveSeriesStyles, type LineSeries } from '../lib/chartStyles';
+import { resolveSeriesStyles } from '../lib/chartStyles';
 import { colors } from '../lib/colors';
 import { MultiSeriesLineChart } from './ui/LineChart';
 import { ChartSection } from './ui/ChartSection';
 import type { MonthsToShow } from './ui/PeriodSelect';
 import { buildDailyDataMultiMonth, buildCumulativeDataMultiMonth } from '../lib/chartByDuData';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { useDebouncedSlice } from '../hooks/useDebouncedSlice';
 import {
   buildDailyDisplayState,
   buildCumulativeDisplayState,
@@ -29,8 +29,8 @@ export const ChartByDU = ({ data, category, section, valueType = 'currency' }: R
   const values = useMemo(() => getValuesByBusinessDay(data, category, section), [data, category, section]);
   const [dailyMonthsToShow, setDailyMonthsToShow] = useState<MonthsToShow>(1);
   const [monthsToShow, setMonthsToShow] = useState<MonthsToShow>(1);
-  const [dailySlice, setDailySlice] = useState<SliceData<LineSeries> | null>(null);
-  const [cumulativeSlice, setCumulativeSlice] = useState<SliceData<LineSeries> | null>(null);
+  const { slice: dailySlice, handleSliceChange: handleDailySliceChange } = useDebouncedSlice(isMobile);
+  const { slice: cumulativeSlice, handleSliceChange: handleCumulativeSliceChange } = useDebouncedSlice(isMobile);
 
   const totalDays = data.totalBusinessDays ?? 22;
   const fmt = valueType === 'number' ? formatNumber : formatCurrency;
@@ -78,19 +78,6 @@ export const ChartByDU = ({ data, category, section, valueType = 'currency' }: R
     [cumulativeDataMultiMonth, cumulativeMonthOffsets],
   );
 
-  const handleDailySliceChange = useCallback(
-    (slice: SliceData<LineSeries> | null) => {
-      if (isMobile) setDailySlice(slice);
-    },
-    [isMobile],
-  );
-
-  const handleCumulativeSliceChange = useCallback(
-    (slice: SliceData<LineSeries> | null) => {
-      if (isMobile) setCumulativeSlice(slice);
-    },
-    [isMobile],
-  );
 
   const {
     chartMinWidth: chartMinWidthDaily,
@@ -142,7 +129,6 @@ export const ChartByDU = ({ data, category, section, valueType = 'currency' }: R
           dailyMonthsToShow,
           fmt,
           displayDailyValue,
-          currentDailyLength: currentDailyValues.length,
           displayIsPositive,
           displayDiff,
           dailySeriesLabels,
@@ -163,6 +149,7 @@ export const ChartByDU = ({ data, category, section, valueType = 'currency' }: R
           onSliceChange={isMobile ? handleDailySliceChange : undefined}
           height={isMobile ? 320 : undefined}
           isMobile={isMobile}
+          showLegend={dailyMonthsToShow > 1 && !isMobile}
         />
       </ChartSection>
 
@@ -193,6 +180,7 @@ export const ChartByDU = ({ data, category, section, valueType = 'currency' }: R
           onSliceChange={isMobile ? handleCumulativeSliceChange : undefined}
           height={isMobile ? 320 : undefined}
           isMobile={isMobile}
+          showLegend={monthsToShow > 1 && !isMobile}
         />
       </ChartSection>
     </div>
