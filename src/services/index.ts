@@ -13,7 +13,6 @@ export { buildDailyDataMultiMonth, buildCumulativeDataMultiMonth } from './chart
 export {
   LINE_MIN_WIDTH_PX,
   CHART_HEIGHT,
-  HISTORICAL_COLOR,
   HISTORICAL_COLORS,
   HISTORICAL_OPACITIES,
   PROJECTION_COLOR,
