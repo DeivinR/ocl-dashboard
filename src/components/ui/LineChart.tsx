@@ -213,7 +213,7 @@ export const MultiSeriesLineChart = ({
 
   return (
     <div
-      style={{ height, userSelect: 'none', WebkitUserSelect: 'none', touchAction: 'pan-x' }}
+      style={{ height, userSelect: 'none', WebkitUserSelect: 'none', touchAction: 'pan-x pan-y' }}
       onMouseMove={handleMouseMove}
       onMouseLeave={isMobile ? undefined : () => setSliceCb(null)}
       role="application"
@@ -223,7 +223,16 @@ export const MultiSeriesLineChart = ({
         data={data}
         xScale={{ type: 'point' }}
         yScale={{ type: 'linear', min: 0 }}
-        {...buildLineChartProps({ fmt, styleMap, linesLayer, setSlice: setSliceCb, seriesLabels, defaultColor, isMobile, showLegend })}
+        {...buildLineChartProps({
+          fmt,
+          styleMap,
+          linesLayer,
+          setSlice: setSliceCb,
+          seriesLabels,
+          defaultColor,
+          isMobile,
+          showLegend,
+        })}
       />
       {showPortalTooltip &&
         slice &&
