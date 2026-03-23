@@ -186,6 +186,8 @@ export const MultiSeriesLineChart = ({
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
 
+  const [isTouching, setIsTouching] = useState(false);
+
   const setSliceCb = useCallback(
     (s: SliceData<LineSeries> | null) => {
       setSlice(s);
@@ -193,6 +195,15 @@ export const MultiSeriesLineChart = ({
     },
     [onSliceChange],
   );
+
+  const handleTouchStart = useCallback(() => {
+    setIsTouching(true);
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsTouching(false);
+    setSliceCb(null);
+  }, [setSliceCb]);
 
   useEffect(() => {
     return () => onSliceChange?.(null);
@@ -213,9 +224,11 @@ export const MultiSeriesLineChart = ({
 
   return (
     <div
-      style={{ height, userSelect: 'none', WebkitUserSelect: 'none', touchAction: 'pan-x pan-y' }}
+      style={{ height, userSelect: 'none', WebkitUserSelect: 'none', touchAction: isMobile ? 'pan-y' : 'auto' }}
       onMouseMove={handleMouseMove}
       onMouseLeave={isMobile ? undefined : () => setSliceCb(null)}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       role="application"
       aria-label="Line chart"
     >
@@ -236,6 +249,7 @@ export const MultiSeriesLineChart = ({
       />
       {showPortalTooltip &&
         slice &&
+        !isTouching &&
         seriesLabels &&
         slice.points.some((p) => !isGhostSeries(String(p.seriesId))) &&
         createPortal(
