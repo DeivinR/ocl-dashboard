@@ -1,4 +1,4 @@
-import { X, LogOut, Home } from 'lucide-react';
+import { X, LogOut } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 const LOGO_LIGHT_URL = '/logo-white.png';
@@ -18,7 +18,6 @@ interface SidebarProps {
   onTabChange: (id: string) => void;
   onClose: () => void;
   onLogout: () => void;
-  onBackToSections?: () => void;
 }
 
 export const Sidebar = ({
@@ -29,7 +28,6 @@ export const Sidebar = ({
   onTabChange,
   onClose,
   onLogout,
-  onBackToSections,
 }: Readonly<SidebarProps>) => {
   const translateClass = isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0';
 
@@ -55,15 +53,6 @@ export const Sidebar = ({
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-        {onBackToSections && (
-          <button
-            onClick={onBackToSections}
-            className="mb-4 flex w-full items-center gap-3 rounded-xl border border-white/20 px-4 py-3 text-sm font-medium text-white/70 transition-all hover:bg-white/10 hover:text-white"
-          >
-            <Home size={20} />
-            {isOpen && <span>Voltar às Seções</span>}
-          </button>
-        )}
         {menu.map((item) => (
           <button
             key={item.id}

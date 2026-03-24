@@ -1,4 +1,4 @@
-import { Menu, LogOut, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Menu, LogOut, ChevronLeft, ChevronRight, Calendar, ArrowLeft } from 'lucide-react';
 import type { MenuItem } from './Sidebar';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -12,6 +12,7 @@ interface HeaderProps {
   onToggleSidebar: () => void;
   onTabChange: (id: string) => void;
   onLogout: () => void;
+  onBackToSections?: () => void;
 }
 
 export const Header = ({
@@ -24,6 +25,7 @@ export const Header = ({
   onToggleSidebar,
   onTabChange,
   onLogout,
+  onBackToSections,
 }: Readonly<HeaderProps>) => {
   const { profile } = useAuth();
 
@@ -76,6 +78,16 @@ export const Header = ({
           <div className="flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-bold text-ocl-primary">
             <Calendar size={14} /> {currentDU}º Dia Útil
           </div>
+        )}
+
+        {onBackToSections && (
+          <button
+            onClick={onBackToSections}
+            title="Voltar às Seções"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+          >
+            <ArrowLeft size={20} />
+          </button>
         )}
       </div>
     </header>
