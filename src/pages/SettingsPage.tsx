@@ -1,14 +1,16 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, LogOut, UploadCloud, Menu, X, FileUp } from 'lucide-react';
+import { ArrowLeft, LogOut, UploadCloud, Menu, X, FileUp, Calendar, Database as DatabaseIcon } from 'lucide-react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../config/database.types';
 import type { DashboardData } from '../services';
 import { FileUploader } from '../components/FileUploader';
 import { GCAUploader } from '../components/GCAUploader';
+import { CalendarUploader } from '../components/CalendarUploader';
+import { PhotoBaseUploader } from '../components/PhotoBaseUploader';
 import { useIsMobile } from '../hooks/useIsMobile';
 import type { GetToken } from '../api/client';
 
-type SettingsSectionId = 'upload' | 'gca_upload';
+type SettingsSectionId = 'upload' | 'gca_upload' | 'calendar_upload' | 'photo_base_upload';
 
 interface SettingsItem {
   id: SettingsSectionId;
@@ -26,6 +28,16 @@ const SETTINGS_ITEMS: SettingsItem[] = [
     id: 'gca_upload',
     label: 'Upload de GCA',
     icon: FileUp,
+  },
+  {
+    id: 'calendar_upload',
+    label: 'Upload de Calendário',
+    icon: Calendar,
+  },
+  {
+    id: 'photo_base_upload',
+    label: 'Upload do Photo Base',
+    icon: DatabaseIcon,
   },
 ];
 
@@ -170,6 +182,8 @@ export const SettingsPage = ({ supabase, onDataSaved, onBack, onLogout }: Readon
         <div className="flex-1 px-4 py-6 md:px-8">
           {activeSection === 'upload' && <FileUploader supabase={supabase} onDataSaved={onDataSaved} />}
           {activeSection === 'gca_upload' && <GCAUploader getToken={getToken} />}
+          {activeSection === 'calendar_upload' && <CalendarUploader />}
+          {activeSection === 'photo_base_upload' && <PhotoBaseUploader />}
         </div>
       </main>
     </div>
