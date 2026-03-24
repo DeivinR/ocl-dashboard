@@ -1,7 +1,14 @@
 import { useState, type ChangeEvent } from 'react';
 import { Cloud, CheckCircle2, Loader2 } from 'lucide-react';
+import type { GetToken } from '../api/client';
+import { uploadGCAFile } from '../api/gca';
 
 type UploaderStatus = 'idle' | 'processing' | 'success';
+const MAX_GCA_FILE_SIZE_BYTES = 2.5 * 1024 * 1024;
+
+interface GCAUploaderProps {
+  getToken: GetToken;
+}
 
 interface UploaderState {
   borderClass: string;
@@ -49,28 +56,48 @@ function getUploaderState(status: UploaderStatus, statusMsg: string): UploaderSt
   };
 }
 
-export const GCAUploader = () => {
+export const GCAUploader = ({ getToken }: Readonly<GCAUploaderProps>) => {
   const [status, setStatus] = useState<UploaderStatus>('idle');
   const [statusMsg, setStatusMsg] = useState('');
 
   const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const input = e.target;
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      alert('Formato inválido. Envie um arquivo CSV.');
+      input.value = '';
+      return;
+    }
+
+    if (file.size > MAX_GCA_FILE_SIZE_BYTES) {
+      alert('Arquivo excede o limite de 2.5 MB.');
+      input.value = '';
+      return;
+    }
+
+    const fileText = await file.text();
+    const [firstLine = ''] = fileText.split(/\r?\n/, 1);
+    const normalizedHeaders = firstLine
+      .split(',')
+      .map((header) => header.trim().toLowerCase())
+      .join(',');
+
+    if (normalizedHeaders !== 'debt_id,gca') {
+      alert('Cabeçalhos inválidos. Use: debt_id,gca');
+      input.value = '';
+      return;
+    }
 
     setStatus('processing');
     setStatusMsg('Processando arquivo GCA...');
 
     try {
-      // Exemplo de integração:
-      // const formData = new FormData();
-      // formData.append('file', file);
-      // const response = await fetch('SEU_ENDPOINT_AQUI', { method: 'POST', body: formData });
-      // if (!response.ok) throw new Error();
-
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulação
+      await uploadGCAFile(getToken, file);
 
       setStatus('success');
-      setStatusMsg('Arquivo GCA selecionado com sucesso.');
+      setStatusMsg('Arquivo GCA enviado com sucesso.');
 
       setTimeout(() => {
         setStatus('idle');
@@ -78,7 +105,9 @@ export const GCAUploader = () => {
       }, 3000);
     } catch (error) {
       setStatus('idle');
-      alert('Erro ao processar arquivo GCA');
+      alert('Erro ao enviar arquivo GCA: ' + (error as Error).message);
+    } finally {
+      input.value = '';
     }
   };
 
@@ -94,7 +123,9 @@ export const GCAUploader = () => {
         </div>
 
         <div className="p-5">
-          <label className={`group flex w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 transition-all ${borderClass}`}>
+          <label
+            className={`group flex w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 transition-all ${borderClass}`}
+          >
             {content}
             <input type="file" className="hidden" accept=".csv" onChange={handleFile} disabled={isProcessing} />
           </label>

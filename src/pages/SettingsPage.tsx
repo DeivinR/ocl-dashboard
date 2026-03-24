@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowLeft, LogOut, UploadCloud, Menu, X, FileUp } from 'lucide-react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../config/database.types';
@@ -6,6 +6,7 @@ import type { DashboardData } from '../services';
 import { FileUploader } from '../components/FileUploader';
 import { GCAUploader } from '../components/GCAUploader';
 import { useIsMobile } from '../hooks/useIsMobile';
+import type { GetToken } from '../api/client';
 
 type SettingsSectionId = 'upload' | 'gca_upload';
 
@@ -39,6 +40,14 @@ export const SettingsPage = ({ supabase, onDataSaved, onBack, onLogout }: Readon
   const [activeSection, setActiveSection] = useState<SettingsSectionId>('upload');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const isMobile = useIsMobile();
+  const getToken = useMemo<GetToken>(
+    () => async () => {
+      if (!supabase) return null;
+      const { data } = await supabase.auth.getSession();
+      return data.session?.access_token ?? null;
+    },
+    [supabase],
+  );
 
   const handleSectionChange = (id: SettingsSectionId) => {
     setActiveSection(id);
@@ -160,7 +169,7 @@ export const SettingsPage = ({ supabase, onDataSaved, onBack, onLogout }: Readon
         )}
         <div className="flex-1 px-4 py-6 md:px-8">
           {activeSection === 'upload' && <FileUploader supabase={supabase} onDataSaved={onDataSaved} />}
-          {activeSection === 'gca_upload' && <GCAUploader />}
+          {activeSection === 'gca_upload' && <GCAUploader getToken={getToken} />}
         </div>
       </main>
     </div>
