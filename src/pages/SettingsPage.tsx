@@ -98,15 +98,6 @@ export const SettingsPage = ({ supabase, onDataSaved, onBack, onLogout }: Readon
               <X size={16} />
             </button>
           )}
-          {sidebarOpen && !isMobile && (
-            <button
-              onClick={onBack}
-              title="Voltar"
-              className="absolute right-4 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-            >
-              <ArrowLeft size={16} />
-            </button>
-          )}
         </div>
 
         {sidebarOpen && (
@@ -116,15 +107,6 @@ export const SettingsPage = ({ supabase, onDataSaved, onBack, onLogout }: Readon
         )}
 
         <nav className="mt-2 flex-1 space-y-1 overflow-y-auto p-4">
-          {!isMobile && !sidebarOpen && (
-            <button
-              onClick={onBack}
-              title="Voltar"
-              className="mb-4 flex w-full items-center justify-center rounded-xl border border-slate-200 px-4 py-3 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-            >
-              <ArrowLeft size={20} />
-            </button>
-          )}
           {SETTINGS_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
@@ -160,25 +142,28 @@ export const SettingsPage = ({ supabase, onDataSaved, onBack, onLogout }: Readon
         </div>
       </aside>
 
-      <main className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto ${!isMobile && !sidebarOpen && 'ml-20'}`}>
-        {isMobile && (
-          <header className="flex h-16 shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-4">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4">
+          <div className="flex items-center gap-4">
             <button
-              onClick={() => setSidebarOpen(true)}
+              onClick={() => setSidebarOpen(!sidebarOpen)}
               className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100"
             >
               <Menu size={24} />
             </button>
-            <img src="/logo.png" alt="OCL" className="h-8 object-contain" />
-            <button
-              onClick={onBack}
-              title="Voltar"
-              className="ml-auto flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-            >
-              <ArrowLeft size={20} />
-            </button>
-          </header>
-        )}
+            <img src="/logo.png" alt="OCL" className="h-8 object-contain lg:hidden" />
+            <h1 className="hidden text-lg font-bold text-ocl-primary md:block">
+              {SETTINGS_ITEMS.find((item) => item.id === activeSection)?.label}
+            </h1>
+          </div>
+          <button
+            onClick={onBack}
+            title="Voltar"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+          >
+            <ArrowLeft size={20} />
+          </button>
+        </header>
         <div className="flex-1 px-4 py-6 md:px-8">
           {activeSection === 'upload' && <FileUploader supabase={supabase} onDataSaved={onDataSaved} />}
           {activeSection === 'gca_upload' && <GCAUploader getToken={getToken} />}
