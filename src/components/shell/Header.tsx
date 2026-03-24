@@ -1,4 +1,4 @@
-import { Menu, LogOut, ChevronLeft, ChevronRight, Calendar, ArrowLeft } from 'lucide-react';
+import { Menu, Calendar, ArrowLeft } from 'lucide-react';
 import type { MenuItem } from './Sidebar';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -7,11 +7,7 @@ interface HeaderProps {
   activeTab: string;
   isMobile: boolean;
   currentDU: number | undefined;
-  prevTab: MenuItem | null;
-  nextTab: MenuItem | null;
   onToggleSidebar: () => void;
-  onTabChange: (id: string) => void;
-  onLogout: () => void;
   onBackToSections?: () => void;
 }
 
@@ -20,11 +16,7 @@ export const Header = ({
   activeTab,
   isMobile,
   currentDU,
-  prevTab,
-  nextTab,
   onToggleSidebar,
-  onTabChange,
-  onLogout,
   onBackToSections,
 }: Readonly<HeaderProps>) => {
   const { profile } = useAuth();
@@ -48,31 +40,6 @@ export const Header = ({
           </div>
         )}
 
-        {isMobile && (
-          <div className="flex gap-1">
-            <button onClick={onLogout} className="mr-2 rounded-lg bg-red-50 p-2 text-red-600" title="Sair">
-              <LogOut size={16} />
-            </button>
-            <button
-              onClick={() => {
-                if (prevTab) onTabChange(prevTab.id);
-              }}
-              disabled={!prevTab}
-              className="rounded-lg bg-slate-100 p-2 disabled:opacity-30"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button
-              onClick={() => {
-                if (nextTab) onTabChange(nextTab.id);
-              }}
-              disabled={!nextTab}
-              className="rounded-lg bg-slate-100 p-2 disabled:opacity-30"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        )}
 
         {currentDU !== undefined && (
           <div className="flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-bold text-ocl-primary">
@@ -80,7 +47,7 @@ export const Header = ({
           </div>
         )}
 
-        {onBackToSections && (
+        {isMobile && onBackToSections && (
           <button
             onClick={onBackToSections}
             title="Voltar às Seções"

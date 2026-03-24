@@ -1,4 +1,4 @@
-import { X, LogOut } from 'lucide-react';
+import { X, LogOut, ArrowLeft } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 const LOGO_LIGHT_URL = '/logo-white.png';
@@ -18,6 +18,7 @@ interface SidebarProps {
   onTabChange: (id: string) => void;
   onClose: () => void;
   onLogout: () => void;
+  onBackToSections?: () => void;
 }
 
 export const Sidebar = ({
@@ -28,6 +29,7 @@ export const Sidebar = ({
   onTabChange,
   onClose,
   onLogout,
+  onBackToSections,
 }: Readonly<SidebarProps>) => {
   const translateClass = isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0';
 
@@ -35,11 +37,22 @@ export const Sidebar = ({
     <aside
       className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col bg-gradient-to-b from-ocl-primary to-ocl-dark text-white shadow-2xl transition-all duration-300 supports-[height:100dvh]:h-[100dvh] ${isOpen ? 'w-72' : 'w-20'} ${translateClass}`}
     >
-      <div className="relative flex h-24 items-center justify-center border-b border-white/10 p-6">
-        {isOpen ? (
-          <img src={LOGO_LIGHT_URL} alt="OCL" className="h-14 object-contain" />
-        ) : (
-          <img src={LOGO_LIGHT_URL} alt="OCL" className="h-12 object-contain" />
+      <div className="relative flex h-24 items-center justify-center gap-3 border-b border-white/10 p-6">
+        <div className="flex flex-1 items-center justify-center">
+          {isOpen ? (
+            <img src={LOGO_LIGHT_URL} alt="OCL" className="h-14 object-contain" />
+          ) : (
+            <img src={LOGO_LIGHT_URL} alt="OCL" className="h-12 object-contain" />
+          )}
+        </div>
+        {!isMobile && isOpen && onBackToSections && (
+          <button
+            onClick={onBackToSections}
+            title="Voltar às Seções"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <ArrowLeft size={18} />
+          </button>
         )}
         {isMobile && (
           <button
