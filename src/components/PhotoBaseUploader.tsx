@@ -41,7 +41,7 @@ function getUploaderState(status: UploaderStatus, statusMsg: string): UploaderSt
           <Database size={24} className="text-ocl-primary" />
         </div>
         <div className="text-center">
-          <p className="text-sm font-semibold text-slate-700">Clique para selecionar o arquivo de Photo Base</p>
+          <p className="text-sm font-semibold text-slate-700">Clique para selecionar o arquivo de Foto Base</p>
           <p className="mt-0.5 text-xs text-slate-400">Formato aceito: .csv</p>
         </div>
       </>
@@ -58,13 +58,13 @@ export const PhotoBaseUploader = () => {
     if (!file) return;
 
     setStatus('processing');
-    setStatusMsg('Processando arquivo de Photo Base...');
+    setStatusMsg('Processando arquivo de Foto Base...');
 
     try {
       await new Promise(resolve => setTimeout(resolve, 1500)); // Simulação
 
       setStatus('success');
-      setStatusMsg('Arquivo de Photo Base selecionado com sucesso.');
+      setStatusMsg('Arquivo de Foto Base selecionado com sucesso.');
 
       setTimeout(() => {
         setStatus('idle');
@@ -72,7 +72,7 @@ export const PhotoBaseUploader = () => {
       }, 3000);
     } catch (error) {
       setStatus('idle');
-      alert('Erro ao processar arquivo de Photo Base');
+      alert('Erro ao processar arquivo de Foto Base');
     }
   };
 
@@ -84,7 +84,7 @@ export const PhotoBaseUploader = () => {
       <div className="w-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
         <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-5 py-3.5">
           <Database size={15} className="text-ocl-primary" />
-          <span className="text-sm font-semibold text-slate-700">Upload de Arquivo de Photo Base</span>
+          <span className="text-sm font-semibold text-slate-700">Upload de Arquivo de Foto Base</span>
         </div>
 
         <div className="p-5">

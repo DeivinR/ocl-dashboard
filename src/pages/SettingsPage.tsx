@@ -72,7 +72,7 @@ const UPLOAD_TYPES: UploadType[] = [
   },
   {
     id: 'photo_base_upload',
-    label: 'Photo Base',
+    label: 'Foto Base',
     icon: DatabaseIcon,
   },
   {
