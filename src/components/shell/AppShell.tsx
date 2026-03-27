@@ -6,8 +6,6 @@ import type { MenuItem } from './Sidebar';
 export interface AppShellTabs {
   menu: MenuItem[];
   activeTab: string;
-  prevTab: MenuItem | null;
-  nextTab: MenuItem | null;
   onTabChange: (id: string) => void;
 }
 
@@ -64,11 +62,8 @@ export const AppShell = ({
           activeTab={tabs.activeTab}
           isMobile={isMobile}
           currentDU={currentDU}
-          prevTab={tabs.prevTab}
-          nextTab={tabs.nextTab}
           onToggleSidebar={sidebar.onToggle}
-          onTabChange={tabs.onTabChange}
-          onLogout={onLogout}
+          onBackToSections={onBackToSections}
         />
         <div className="relative flex-1 overflow-y-auto p-4 md:p-8">
           {isMobile && sidebar.isOpen && (

@@ -65,18 +65,48 @@ export const ConversationListSkeleton = () => (
 );
 
 export const ChatMessagesSkeleton = () => (
-  <div className="flex flex-1 flex-col gap-4 p-4">
-    <div className="flex justify-start">
-      <Skeleton className="h-16 w-64 rounded-2xl rounded-bl-md" />
+  <div className="mx-auto flex w-full max-w-3xl flex-col py-4">
+    <div className="flex items-end gap-2 px-4 pb-2 pt-4">
+      <div className="h-8 w-8 flex-shrink-0 animate-pulse rounded-full bg-slate-200" />
+      <div className="flex max-w-[80%] flex-col gap-1">
+        <div className="rounded-2xl rounded-bl-sm bg-white px-4 py-3 shadow-md ring-1 ring-slate-200">
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-56" />
+            <Skeleton className="h-3 w-40" />
+          </div>
+        </div>
+      </div>
     </div>
-    <div className="flex justify-end">
-      <Skeleton className="h-12 w-48 rounded-2xl rounded-br-md" />
+
+    <div className="flex justify-end px-4 pb-2 pt-4">
+      <div className="flex max-w-[80%] items-end gap-2">
+        <div className="rounded-2xl rounded-br-sm bg-ocl-primary/20 px-4 py-3 shadow-md">
+          <Skeleton className="h-3 w-36 !bg-ocl-primary/30" />
+        </div>
+        <div className="h-8 w-8 flex-shrink-0 animate-pulse rounded-full bg-slate-200" />
+      </div>
     </div>
-    <div className="flex justify-start">
-      <Skeleton className="h-20 w-72 rounded-2xl rounded-bl-md" />
+
+    <div className="flex items-end gap-2 px-4 pb-2 pt-4">
+      <div className="h-8 w-8 flex-shrink-0 animate-pulse rounded-full bg-slate-200" />
+      <div className="flex max-w-[80%] flex-col gap-1">
+        <div className="rounded-2xl rounded-bl-sm bg-white px-4 py-3 shadow-md ring-1 ring-slate-200">
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-64" />
+            <Skeleton className="h-3 w-48" />
+            <Skeleton className="h-3 w-32" />
+          </div>
+        </div>
+      </div>
     </div>
-    <div className="flex justify-end">
-      <Skeleton className="h-10 w-32 rounded-2xl rounded-br-md" />
+
+    <div className="flex justify-end px-4 pb-2 pt-4">
+      <div className="flex max-w-[80%] items-end gap-2">
+        <div className="rounded-2xl rounded-br-sm bg-ocl-primary/20 px-4 py-3 shadow-md">
+          <Skeleton className="h-3 w-28 !bg-ocl-primary/30" />
+        </div>
+        <div className="h-8 w-8 flex-shrink-0 animate-pulse rounded-full bg-slate-200" />
+      </div>
     </div>
   </div>
 );

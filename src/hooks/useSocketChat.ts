@@ -10,6 +10,17 @@ interface UseSocketChatOptions {
   getAccessToken?: () => Promise<string | null>;
 }
 
+function resolveBackendUrl(): string {
+  const envUrl = import.meta.env.VITE_OCL_DASHBOARD_BACKEND_URL as string | undefined;
+  const fallback = import.meta.env.DEV ? 'http://localhost:3000' : globalThis.location?.origin;
+  const raw = (envUrl && envUrl.trim().length > 0 ? envUrl : fallback) ?? '';
+
+  if (raw.startsWith('http://') && globalThis.location?.protocol === 'https:') {
+    return 'https://' + raw.slice('http://'.length);
+  }
+  return raw;
+}
+
 export const useChat = ({
   onToken,
   onDone,
@@ -38,7 +49,7 @@ export const useChat = ({
   useEffect(() => {
     if (!enabled) return;
 
-    const wsUrl = import.meta.env.VITE_OCL_DASHBOARD_BACKEND_URL || 'http://localhost:3000';
+    const wsUrl = resolveBackendUrl();
     let cancelled = false;
     const getToken = getAccessTokenRef.current;
 

@@ -49,11 +49,13 @@ export function SocketChatRuntime({
   useEffect(() => {
     if (prevConversationIdRef.current !== conversationId) {
       prevConversationIdRef.current = conversationId;
-      setMessages(initialMessagesRef.current);
       setIsRunning(false);
       streamingIdRef.current = null;
     }
-  }, [conversationId]);
+    if (!streamingIdRef.current) {
+      setMessages(initialMessages);
+    }
+  }, [conversationId, initialMessages]);
 
   const finishStreaming = useCallback((status: NonNullable<ThreadMessageLike['status']>) => {
     const completedId = streamingIdRef.current;
@@ -151,13 +153,15 @@ export function SocketChatRuntime({
     [runTurn],
   );
 
-  const initialConsumed = useRef(false);
+  const initialConsumed = useRef<string | null>(null);
   useEffect(() => {
-    if (!isConnected || initialConsumed.current || initialMessage === null || initialMessage.trim() === '') return;
-    initialConsumed.current = true;
+    if (!isConnected || initialMessage === null || initialMessage.trim() === '') return;
+    const key = `${conversationId}:${initialMessage}`;
+    if (initialConsumed.current === key) return;
+    initialConsumed.current = key;
     runTurn(initialMessage.trim());
     onInitialMessageConsumed();
-  }, [isConnected, initialMessage, runTurn, onInitialMessageConsumed]);
+  }, [isConnected, initialMessage, conversationId, runTurn, onInitialMessageConsumed]);
 
   const convertMessage = useCallback((msg: ThreadMessageLike) => msg, []);
   const store = useMemo(

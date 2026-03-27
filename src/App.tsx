@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useIsMobile } from './hooks/useIsMobile';
@@ -10,11 +10,14 @@ import {
   LandingPage,
   SettingsPage,
   DashboardPage,
+  ChatPage,
 } from './pages';
 import { getAppUrl } from './config';
+import { getUserDisplay } from './utils/userDisplay';
 
 const App = () => {
-  const { user, data, updateData, loading, isConfigured, supabase, logout, isPasswordResetInProgress } = useAuth();
+  const { user, data, profile, updateData, loading, isConfigured, supabase, logout, isPasswordResetInProgress } =
+    useAuth();
   const [isSidebarOpen, setSidebarOpen] = useState(
     () => globalThis.window !== undefined && globalThis.window.innerWidth >= 1024,
   );
@@ -22,6 +25,20 @@ const App = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const redirectToChangePassword = `${getAppUrl()}/change-password`;
+  const [initialChatMessage, setInitialChatMessage] = useState<string | null>(null);
+  const userDisplay = getUserDisplay({
+    fullName: profile?.fullName,
+    role: profile?.role,
+    email: user?.email,
+  });
+
+  const getAccessToken = useMemo(() => {
+    return async () => {
+      if (!supabase) return null;
+      const { data } = await supabase.auth.getSession();
+      return data.session?.access_token ?? null;
+    };
+  }, [supabase]);
 
   if (loading)
     return (
@@ -67,6 +84,11 @@ const App = () => {
             onSectionSelect={(sectionId) => navigate(`/dashboard/${sectionId}`)}
             onOpenSettings={() => navigate('/settings')}
             onLogout={logout}
+            onOpenChat={() => navigate('/chat')}
+            onSendMessage={(message) => {
+              setInitialChatMessage(message);
+              navigate('/chat');
+            }}
           />
         }
       />
@@ -87,6 +109,20 @@ const App = () => {
         path="/settings"
         element={
           <SettingsPage supabase={supabase} onDataSaved={updateData} onBack={() => navigate('/')} onLogout={logout} />
+        }
+      />
+      <Route
+        path="/chat"
+        element={
+          <ChatPage
+            getAccessToken={getAccessToken}
+            initialMessage={initialChatMessage}
+            onInitialMessageConsumed={() => setInitialChatMessage(null)}
+            onBack={() => navigate('/')}
+            onLogout={logout}
+            userName={userDisplay.name}
+            userRole={userDisplay.role}
+          />
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -13,16 +13,46 @@ type MdProps<T extends HTMLElement = HTMLElement> = HTMLAttributes<T> &
     children?: ReactNode;
   };
 
+function isSafeHref(rawHref: string): boolean {
+  const href = rawHref.trim();
+  if (href === '' || href.startsWith('#')) return true;
+  if (href.startsWith('/')) return true;
+  if (href.startsWith('./') || href.startsWith('../')) return true;
+
+  try {
+    const url = new URL(href);
+    const protocol = url.protocol.toLowerCase();
+    return protocol === 'http:' || protocol === 'https:' || protocol === 'mailto:' || protocol === 'tel:';
+  } catch {
+    return false;
+  }
+}
+
+function isExternalHref(rawHref: string): boolean {
+  const href = rawHref.trim();
+  try {
+    const url = new URL(href);
+    return url.origin !== globalThis.location?.origin;
+  } catch {
+    return false;
+  }
+}
+
 function MdLink({
   node: _n,
   children,
   ...props
 }: PropsWithChildren<AnchorHTMLAttributes<HTMLAnchorElement> & ExtraProps>) {
+  const href = typeof props.href === 'string' ? props.href : undefined;
+  const safeHref = href && isSafeHref(href) ? href : undefined;
+  const external = safeHref ? isExternalHref(safeHref) : false;
+
   return (
     <a
       {...props}
-      target="_blank"
-      rel="noreferrer"
+      href={safeHref}
+      target={external ? '_blank' : undefined}
+      rel={external ? 'noopener noreferrer' : undefined}
       className="font-medium text-blue-600 underline underline-offset-2 hover:text-blue-800"
     >
       {children}
