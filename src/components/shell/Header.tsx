@@ -1,6 +1,7 @@
 import { Menu, Calendar, ArrowLeft } from 'lucide-react';
 import type { MenuItem } from './Sidebar';
 import { useAuth } from '../../contexts/AuthContext';
+import { getUserDisplay } from '../../utils/userDisplay';
 
 interface HeaderProps {
   menu: MenuItem[];
@@ -19,7 +20,12 @@ export const Header = ({
   onToggleSidebar,
   onBackToSections,
 }: Readonly<HeaderProps>) => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const userDisplay = getUserDisplay({
+    fullName: profile?.fullName,
+    role: profile?.role,
+    email: user?.email,
+  });
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white p-4 shadow-sm">
@@ -33,10 +39,10 @@ export const Header = ({
       </div>
 
       <div className="flex items-center gap-3">
-        {profile?.fullName && (
+        {userDisplay.name && (
           <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 md:flex">
-            <span>{profile.fullName}</span>
-            {profile.role && <span className="text-slate-500">({profile.role})</span>}
+            <span>{userDisplay.name}</span>
+            {userDisplay.role && <span className="text-slate-500">({userDisplay.role})</span>}
           </div>
         )}
 

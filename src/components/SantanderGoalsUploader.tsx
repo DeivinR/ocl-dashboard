@@ -1,7 +1,10 @@
-import { useState, type ChangeEvent } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import { Target, CheckCircle2, Loader2 } from 'lucide-react';
+import type { GetToken } from '../api/client';
+import { useUploadGoalsFile } from '../hooks/queries/useGoalsUpload';
 
 type UploaderStatus = 'idle' | 'processing' | 'success';
+const MAX_GOALS_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 interface UploaderState {
   borderClass: string;
@@ -42,37 +45,69 @@ function getUploaderState(status: UploaderStatus, statusMsg: string): UploaderSt
         </div>
         <div className="text-center">
           <p className="text-sm font-semibold text-slate-700">Clique para selecionar o arquivo de metas Santander</p>
-          <p className="mt-0.5 text-xs text-slate-400">Formato aceito: .csv</p>
+          <p className="mt-0.5 text-xs text-slate-400">Formato aceito: .xlsx</p>
         </div>
       </>
     ),
   };
 }
 
-export const SantanderGoalsUploader = () => {
+interface SantanderGoalsUploaderProps {
+  getToken: GetToken;
+}
+
+export const SantanderGoalsUploader = ({ getToken }: Readonly<SantanderGoalsUploaderProps>) => {
+  const uploadMutation = useUploadGoalsFile(getToken);
   const [status, setStatus] = useState<UploaderStatus>('idle');
   const [statusMsg, setStatusMsg] = useState('');
+
+  useEffect(() => {
+    if (!uploadMutation.isPending && !uploadMutation.isSuccess) return;
+
+    if (uploadMutation.isPending) {
+      setStatus('processing');
+      setStatusMsg('Processando metas Santander...');
+      return;
+    }
+
+    setStatus('success');
+    setStatusMsg('Metas Santander enviadas com sucesso.');
+
+    const timeout = setTimeout(() => {
+      uploadMutation.reset();
+      setStatus('idle');
+      setStatusMsg('');
+    }, 3000);
+
+    return () => clearTimeout(timeout);
+  }, [uploadMutation]);
 
   const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const input = e.target;
 
-    setStatus('processing');
-    setStatusMsg('Processando metas Santander...');
+    if (!file.name.toLowerCase().endsWith('.xlsx')) {
+      alert('Formato inválido. Envie um arquivo XLSX.');
+      input.value = '';
+      return;
+    }
+
+    if (file.size > MAX_GOALS_FILE_SIZE_BYTES) {
+      alert('Arquivo excede o limite de 10 MB.');
+      input.value = '';
+      return;
+    }
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulação
-
-      setStatus('success');
-      setStatusMsg('Metas Santander processadas com sucesso.');
-
-      setTimeout(() => {
-        setStatus('idle');
-        setStatusMsg('');
-      }, 3000);
+      await uploadMutation.mutateAsync(file);
     } catch (error) {
+      uploadMutation.reset();
       setStatus('idle');
-      alert('Erro ao processar arquivo de metas Santander');
+      setStatusMsg('');
+      alert('Erro ao enviar arquivo de metas Santander: ' + (error as Error).message);
+    } finally {
+      input.value = '';
     }
   };
 
@@ -88,9 +123,11 @@ export const SantanderGoalsUploader = () => {
         </div>
 
         <div className="p-5">
-          <label className={`group flex w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 transition-all ${borderClass}`}>
+          <label
+            className={`group flex w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 transition-all ${borderClass}`}
+          >
             {content}
-            <input type="file" className="hidden" accept=".csv" onChange={handleFile} disabled={isProcessing} />
+            <input type="file" className="hidden" accept=".xlsx" onChange={handleFile} disabled={isProcessing} />
           </label>
         </div>
       </div>

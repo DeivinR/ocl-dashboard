@@ -1,6 +1,7 @@
 import type { GetToken } from './client';
 import { createAuthFetch } from './client';
-import type { Conversation, Message } from '../types';
+import type { Conversation } from '@/types/conversation';
+import type { Message } from '@/types/message';
 
 export async function getConversations(getToken: GetToken): Promise<Conversation[]> {
   const res = await createAuthFetch(getToken)('/conversations');
@@ -17,6 +18,19 @@ export async function createConversation(getToken: GetToken): Promise<Conversati
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({}),
+  });
+  return res.json();
+}
+
+export async function updateConversation(
+  conversationId: string,
+  payload: { title: string },
+  getToken: GetToken,
+): Promise<Conversation> {
+  const res = await createAuthFetch(getToken)(`/conversations/${conversationId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
   });
   return res.json();
 }

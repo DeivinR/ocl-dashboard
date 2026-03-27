@@ -1,5 +1,15 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, LogOut, UploadCloud, Menu, X, FileUp, Calendar, Database as DatabaseIcon, Target } from 'lucide-react';
+import {
+  ArrowLeft,
+  LogOut,
+  UploadCloud,
+  Menu,
+  X,
+  FileUp,
+  Calendar,
+  Database as DatabaseIcon,
+  Target,
+} from 'lucide-react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../config/database.types';
 import type { DashboardData } from '../services';
@@ -13,7 +23,13 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import type { GetToken } from '../api/client';
 
 type SettingsSectionId = 'uploads';
-type UploadTypeId = 'upload' | 'gca_upload' | 'calendar_upload' | 'photo_base_upload' | 'santander_goals_upload' | 'ocl_goals_upload';
+type UploadTypeId =
+  | 'upload'
+  | 'gca_upload'
+  | 'calendar_upload'
+  | 'photo_base_upload'
+  | 'santander_goals_upload'
+  | 'ocl_goals_upload';
 
 interface SettingsItem {
   id: SettingsSectionId;
@@ -27,7 +43,7 @@ interface UploadType {
   icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
-const OCLIcon = ({ size = 24, className = "" }: { size?: number; className?: string }) => (
+const OCLIcon = ({ size = 24, className = '' }: { size?: number; className?: string }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={size}
@@ -72,7 +88,7 @@ const UPLOAD_TYPES: UploadType[] = [
   },
   {
     id: 'photo_base_upload',
-    label: 'Photo Base',
+    label: 'Foto da Base',
     icon: DatabaseIcon,
   },
   {
@@ -143,7 +159,7 @@ export const SettingsPage = ({ supabase, onDataSaved, onBack, onLogout }: Readon
             <button
               onClick={onBack}
               title="Voltar ao Painel"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-100 text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-700"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-700"
             >
               <ArrowLeft size={20} />
             </button>
@@ -175,11 +191,13 @@ export const SettingsPage = ({ supabase, onDataSaved, onBack, onLogout }: Readon
                 key={item.id}
                 onClick={() => handleSectionChange(item.id)}
                 title={sidebarOpen ? undefined : item.label}
-                className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${!sidebarOpen && 'justify-center'
-                  } ${isActive
+                className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                  !sidebarOpen && 'justify-center'
+                } ${
+                  isActive
                     ? 'translate-x-1 bg-ocl-primary font-bold text-white shadow-lg shadow-ocl-primary/20'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                  }`}
+                }`}
               >
                 <Icon size={20} />
                 {sidebarOpen && <span>{item.label}</span>}
@@ -192,8 +210,9 @@ export const SettingsPage = ({ supabase, onDataSaved, onBack, onLogout }: Readon
           <button
             onClick={onLogout}
             title={sidebarOpen ? undefined : 'Sair do Sistema'}
-            className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 ${!sidebarOpen && 'justify-center'
-              }`}
+            className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 ${
+              !sidebarOpen && 'justify-center'
+            }`}
           >
             <LogOut size={20} />
             {sidebarOpen && <span>Sair do Sistema</span>}
@@ -241,9 +260,7 @@ export const SettingsPage = ({ supabase, onDataSaved, onBack, onLogout }: Readon
                       <Icon size={40} />
                     </div>
                     <div className="text-center">
-                      <h3 className="text-base font-bold text-slate-700 group-hover:text-ocl-primary">
-                        {type.label}
-                      </h3>
+                      <h3 className="text-base font-bold text-slate-700 group-hover:text-ocl-primary">{type.label}</h3>
                       <p className="mt-1 text-xs text-slate-400">Clique para abrir o painel de importação</p>
                     </div>
                   </button>
@@ -261,12 +278,12 @@ export const SettingsPage = ({ supabase, onDataSaved, onBack, onLogout }: Readon
                 <ArrowLeft size={14} />
                 Voltar para lista de uploads
               </button>
-              <div className="scale-95 origin-top">
+              <div className="origin-top scale-95">
                 {selectedUpload === 'upload' && <FileUploader supabase={supabase} onDataSaved={onDataSaved} />}
                 {selectedUpload === 'gca_upload' && <GCAUploader getToken={getToken} />}
                 {selectedUpload === 'calendar_upload' && <CalendarUploader />}
-                {selectedUpload === 'photo_base_upload' && <PhotoBaseUploader />}
-                {selectedUpload === 'santander_goals_upload' && <SantanderGoalsUploader />}
+                {selectedUpload === 'photo_base_upload' && <PhotoBaseUploader getToken={getToken} />}
+                {selectedUpload === 'santander_goals_upload' && <SantanderGoalsUploader getToken={getToken} />}
                 {selectedUpload === 'ocl_goals_upload' && <OCLGoalsUploader />}
               </div>
             </div>
