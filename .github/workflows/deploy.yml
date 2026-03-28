@@ -1,0 +1,38 @@
+name: Deploy Front-end Producao
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Baixar o código do GitHub
+      uses: actions/checkout@v3
+
+    - name: Configurar credenciais da AWS
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: sa-east-1
+
+    - name: Login no AWS ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Preparar Docker para compilar em ARM64
+      run: docker run --privileged --rm tonistiigi/binfmt --install all
+
+    - name: Build da imagem e envio para o ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ocl-dashboard
+        IMAGE_TAG: latest
+      run: |
+        docker buildx create --use
+        docker buildx build --platform linux/arm64 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --push .
+
+    - name: Avisar o Portainer para atualizar o sistema
+      run: curl -X POST ${{ secrets.PORTAINER_WEBHOOK }}
